@@ -97,7 +97,7 @@
     <nav class="navbar navbar-dark border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #12151f;">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/painel-cliente">
-                <img src="<?= !empty($customization['logo_path']) ? htmlspecialchars($customization['logo_path']) : \App\Core\View::logoUrl()" alt="Logo" class="custom-brand-logo" onerror="this.onerror=null; this.src='/assets/images/logo.png';">
+                <img src="<?= !empty($customization['logo_path']) ? htmlspecialchars($customization['logo_path']) : \App\Core\View::logoUrl() ?>" alt="Logo" class="custom-brand-logo" onerror="this.onerror=null; this.src='/assets/images/logo.png';">
                 <span class="ms-1"><?= htmlspecialchars(!empty($customization['brand_name']) ? $customization['brand_name'] : 'Player99') ?></span>
                 <span class="badge bg-info bg-opacity-10 text-info ms-2">Portal da Franquia & Parceiro</span>
             </a>
