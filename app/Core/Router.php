@@ -44,6 +44,11 @@ class Router
         $method = $this->request->method();
         $uri = $this->request->uri();
 
+        // Rastreamento global de link de indicação (?ref=REF-XXXXXX) em qualquer rota GET
+        if ($method === 'GET' && !empty($this->request->input('ref'))) {
+            \App\Models\Client::trackAffiliateClick((string)$this->request->input('ref'));
+        }
+
         foreach ($this->routes as $route) {
             if ($route['method'] !== $method) {
                 continue;
@@ -80,7 +85,6 @@ class Router
         $cleanUri = ltrim($uri, '/');
         $legacyFile = dirname(__DIR__, 2) . '/legacy_archive/' . $cleanUri;
         if (file_exists($legacyFile) && is_file($legacyFile)) {
-            // Ajusta o diretório de execução para a raiz para manter includes relativos funcionais
             chdir(dirname(__DIR__, 2));
             require $legacyFile;
             exit;

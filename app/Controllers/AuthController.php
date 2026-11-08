@@ -12,6 +12,10 @@ class AuthController extends Controller
 {
     public function showLogin(Request $request): void
     {
+        if (!empty($request->input('ref'))) {
+            Client::trackAffiliateClick((string)$request->input('ref'));
+        }
+
         if ($request->input('logout') === '1') {
             Auth::logout();
         } elseif (Auth::check()) {
@@ -156,7 +160,10 @@ class AuthController extends Controller
 
     public function showRegister(Request $request): void
     {
-        $ref = $request->input('ref') ?? ($_COOKIE['affiliate_ref'] ?? '');
+        if (!empty($request->input('ref'))) {
+            Client::trackAffiliateClick((string)$request->input('ref'));
+        }
+        $ref = strtoupper(trim((string)($request->input('ref') ?: ($_SESSION['affiliate_ref'] ?? ($_COOKIE['affiliate_ref'] ?? '')))));
         $this->render('auth/register', [
             'ref' => $ref,
             'errorMessage' => ''
@@ -165,12 +172,14 @@ class AuthController extends Controller
 
     public function register(Request $request): void
     {
+        Client::ensureSchema();
+
         $title = trim($request->input('title', ''));
         $username = trim($request->input('username', ''));
         $email = strtolower(trim($request->input('email', '')));
         $whatsapp = trim($request->input('whatsapp', ''));
         $password = trim($request->input('password', ''));
-        $ref = trim($request->input('ref', ''));
+        $ref = strtoupper(trim((string)($request->input('ref') ?: ($_SESSION['affiliate_ref'] ?? ($_COOKIE['affiliate_ref'] ?? '')))));
 
         if (empty($title) || empty($username) || empty($password)) {
             $this->render('auth/register', [
@@ -201,23 +210,26 @@ class AuthController extends Controller
         $referredById = null;
         if (!empty($ref)) {
             try {
-                $stmtRef = $pdo->prepare("SELECT id FROM ibo WHERE affiliateCode = :ref LIMIT 1");
+                $stmtRef = $pdo->prepare("SELECT id FROM ibo WHERE UPPER(TRIM(affiliateCode)) = UPPER(TRIM(:ref)) LIMIT 1");
                 $stmtRef->bindValue(':ref', $ref);
                 $stmtRef->execute();
                 $refRow = $stmtRef->fetch();
-                if ($refRow) $referredById = (int)$refRow['id'];
-            } catch (\Exception $e) {}
+                if ($refRow) {
+                    $referredById = (int)$refRow['id'];
+                }
+            } catch (\Throwable $e) {}
         }
 
         $vence = date('Y-m-d', strtotime('+30 DAYS'));
         $macAddress = sprintf('%02X:%02X:%02X:%02X:%02X:%02X', mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
-        $deviceKey = substr(md5(mt_rand()), 0, 6);
+        $deviceKey = substr(md5((string)mt_rand()), 0, 6);
+        $newAffiliateCode = 'REF-' . strtoupper(substr(md5(uniqid('p99_', true)), 0, 6));
 
         try {
             $stmt = $pdo->prepare("INSERT INTO ibo (
-                mac_address, key, username, password, email, expire_date, title, active, referredById, whatsapp
+                mac_address, key, username, password, email, expire_date, title, active, referredById, whatsapp, affiliateCode, affiliateClicks, commissionPercent
             ) VALUES (
-                :mac, :key, :user, :pass, :email, :exp, :title, 1, :refId, :whats
+                :mac, :key, :user, :pass, :email, :exp, :title, 1, :refId, :whats, :affCode, 0, 20.0
             )");
             $stmt->bindValue(':mac', $macAddress);
             $stmt->bindValue(':key', $deviceKey);
@@ -228,8 +240,9 @@ class AuthController extends Controller
             $stmt->bindValue(':title', $title);
             $stmt->bindValue(':refId', $referredById);
             $stmt->bindValue(':whats', $whatsapp);
+            $stmt->bindValue(':affCode', $newAffiliateCode);
             $stmt->execute();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->render('auth/register', [
                 'errorMessage' => 'Erro ao criar conta: ' . $e->getMessage(),
                 'inputTitle' => $title,

@@ -892,7 +892,7 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             <!-- ========================================================= -->
             <?php if ($tab === 'afiliado'): ?>
                 <div class="row mb-4">
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 col-sm-6 mb-3">
                         <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #28a745 !important;">
                             <div class="card-body text-center py-4">
                                 <small class="text-muted font-weight-bold text-uppercase">Saldo Disponível</small>
@@ -900,7 +900,7 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 col-sm-6 mb-3">
                         <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #007bff !important;">
                             <div class="card-body text-center py-4">
                                 <small class="text-muted font-weight-bold text-uppercase">Cliques no Link</small>
@@ -908,7 +908,15 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #17a2b8 !important;">
+                            <div class="card-body text-center py-4">
+                                <small class="text-muted font-weight-bold text-uppercase">Cadastros Indicados</small>
+                                <h2 class="font-weight-bold text-info mt-2 mb-0"><?= count($affiliateReferrals ?? []) ?></h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
                         <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #ffc107 !important;">
                             <div class="card-body text-center py-4">
                                 <small class="text-muted font-weight-bold text-uppercase">Minha Comissão</small>
@@ -925,11 +933,11 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-md-8">
-                                <p class="text-muted">Compartilhe seu link exclusivo ou QR Code com outros motoristas e parceiros. Você recebe <b><?= number_format((float)($client['commissionPercent'] ?? 20), 0) ?>% de comissão</b> recorrente!</p>
+                                <p class="text-muted">Compartilhe seu link exclusivo ou QR Code com outros motoristas e parceiros. Você recebe <b><?= number_format((float)($client['commissionPercent'] ?? 20), 0) ?>% de comissão</b> recorrente sobre todas as mensalidades e faturas pagas pelos seus indicados!</p>
                                 <div class="input-group input-group-lg mb-3">
                                     <input type="text" class="form-control font-weight-bold" id="affLinkInput" value="<?= htmlspecialchars($affiliateLink) ?>" readonly>
                                     <div class="input-group-append">
-                                        <button class="btn btn-primary font-weight-bold" type="button" onclick="navigator.clipboard.writeText(document.getElementById('affLinkInput').value); alert('Link de afiliado copiado!');">
+                                        <button class="btn btn-primary font-weight-bold" type="button" onclick="navigator.clipboard.writeText(document.getElementById('affLinkInput').value); showToastFeedback('<i class=\'fas fa-check mr-2\'></i> Link de afiliado copiado!', false);">
                                             <i class="fas fa-copy mr-1"></i> Copiar Link
                                         </button>
                                     </div>
@@ -974,6 +982,95 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                         <i class="fas fa-hand-holding-usd mr-1"></i> Sacar R$ <?= number_format($affiliateBalance, 2, ',', '.') ?>
                                     </button>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Meus Indicados -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <div><i class="fas fa-users text-info mr-2"></i> Meus Indicados (<?= count($affiliateReferrals ?? []) ?>)</div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome / Parceiro</th>
+                                                <th>Status</th>
+                                                <th>Vencimento</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php if (empty($affiliateReferrals)): ?>
+                                                <tr><td colspan="3" class="text-center py-4 text-muted">Nenhum cadastro pelo seu link ainda. Compartilhe seu link acima!</td></tr>
+                                            <?php else: ?>
+                                                <?php foreach ($affiliateReferrals as $refCli):
+                                                    $isRefActive = ((int)($refCli['active'] ?? 1) === 1) && (empty($refCli['expire_date']) || $refCli['expire_date'] >= date('Y-m-d'));
+                                                ?>
+                                                    <tr>
+                                                        <td class="font-weight-bold"><?= htmlspecialchars($refCli['title'] ?: $refCli['username']) ?></td>
+                                                        <td>
+                                                            <?php if ($isRefActive): ?>
+                                                                <span class="badge badge-success px-2 py-1">Ativo</span>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-secondary px-2 py-1">Inativo/Vencido</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td><?= !empty($refCli['expire_date']) ? date('d/m/Y', strtotime($refCli['expire_date'])) : '-' ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extrato de Comissões e Saques -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <div><i class="fas fa-history text-success mr-2"></i> Extrato de Comissões & Saques</div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Descrição</th>
+                                                <th class="text-right">Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php if (empty($affiliateTransactions)): ?>
+                                                <tr><td colspan="3" class="text-center py-4 text-muted">Nenhuma comissão ou saque registrado até o momento.</td></tr>
+                                            <?php else: ?>
+                                                <?php foreach ($affiliateTransactions as $tx): ?>
+                                                    <tr>
+                                                        <td class="small text-muted"><?= !empty($tx['createdAt']) ? date('d/m/Y H:i', strtotime($tx['createdAt'])) : '-' ?></td>
+                                                        <td>
+                                                            <?= htmlspecialchars($tx['description'] ?? '') ?>
+                                                            <?php if (($tx['type'] ?? '') === 'WITHDRAW_PENDING'): ?>
+                                                                <span class="badge badge-warning ml-1">Pendente</span>
+                                                            <?php elseif (($tx['type'] ?? '') === 'PAYOUT'): ?>
+                                                                <span class="badge badge-info ml-1">Pago</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td class="text-right font-weight-bold <?= ($tx['type'] ?? '') === 'COMMISSION' ? 'text-success' : 'text-danger' ?>">
+                                                            <?= ($tx['type'] ?? '') === 'COMMISSION' ? '+' : '-' ?> R$ <?= number_format((float)($tx['amount'] ?? 0), 2, ',', '.') ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>

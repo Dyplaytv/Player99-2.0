@@ -3,17 +3,17 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Request;
+use App\Models\Client;
 use App\Services\LandingPages;
 
 class HomeController extends Controller
 {
     public function index(Request $request): void
     {
-        // Tratamento de afiliados
-        $ref = $request->input('ref');
-        if (!empty($ref)) {
-            $ref = strtoupper(trim($ref));
-            setcookie('affiliate_ref', $ref, time() + (86400 * 30), "/");
+        $ref = $request->input('ref') ?: ($_SESSION['affiliate_ref'] ?? ($_COOKIE['affiliate_ref'] ?? ''));
+        if (!empty($request->input('ref'))) {
+            $ref = strtoupper(trim((string)$request->input('ref')));
+            Client::trackAffiliateClick($ref);
         }
 
         $this->render('landing/home', [

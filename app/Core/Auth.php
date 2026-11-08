@@ -112,10 +112,12 @@ class Auth
             @session_start();
         }
 
+        $savedRef = $_SESSION['affiliate_ref'] ?? ($_COOKIE['affiliate_ref'] ?? '');
+
         // 1. Limpa todas as variáveis da sessão
         $_SESSION = [];
 
-        // 2. Apaga o cookie do navegador em múltiplos escopos
+        // 2. Apaga o cookie de sessão do navegador em múltiplos escopos
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();
             $path = $params["path"] ?? '/';
@@ -124,8 +126,6 @@ class Auth
             @setcookie(session_name(), '', time() - 86400, '/');
             @setcookie(session_name(), '', time() - 86400, '');
         }
-
-        @setcookie('affiliate_ref', '', time() - 86400, '/');
 
         // 3. Força regeneração de ID e destrói
         if (session_status() === PHP_SESSION_ACTIVE) {
@@ -138,6 +138,9 @@ class Auth
             @session_start();
         }
         $_SESSION = [];
+        if (!empty($savedRef)) {
+            $_SESSION['affiliate_ref'] = $savedRef;
+        }
         @session_write_close();
     }
 }

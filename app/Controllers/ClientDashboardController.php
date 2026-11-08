@@ -730,8 +730,19 @@ class ClientDashboardController extends Controller
         }
         $totalPrevisto = count($screens) * 100.0;
 
-        // Saldo Afiliado
+        // Saldo Afiliado, Indicados e Extrato
         $affiliateBalance = $this->getAffiliateBalance($pdo, $idCliente);
+        $affiliateReferrals = [];
+        $affiliateTransactions = [];
+        try {
+            $stmtRefList = $pdo->prepare("SELECT id, title, username, active, expire_date FROM ibo WHERE referredById = :id ORDER BY id DESC");
+            $stmtRefList->execute([':id' => $idCliente]);
+            $affiliateReferrals = $stmtRefList->fetchAll();
+
+            $stmtTxList = $pdo->prepare("SELECT * FROM affiliate_transactions WHERE userId = :id ORDER BY id DESC LIMIT 30");
+            $stmtTxList->execute([':id' => $idCliente]);
+            $affiliateTransactions = $stmtTxList->fetchAll();
+        } catch (\Throwable $e) {}
 
         // Customização da Franquia
         $stmtC = $pdo->prepare("SELECT * FROM cliente_customizacoes WHERE id_cliente = :cid");
@@ -769,6 +780,8 @@ class ClientDashboardController extends Controller
             'totalAcumulado' => $totalAcumulado,
             'totalPrevisto' => $totalPrevisto,
             'affiliateBalance' => $affiliateBalance,
+            'affiliateReferrals' => $affiliateReferrals,
+            'affiliateTransactions' => $affiliateTransactions,
             'currentVideoCount' => $currentVideoCount,
             'maxVideosAllowed' => $maxVideosAllowed,
             'maxVideoSizeMb' => $maxVideoSizeMb,
