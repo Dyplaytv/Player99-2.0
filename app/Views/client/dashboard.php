@@ -238,24 +238,6 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             <!-- 1. MODO ARQUIVOS                                          -->
             <!-- ========================================================= -->
             <?php if ($tab === 'arquivos'): ?>
-                <!-- Buscador Automático de Rádios -->
-                <div class="card mb-4 shadow-sm" style="background-color: #1b1e24; border: 1px solid #2a2d35;">
-                    <div class="card-header border-bottom-0 pb-0" style="background-color: #1b1e24; color: #fff;">
-                        <h5 class="m-0 font-weight-bold"><i class="fas fa-search mr-2 text-info"></i> Buscador Automático de Rádios</h5>
-                    </div>
-                    <div class="card-body pt-2 text-white">
-                        <label style="color: #bbb;">Buscar por Nome</label>
-                        <div class="input-group">
-                            <input type="text" id="radioSearchInput" class="form-control text-white border-secondary" style="background-color: #2a2d35;" placeholder="Ex: Jovem Pan, Gaúcha, Atlântida..." onkeypress="if(event.keyCode===13){searchRadio();}">
-                            <div class="input-group-append">
-                                <button class="btn btn-success" type="button" onclick="searchRadio()"><i class="fas fa-search mr-1"></i> Buscar</button>
-                            </div>
-                        </div>
-                        <small class="text-muted mt-2 d-block">Digite o nome de uma rádio e clique em buscar para adicioná-la aos seus arquivos.</small>
-                        <div id="radioSearchResults" class="mt-3"></div>
-                    </div>
-                </div>
-
                 <!-- Lista de Arquivos do Motorista -->
                 <div class="card">
                     <div class="card-header">
@@ -290,24 +272,63 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                     <thead>
                                         <tr>
                                             <th width="40"><input type="checkbox" id="check-all" onclick="document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = this.checked);"></th>
+                                            <th width="115">Prévia</th>
                                             <th>Nome do Arquivo</th>
-                                            <th>Data de Envio</th>
+                                            <th width="110">Tipo</th>
+                                            <th width="160">Data de Envio</th>
                                             <th width="130">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (empty($arquivosOnly)): ?>
-                                            <tr><td colspan="4" class="text-center py-4 text-muted">Nenhum arquivo enviado ainda. Clique em <b>ADICIONAR ARQUIVOS</b>!</td></tr>
+                                            <tr><td colspan="6" class="text-center py-4 text-muted">Nenhum arquivo enviado ainda. Clique em <b>ADICIONAR ARQUIVOS</b>!</td></tr>
                                         <?php else: ?>
-                                            <?php foreach ($arquivosOnly as $vid): ?>
+                                            <?php foreach ($arquivosOnly as $vid):
+                                                $fn = (string)($vid['filename'] ?? '');
+                                                $fileUrl = (strpos($fn, 'http') === 0 || strpos($fn, '/') === 0)
+                                                    ? $fn
+                                                    : '/uploads/clientes/' . (int)$selectedClientId . '/' . rawurlencode($fn);
+                                                $ext = strtolower(pathinfo(parse_url($fn, PHP_URL_PATH) ?: $fn, PATHINFO_EXTENSION));
+                                                $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
+                                                $displayTitle = $vid['title'] ?: $vid['filename'];
+                                            ?>
                                                 <tr>
-                                                    <td><input type="checkbox" name="selected_files[]" value="<?= (int)$vid['id'] ?>" class="file-checkbox"></td>
-                                                    <td class="font-weight-bold"><?= htmlspecialchars($vid['title'] ?: $vid['filename']) ?></td>
-                                                    <td><?= !empty($vid['upload_date']) ? date('d/m/Y H:i', strtotime($vid['upload_date'])) : '-' ?></td>
-                                                    <td>
-                                                        <a href="/uploads/clientes/<?= (int)$selectedClientId ?>/<?= htmlspecialchars($vid['filename']) ?>" target="_blank" class="btn btn-sm btn-info" title="Visualizar">
+                                                    <td class="align-middle"><input type="checkbox" name="selected_files[]" value="<?= (int)$vid['id'] ?>" class="file-checkbox"></td>
+                                                    <td class="align-middle">
+                                                        <div onclick="openMediaPreviewModal('<?= htmlspecialchars($fileUrl, ENT_QUOTES) ?>', '<?= htmlspecialchars($displayTitle, ENT_QUOTES) ?>', <?= $isImage ? 'true' : 'false' ?>)"
+                                                             onmouseenter="var v=this.querySelector('video');if(v){v.play().catch(function(){});}"
+                                                             onmouseleave="var v=this.querySelector('video');if(v){v.pause();try{v.currentTime=0.5;}catch(e){}}"
+                                                             title="Clique para ampliar a prévia"
+                                                             style="width:96px;height:56px;border-radius:6px;overflow:hidden;background:#0f172a;border:1px solid #cbd5e1;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.12);">
+                                                            <?php if ($isImage): ?>
+                                                                <img src="<?= htmlspecialchars($fileUrl) ?>" alt="Miniatura" style="width:100%;height:100%;object-fit:cover;">
+                                                                <span style="position:absolute;bottom:3px;right:4px;background:rgba(0,0,0,0.72);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;line-height:1.2;">IMG</span>
+                                                            <?php else: ?>
+                                                                <video src="<?= htmlspecialchars($fileUrl) ?>#t=0.5" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></video>
+                                                                <span style="position:absolute;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.65);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;pointer-events:none;">
+                                                                    <i class="fas fa-play" style="margin-left:2px;"></i>
+                                                                </span>
+                                                                <span style="position:absolute;bottom:3px;right:4px;background:rgba(0,0,0,0.72);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;line-height:1.2;"><?= strtoupper($ext ?: 'MP4') ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </td>
+                                                    <td class="font-weight-bold align-middle">
+                                                        <?= htmlspecialchars($displayTitle) ?>
+                                                        <small class="d-block text-muted font-weight-normal"><?= htmlspecialchars($fn) ?></small>
+                                                    </td>
+                                                    <td class="align-middle">
+                                                        <?php if ($isImage): ?>
+                                                            <span class="badge badge-info px-2 py-1"><i class="fas fa-image mr-1"></i> Imagem</span>
+                                                        <?php else: ?>
+                                                            <span class="badge badge-primary px-2 py-1"><i class="fas fa-video mr-1"></i> Vídeo</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td class="align-middle"><?= !empty($vid['upload_date']) ? date('d/m/Y H:i', strtotime($vid['upload_date'])) : '-' ?></td>
+                                                    <td class="align-middle">
+                                                        <button type="button" class="btn btn-sm btn-info" title="Visualizar Prévia"
+                                                                onclick="openMediaPreviewModal('<?= htmlspecialchars($fileUrl, ENT_QUOTES) ?>', '<?= htmlspecialchars($displayTitle, ENT_QUOTES) ?>', <?= $isImage ? 'true' : 'false' ?>)">
                                                             <i class="fas fa-eye"></i>
-                                                        </a>
+                                                        </button>
                                                         <button type="submit" name="apagar_video" value="1" class="btn btn-sm btn-danger" title="Apagar" onclick="document.getElementById('id_video_to_delete').value='<?= (int)$vid['id'] ?>'; return confirm('Apagar este arquivo?');">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
@@ -320,6 +341,26 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                             </div>
                             <input type="hidden" name="id_video" id="id_video_to_delete" value="">
                         </form>
+                    </div>
+                </div>
+
+                <!-- Modal Visualizar Prévia do Arquivo -->
+                <div class="modal fade" id="mediaPreviewModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg" style="background:#0f172a;color:#fff;">
+                            <div class="modal-header border-secondary" style="background:#151921;">
+                                <h5 class="modal-title font-weight-bold text-white" id="mediaPreviewModalTitle">Prévia do Arquivo</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal" onclick="closeMediaPreviewModal()">&times;</button>
+                            </div>
+                            <div class="modal-body text-center p-3" id="mediaPreviewModalBody" style="min-height:280px;display:flex;align-items:center;justify-content:center;background:#000;">
+                            </div>
+                            <div class="modal-footer border-secondary justify-content-between" style="background:#151921;">
+                                <a href="#" target="_blank" id="mediaPreviewNewTabBtn" class="btn btn-sm btn-outline-info font-weight-bold">
+                                    <i class="fas fa-external-link-alt mr-1"></i> Abrir em Nova Guia
+                                </a>
+                                <button type="button" class="btn btn-sm btn-light font-weight-bold px-3" data-dismiss="modal" onclick="closeMediaPreviewModal()">Fechar</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -393,9 +434,23 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                         <input type="text" id="searchVideos" class="form-control form-control-sm" placeholder="Procurar arquivo...">
                                     </div>
                                     <div class="video-list" id="sourceList">
-                                        <?php foreach ($arquivosOnly as $vid): ?>
+                                        <?php foreach ($arquivosOnly as $vid):
+                                            $fn = (string)($vid['filename'] ?? '');
+                                            $fileUrl = (strpos($fn, 'http') === 0 || strpos($fn, '/') === 0)
+                                                ? $fn
+                                                : '/uploads/clientes/' . (int)$selectedClientId . '/' . rawurlencode($fn);
+                                            $ext = strtolower(pathinfo(parse_url($fn, PHP_URL_PATH) ?: $fn, PATHINFO_EXTENSION));
+                                            $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
+                                        ?>
                                             <div class="video-item" data-id="<?= (int)$vid['id'] ?>">
                                                 <i class="fas fa-grip-vertical drag-handle"></i>
+                                                <div style="width:46px;height:28px;border-radius:4px;overflow:hidden;background:#0f172a;border:1px solid #cbd5e1;flex-shrink:0;margin-right:8px;display:flex;align-items:center;justify-content:center;">
+                                                    <?php if ($isImage): ?>
+                                                        <img src="<?= htmlspecialchars($fileUrl) ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
+                                                    <?php else: ?>
+                                                        <video src="<?= htmlspecialchars($fileUrl) ?>#t=0.5" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></video>
+                                                    <?php endif; ?>
+                                                </div>
                                                 <div class="vid-title"><?= htmlspecialchars($vid['title'] ?: $vid['filename']) ?></div>
                                                 <i class="fas fa-plus-circle text-success ml-2" style="cursor:pointer;font-size:18px;" onclick="moveToTarget(this)" title="Adicionar à Playlist"></i>
                                             </div>
@@ -438,9 +493,26 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                         CLIQUE NO <b>+</b> OU ARRASTE OS ARQUIVOS PARA CÁ
                                     </div>
                                 <?php else: ?>
-                                    <?php foreach ($playlistVideosData as $vid): ?>
+                                    <?php foreach ($playlistVideosData as $vid):
+                                        $fn = (string)($vid['filename'] ?? '');
+                                        $isWidget = (strpos($fn, '/widgets/') === 0 || strpos($fn, '⭐') !== false || strpos((string)($vid['title'] ?? ''), '⭐') === 0 || strpos((string)($vid['title'] ?? ''), '📰') === 0);
+                                        $fileUrl = (strpos($fn, 'http') === 0 || strpos($fn, '/') === 0)
+                                            ? $fn
+                                            : '/uploads/clientes/' . (int)$selectedClientId . '/' . rawurlencode($fn);
+                                        $ext = strtolower(pathinfo(parse_url($fn, PHP_URL_PATH) ?: $fn, PATHINFO_EXTENSION));
+                                        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
+                                    ?>
                                         <div class="video-item" data-id="<?= (int)$vid['id'] ?>" data-duration="<?= (int)($vid['duration'] ?? 15) ?>">
                                             <i class="fas fa-grip-vertical drag-handle"></i>
+                                            <?php if (!$isWidget): ?>
+                                                <div style="width:46px;height:28px;border-radius:4px;overflow:hidden;background:#0f172a;border:1px solid #cbd5e1;flex-shrink:0;margin-right:8px;display:flex;align-items:center;justify-content:center;">
+                                                    <?php if ($isImage): ?>
+                                                        <img src="<?= htmlspecialchars($fileUrl) ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
+                                                    <?php else: ?>
+                                                        <video src="<?= htmlspecialchars($fileUrl) ?>#t=0.5" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></video>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
                                             <div class="vid-title"><?= htmlspecialchars($vid['title'] ?: $vid['filename']) ?></div>
                                             <span class="badge badge-secondary ml-auto mr-2 duration-badge" style="cursor:pointer;" onclick="changeDuration(this)" title="Tempo de exibição (segundos)">
                                                 <i class="fas fa-clock"></i> <span class="d-val"><?= (int)($vid['duration'] ?? 15) ?></span>s
@@ -1431,45 +1503,56 @@ function saveAudioConfig() {
     });
 }
 
-// Buscador de Rádios (Aba Arquivos)
-function searchRadio() {
-    const input = document.getElementById('radioSearchInput');
-    if (!input || !input.value.trim()) return;
-    const resDiv = document.getElementById('radioSearchResults');
-    resDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin text-success" style="font-size:24px;"></i><br>Buscando...</div>';
+// Modal de Prévia Visual de Arquivos (Aba Arquivos)
+function openMediaPreviewModal(fileUrl, title, isImage) {
+    const titleEl = document.getElementById('mediaPreviewModalTitle');
+    const bodyEl = document.getElementById('mediaPreviewModalBody');
+    const newTabBtn = document.getElementById('mediaPreviewNewTabBtn');
+    if (titleEl) titleEl.textContent = title || 'Prévia do Arquivo';
+    if (newTabBtn) newTabBtn.href = fileUrl;
+    if (bodyEl) {
+        if (isImage) {
+            bodyEl.innerHTML = '<img src="' + escapeHtmlAttr(fileUrl) + '" alt="Prévia" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:6px;">';
+        } else {
+            bodyEl.innerHTML = '<video src="' + escapeHtmlAttr(fileUrl) + '" controls autoplay playsinline style="width:100%;max-height:70vh;background:#000;border-radius:6px;"></video>';
+        }
+    }
+    if (window.jQuery && $('#mediaPreviewModal').modal) {
+        $('#mediaPreviewModal').modal('show');
+    } else {
+        const modalEl = document.getElementById('mediaPreviewModal');
+        if (modalEl) {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            document.body.classList.add('modal-open');
+        }
+    }
+}
 
-    fetch(window.location.pathname + '?<?= $baseParam ?>action=search_radios&q=' + encodeURIComponent(input.value.trim()))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (!data || data.length === 0) {
-                resDiv.innerHTML = '<div class="text-warning text-center py-2">Nenhuma rádio encontrada.</div>';
-                return;
-            }
-            let html = '<ul class="list-group list-group-flush border border-secondary rounded" style="max-height: 280px; overflow-y: auto;">';
-            data.forEach(function(st) {
-                if (st.url_resolved) {
-                    const safeName = escapeHtmlAttr(st.name || 'Rádio');
-                    const safeCountry = escapeHtmlAttr(st.country || 'Brasil');
-                    const safeUrl = escapeHtmlAttr(st.url_resolved);
-                    html += '<li class="list-group-item d-flex justify-content-between align-items-center" style="background-color:#23262d;border-color:#2a2d35;">'
-                        + '<div>'
-                        + '<strong class="text-white">' + safeName + '</strong><br>'
-                        + '<small class="text-muted">' + safeCountry + '</small>'
-                        + '</div>'
-                        + '<form method="post" action="?<?= $baseParam ?>tab=arquivos" class="m-0">'
-                        + '<input type="hidden" name="add_radio_name" value="' + safeName + '">'
-                        + '<input type="hidden" name="add_radio_url" value="' + safeUrl + '">'
-                        + '<button type="submit" name="add_radio_submit" value="1" class="btn btn-sm btn-success">Adicionar</button>'
-                        + '</form>'
-                        + '</li>';
-                }
-            });
-            html += '</ul>';
-            resDiv.innerHTML = html;
-        })
-        .catch(function() {
-            resDiv.innerHTML = '<div class="text-danger text-center py-2">Erro ao buscar rádios.</div>';
-        });
+function closeMediaPreviewModal() {
+    const bodyEl = document.getElementById('mediaPreviewModalBody');
+    if (bodyEl) {
+        const v = bodyEl.querySelector('video');
+        if (v) v.pause();
+        bodyEl.innerHTML = '';
+    }
+    const modalEl = document.getElementById('mediaPreviewModal');
+    if (modalEl && (!window.jQuery || !$('#mediaPreviewModal').modal)) {
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        document.body.classList.remove('modal-open');
+    }
+}
+
+if (window.jQuery) {
+    $('#mediaPreviewModal').on('hidden.bs.modal', function() {
+        const bodyEl = document.getElementById('mediaPreviewModalBody');
+        if (bodyEl) {
+            const v = bodyEl.querySelector('video');
+            if (v) v.pause();
+            bodyEl.innerHTML = '';
+        }
+    });
 }
 
 // Upload com Progresso (Aba Arquivos)
