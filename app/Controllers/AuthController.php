@@ -12,7 +12,9 @@ class AuthController extends Controller
 {
     public function showLogin(Request $request): void
     {
-        if (Auth::check()) {
+        if ($request->input('logout') === '1') {
+            Auth::logout();
+        } elseif (Auth::check()) {
             if (Auth::isAdmin()) {
                 $this->redirect('/admin/dashboard');
             } else {
@@ -245,6 +247,6 @@ class AuthController extends Controller
     public function logout(): void
     {
         Auth::logout();
-        $this->redirect('/login');
+        $this->redirect('/login?logout=1');
     }
 }

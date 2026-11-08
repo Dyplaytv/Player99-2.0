@@ -46,6 +46,9 @@ $router->post('/login_cliente.php', [AuthController::class, 'login']);
 $router->get('/sair', [AuthController::class, 'logout']);
 $router->get('/logout', [AuthController::class, 'logout']);
 $router->get('/sair.php', [AuthController::class, 'logout']);
+$router->get('/logout.php', [AuthController::class, 'logout']);
+$router->get('/admin/sair', [AuthController::class, 'logout']);
+$router->get('/admin/logout', [AuthController::class, 'logout']);
 
 // Cadastro de Parceiros / Motoristas
 $router->get('/cadastro', [AuthController::class, 'showRegister']);
