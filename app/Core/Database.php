@@ -30,7 +30,11 @@ class Database
         $dbDir = dirname($dbPath);
 
         if (!is_dir($dbDir)) {
-            @mkdir($dbDir, 0755, true);
+            @mkdir($dbDir, 0777, true);
+        }
+        @chmod($dbDir, 0777);
+        if (file_exists($dbPath)) {
+            @chmod($dbPath, 0666);
         }
 
         $dsn = "sqlite:{$dbPath}";

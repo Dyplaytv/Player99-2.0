@@ -7,36 +7,66 @@
 // Buffer de saída global para evitar envio prematuro de cabeçalhos HTTP
 ob_start();
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+$appConfig = require dirname(__DIR__) . '/config/app.php';
+date_default_timezone_set($appConfig['timezone'] ?? 'America/Sao_Paulo');
+
+// Tratamento de ambiente: em produção desativa avisos visuais na tela
+if (($appConfig['env'] ?? 'production') === 'development') {
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
+    error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING & ~E_DEPRECATED);
+}
 
 // Configuração robusta de sessão (compatível com HTTP, HTTPS, Nginx e Apache)
 if (session_status() === PHP_SESSION_NONE) {
-    // 1. Garante diretório de sessões gravável com fallback local
+    // 1. Garante diretório de sessões gravável com fallback seguro
     $sessDir = dirname(__DIR__) . '/api/db/sessions';
     if (!is_dir($sessDir)) {
         @mkdir($sessDir, 0777, true);
     }
-    if (is_dir($sessDir) && is_writable($sessDir)) {
-        session_save_path($sessDir);
+    if (is_dir($sessDir)) {
+        @chmod($sessDir, 0777);
     }
 
-    // 2. Parâmetros de Cookie compatíveis com acesso via IP direto (HTTP)
+    // Testa se o diretório local tem permissão REAL de escrita
+    $canUseLocalSession = false;
+    if (is_dir($sessDir) && is_writable($sessDir)) {
+        $testFile = $sessDir . '/.sess_test_' . uniqid();
+        if (@file_put_contents($testFile, '1') !== false) {
+            @unlink($testFile);
+            $canUseLocalSession = true;
+        }
+    }
+
+    if ($canUseLocalSession) {
+        session_save_path($sessDir);
+    } else {
+        $sysTmp = sys_get_temp_dir();
+        if (is_dir($sysTmp) && is_writable($sysTmp)) {
+            session_save_path($sysTmp);
+        }
+    }
+
+    // 2. Parâmetros de Cookie compatíveis com acesso via IP direto (HTTP) e HTTPS
     ini_set('session.cookie_path', '/');
     ini_set('session.cookie_domain', '');
-    ini_set('session.cookie_secure', '0'); // Permite login em HTTP não criptografado
+    ini_set('session.cookie_secure', '0'); // Permite login em HTTP e HTTPS
     ini_set('session.cookie_httponly', '1');
     ini_set('session.cookie_samesite', 'Lax');
     ini_set('session.gc_maxlifetime', 86400 * 7); // 7 dias de persistência
     ini_set('session.use_cookies', '1');
     ini_set('session.use_only_cookies', '1');
 
-    session_start();
+    if (!@session_start()) {
+        // Fallback garantido: usa diretório temporário padrão se o customizado falhar
+        @session_save_path(sys_get_temp_dir());
+        @session_start();
+    }
 }
-
-$appConfig = require dirname(__DIR__) . '/config/app.php';
-date_default_timezone_set($appConfig['timezone'] ?? 'America/Sao_Paulo');
 
 // Registra Autoloader PSR-4 Nativo
 require_once dirname(__DIR__) . '/app/Core/Autoloader.php';
