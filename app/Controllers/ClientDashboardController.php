@@ -10,9 +10,11 @@ use App\Models\Screen;
 
 class ClientDashboardController extends Controller
 {
-    private function ensureClientCustomizationTable(): void
+    private function ensureTables(\PDO $pdo): void
     {
-        $pdo = Database::clients();
+        Client::ensureSchema();
+        Screen::ensureSchema();
+
         $pdo->exec("CREATE TABLE IF NOT EXISTS cliente_customizacoes (
             id_cliente INTEGER PRIMARY KEY,
             brand_name TEXT,
@@ -23,6 +25,94 @@ class ClientDashboardController extends Controller
             custom_announcement TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS playlists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_cliente INTEGER,
+            title TEXT,
+            creation_date TEXT,
+            is_active INTEGER DEFAULT 0
+        )");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS playlist_videos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_playlist INTEGER,
+            id_video INTEGER,
+            sequence INTEGER DEFAULT 1,
+            duration INTEGER DEFAULT 15
+        )");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS faturamento_cliente (
+            id_cliente INTEGER PRIMARY KEY,
+            nome_razao TEXT,
+            cpf_cnpj TEXT,
+            endereco TEXT,
+            whats TEXT
+        )");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS faturas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_cliente INTEGER,
+            data_gerada TEXT,
+            data_vencimento TEXT,
+            valor_total REAL DEFAULT 0,
+            status TEXT DEFAULT 'PENDENTE',
+            link_pagamento TEXT,
+            id_preferencia TEXT
+        )");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS affiliate_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId INTEGER,
+            amount REAL,
+            type TEXT,
+            description TEXT,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )");
+
+        // Garante colunas extras em telas, videos e ibo
+        $alterQueries = [
+            "ALTER TABLE telas ADD COLUMN id_playlist INTEGER DEFAULT 0",
+            "ALTER TABLE telas ADD COLUMN id_radio INTEGER DEFAULT 0",
+            "ALTER TABLE telas ADD COLUMN muted INTEGER DEFAULT 0",
+            "ALTER TABLE videos ADD COLUMN upload_date TEXT",
+            "ALTER TABLE playlist_videos ADD COLUMN duration INTEGER DEFAULT 15",
+            "ALTER TABLE ibo ADD COLUMN affiliateCode TEXT",
+            "ALTER TABLE ibo ADD COLUMN affiliateClicks INTEGER DEFAULT 0",
+            "ALTER TABLE ibo ADD COLUMN pixKey TEXT",
+            "ALTER TABLE ibo ADD COLUMN commissionPercent REAL DEFAULT 20.0",
+            "ALTER TABLE ibo ADD COLUMN referredById INTEGER",
+            "ALTER TABLE ibo ADD COLUMN max_videos INTEGER DEFAULT 10",
+            "ALTER TABLE ibo ADD COLUMN max_video_size_mb INTEGER DEFAULT 50"
+        ];
+        foreach ($alterQueries as $q) {
+            try { $pdo->exec($q); } catch (\Throwable $e) {}
+        }
+    }
+
+    private function countClientVideos(\PDO $pdo, int $idCliente): int
+    {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) FROM videos 
+                WHERE id_cliente = :cid
+                AND filename NOT LIKE '/widgets/%'
+                AND filename NOT LIKE 'http://%'
+                AND filename NOT LIKE 'https://%'
+                AND (
+                    LOWER(filename) LIKE '%.mp4' OR 
+                    LOWER(filename) LIKE '%.webm' OR 
+                    LOWER(filename) LIKE '%.ogg' OR
+                    LOWER(filename) LIKE '%.avi' OR
+                    LOWER(filename) LIKE '%.mov' OR
+                    LOWER(filename) LIKE '%.mkv'
+                )
+            ");
+            $stmt->execute([':cid' => $idCliente]);
+            return (int)$stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
     public function index(Request $request): void
@@ -31,24 +121,25 @@ class ClientDashboardController extends Controller
             $this->redirect('/login');
         }
 
-        Client::ensureSchema();
-        Screen::ensureSchema();
-        $this->ensureClientCustomizationTable();
         $pdo = Database::clients();
+        $this->ensureTables($pdo);
 
         $allClients = [];
         $isAdmin = Auth::isAdmin();
 
-        // Se for Admin/Root, carrega todos os clientes para permitir busca instantânea (Dropdown Live Search)
         if ($isAdmin) {
-            $stmtAll = $pdo->query("SELECT id, title, username, email, whatsapp FROM ibo ORDER BY id DESC");
-            $allClients = $stmtAll->fetchAll();
+            try {
+                $stmtAll = $pdo->query("SELECT id, title, username, email, whatsapp FROM ibo ORDER BY id DESC");
+                $allClients = $stmtAll->fetchAll();
+            } catch (\Throwable $e) {}
         }
 
-        // Determina qual cliente está sendo visualizado / personalizado
         $targetId = (int)$request->input('client_id', 0);
         if ($targetId > 0 && $isAdmin) {
             $idCliente = $targetId;
+            $_SESSION['spy_client_id'] = $targetId;
+        } elseif (!empty($_SESSION['spy_client_id']) && $isAdmin && empty($_SESSION['cliente_id'])) {
+            $idCliente = (int)$_SESSION['spy_client_id'];
         } else {
             $idCliente = (int)($_SESSION['cliente_id'] ?? 0);
             if ($idCliente <= 0 && $isAdmin) {
@@ -56,28 +147,438 @@ class ClientDashboardController extends Controller
             }
         }
 
+        // Proxy Backend para Busca de Rádios (GET ?action=search_radios&q=...)
+        if ($request->input('action') === 'search_radios' && $request->input('q') !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            $q = urlencode(trim((string)$request->input('q')));
+            $servers = ['de1.api.radio-browser.info', 'at1.api.radio-browser.info', 'nl1.api.radio-browser.info'];
+            $response = '[]';
+            foreach ($servers as $server) {
+                $url = "https://$server/json/stations/search?name=$q&limit=15";
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Player99/2.3');
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                $result = curl_exec($ch);
+                $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if ($result !== false && $httpcode == 200) {
+                    $response = $result;
+                    break;
+                }
+            }
+            echo $response;
+            exit;
+        }
+
+        // Ações AJAX de Telas e Playlists (POST ajax_action)
+        if ($request->isPost() && $request->input('ajax_action') !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            $ajaxAction = $request->input('ajax_action');
+
+            if ($ajaxAction === 'vincular_playlist') {
+                $idTela = (int)$request->input('id_tela', 0);
+                $idPlaylist = (int)$request->input('id_playlist', 0);
+                $stmt = $pdo->prepare("UPDATE telas SET id_playlist = :pl, force_reload = 1 WHERE id = :id AND id_cliente = :cid");
+                $ok = $stmt->execute([':pl' => $idPlaylist, ':id' => $idTela, ':cid' => $idCliente]);
+                echo json_encode(['success' => $ok]);
+                exit;
+            }
+
+            if ($ajaxAction === 'set_audio') {
+                $idTela = (int)$request->input('id_tela', 0);
+                $audioMode = trim((string)$request->input('audio_mode', 'video'));
+                $idRadio = (int)$request->input('id_radio', 0);
+                $muted = ($audioMode === 'mute' || $audioMode === 'radio') ? 1 : 0;
+                $stmt = $pdo->prepare("UPDATE telas SET audio_mode = :am, id_radio = :ir, muted = :m, force_reload = 1 WHERE id = :id AND id_cliente = :cid");
+                $ok = $stmt->execute([':am' => $audioMode, ':ir' => $idRadio, ':m' => $muted, ':id' => $idTela, ':cid' => $idCliente]);
+                echo json_encode(['success' => $ok]);
+                exit;
+            }
+
+            if ($ajaxAction === 'toggle_rotation') {
+                $idTela = (int)$request->input('id_tela', 0);
+                $rotation = (int)$request->input('rotation', 0);
+                $stmt = $pdo->prepare("UPDATE telas SET rotation = :rot, force_reload = 1 WHERE id = :id AND id_cliente = :cid");
+                $ok = $stmt->execute([':rot' => $rotation, ':id' => $idTela, ':cid' => $idCliente]);
+                echo json_encode(['success' => $ok]);
+                exit;
+            }
+
+            if ($ajaxAction === 'save_order') {
+                $idPlaylist = (int)$request->input('id_playlist', 0);
+                $videoDataStr = (string)$request->input('video_data', '[]');
+                $stmtChk = $pdo->prepare("SELECT id FROM playlists WHERE id = :id AND id_cliente = :cid");
+                $stmtChk->execute([':id' => $idPlaylist, ':cid' => $idCliente]);
+                if ($stmtChk->fetch()) {
+                    $pdo->prepare("DELETE FROM playlist_videos WHERE id_playlist = :id")->execute([':id' => $idPlaylist]);
+                    $dataArr = json_decode($videoDataStr, true);
+                    if (is_array($dataArr)) {
+                        $seq = 1;
+                        $stmtIns = $pdo->prepare("INSERT INTO playlist_videos (id_playlist, id_video, sequence, duration) VALUES (:pl, :vid, :seq, :dur)");
+                        foreach ($dataArr as $item) {
+                            $stmtIns->execute([
+                                ':pl' => $idPlaylist,
+                                ':vid' => (int)($item['id'] ?? 0),
+                                ':seq' => $seq++,
+                                ':dur' => (int)($item['duration'] ?? 15)
+                            ]);
+                        }
+                    }
+                    $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id_cliente = :cid")->execute([':cid' => $idCliente]);
+                    echo json_encode(['success' => true]);
+                } else {
+                    echo json_encode(['success' => false, 'msg' => 'Playlist não encontrada.']);
+                }
+                exit;
+            }
+        }
+
+        $client = Client::find($idCliente) ?: [
+            'id' => $idCliente,
+            'title' => 'Motorista / Parceiro',
+            'username' => $_SESSION['cliente_user'] ?? 'motorista',
+            'expire_date' => date('Y-m-d', strtotime('+30 days')),
+            'max_videos' => 10,
+            'max_video_size_mb' => 50,
+            'commissionPercent' => 20,
+            'affiliateClicks' => 0,
+            'pixKey' => ''
+        ];
+
+        // Garante código de afiliado do cliente
+        if (empty($client['affiliateCode'])) {
+            $affCode = 'REF-' . strtoupper(substr(md5('p99_' . $idCliente), 0, 6));
+            try {
+                $pdo->prepare("UPDATE ibo SET affiliateCode = :c WHERE id = :id")->execute([':c' => $affCode, ':id' => $idCliente]);
+                $client['affiliateCode'] = $affCode;
+            } catch (\Throwable $e) {}
+        }
+
+        $maxVideosAllowed = (int)($client['max_videos'] ?? 10) ?: 10;
+        $maxVideoSizeMb = (int)($client['max_video_size_mb'] ?? 50) ?: 50;
+        $maxVideoSizeBytes = $maxVideoSizeMb * 1024 * 1024;
+        $currentVideoCount = $this->countClientVideos($pdo, $idCliente);
+
+        $uploadDir = dirname(__DIR__, 2) . '/uploads/clientes/' . $idCliente . '/';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+        @chmod($uploadDir, 0777);
+
+        $tab = trim((string)$request->input('tab', 'telas'));
+        $editListId = (int)$request->input('edit_list', 0);
         $msg = '';
         $err = '';
 
+        if ($request->input('msg') === 'vinculada') {
+            $msg = 'Nova tela vinculada com sucesso! O Player começará a tocar automaticamente.';
+        } elseif ($request->input('msg') === 'reloaded') {
+            $msg = 'Sinal de recarregamento enviado para a tela!';
+        }
+        if ($request->input('err') === 'uso') {
+            $err = 'Erro: Este código já está em uso.';
+        } elseif ($request->input('err') === 'vazio') {
+            $err = 'Erro: O código da tela não pode ser vazio.';
+        }
+        if (!empty($_SESSION['sys_msg'])) {
+            $msg = $_SESSION['sys_msg'];
+            unset($_SESSION['sys_msg']);
+        }
+
+        // Processamento de formulários POST
         if ($request->isPost()) {
             $action = $request->input('action', '');
 
-            // 1. Salvar Customização da Página / Franquia
+            // 1. Upload de Arquivos (múltiplos ou único)
+            if (isset($_POST['upload_video']) || !empty($_FILES['video_files']) || $action === 'upload_media') {
+                $tab = 'arquivos';
+                if (!empty($_FILES['video_files']['name'][0])) {
+                    $allowed = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $videoExts = ['mp4', 'webm', 'ogg', 'avi', 'mov', 'mkv'];
+                    $successCount = 0;
+                    $errorCount = 0;
+                    $totalFiles = count($_FILES['video_files']['name']);
+                    $currentVideoCount = $this->countClientVideos($pdo, $idCliente);
+
+                    for ($i = 0; $i < $totalFiles; $i++) {
+                        if ($_FILES['video_files']['error'][$i] === UPLOAD_ERR_OK) {
+                            $origName = $_FILES['video_files']['name'][$i];
+                            $fileSize = $_FILES['video_files']['size'][$i];
+                            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                            $isVideo = in_array($ext, $videoExts);
+
+                            if ($isVideo && $currentVideoCount >= $maxVideosAllowed) {
+                                $errorCount++;
+                                $err = "Limite atingido: Você já possui {$currentVideoCount} vídeos (limite: {$maxVideosAllowed}).";
+                                continue;
+                            }
+                            if ($fileSize > $maxVideoSizeBytes) {
+                                $errorCount++;
+                                $err = "O arquivo {$origName} ultrapassa o limite permitido de {$maxVideoSizeMb}MB.";
+                                continue;
+                            }
+                            if (in_array($ext, $allowed)) {
+                                $newFilename = uniqid() . '_' . $i . '.' . $ext;
+                                if (@move_uploaded_file($_FILES['video_files']['tmp_name'][$i], $uploadDir . $newFilename)) {
+                                    @chmod($uploadDir . $newFilename, 0666);
+                                    $title = pathinfo($origName, PATHINFO_FILENAME);
+                                    $stmtIns = $pdo->prepare("INSERT INTO videos (id_cliente, title, filename, upload_date) VALUES (:cid, :t, :f, :dt)");
+                                    $stmtIns->execute([
+                                        ':cid' => $idCliente,
+                                        ':t' => $title,
+                                        ':f' => $newFilename,
+                                        ':dt' => date('Y-m-d H:i:s')
+                                    ]);
+                                    $successCount++;
+                                    if ($isVideo) {
+                                        $currentVideoCount++;
+                                    }
+                                } else {
+                                    $errorCount++;
+                                    $err = "Falha ao salvar o arquivo {$origName}.";
+                                }
+                            } else {
+                                $errorCount++;
+                                $err = "Extensão não permitida (.{$ext}).";
+                            }
+                        } else {
+                            $errorCount++;
+                            $err = "Erro no envio do arquivo.";
+                        }
+                    }
+
+                    if ($successCount > 0) {
+                        $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id_cliente = :cid")->execute([':cid' => $idCliente]);
+                        $msg = "{$successCount} arquivo(s) enviado(s) com sucesso!";
+                        $_SESSION['sys_msg'] = $msg;
+                    }
+
+                    if (isset($_POST['ajax_upload'])) {
+                        header('Content-Type: application/json; charset=utf-8');
+                        echo json_encode([
+                            'success' => ($successCount > 0 && $errorCount === 0),
+                            'successCount' => $successCount,
+                            'errorCount' => $errorCount,
+                            'msg' => $err ?: $msg
+                        ]);
+                        exit;
+                    }
+                }
+            }
+
+            // Apagar Arquivo Individual
+            if (isset($_POST['apagar_video']) || $action === 'delete_media') {
+                $tab = 'arquivos';
+                $idVideo = (int)($request->input('id_video') ?: $request->input('video_id', 0));
+                $stmtV = $pdo->prepare("SELECT filename FROM videos WHERE id = :id AND id_cliente = :cid");
+                $stmtV->execute([':id' => $idVideo, ':cid' => $idCliente]);
+                $rowV = $stmtV->fetch();
+                if ($rowV) {
+                    $file = $uploadDir . $rowV['filename'];
+                    if (is_file($file)) @unlink($file);
+                    $pdo->prepare("DELETE FROM videos WHERE id = :id AND id_cliente = :cid")->execute([':id' => $idVideo, ':cid' => $idCliente]);
+                    $pdo->prepare("DELETE FROM playlist_videos WHERE id_video = :id")->execute([':id' => $idVideo]);
+                    $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id_cliente = :cid")->execute([':cid' => $idCliente]);
+                    $msg = 'Arquivo apagado com sucesso!';
+                }
+            }
+
+            // Apagar Múltiplos Arquivos
+            if (isset($_POST['apagar_multiplos'])) {
+                $tab = 'arquivos';
+                $selected = $_POST['selected_files'] ?? [];
+                if (!empty($selected) && is_array($selected)) {
+                    $apagados = 0;
+                    foreach ($selected as $idVideo) {
+                        $idVideo = (int)$idVideo;
+                        $stmtV = $pdo->prepare("SELECT filename FROM videos WHERE id = :id AND id_cliente = :cid");
+                        $stmtV->execute([':id' => $idVideo, ':cid' => $idCliente]);
+                        $rowV = $stmtV->fetch();
+                        if ($rowV) {
+                            $file = $uploadDir . $rowV['filename'];
+                            if (is_file($file)) @unlink($file);
+                            $pdo->prepare("DELETE FROM videos WHERE id = :id AND id_cliente = :cid")->execute([':id' => $idVideo, ':cid' => $idCliente]);
+                            $pdo->prepare("DELETE FROM playlist_videos WHERE id_video = :id")->execute([':id' => $idVideo]);
+                            $apagados++;
+                        }
+                    }
+                    $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id_cliente = :cid")->execute([':cid' => $idCliente]);
+                    $msg = "{$apagados} arquivo(s) apagado(s) com sucesso!";
+                } else {
+                    $err = 'Nenhum arquivo selecionado.';
+                }
+            }
+
+            // Adicionar Rádio via Buscador Automático
+            if (isset($_POST['add_radio_submit'])) {
+                $tab = 'arquivos';
+                $nomeRadio = trim((string)$request->input('add_radio_name', ''));
+                $urlRadio = trim((string)$request->input('add_radio_url', ''));
+                if (!empty($nomeRadio) && !empty($urlRadio)) {
+                    $stmtR = $pdo->prepare("INSERT INTO videos (id_cliente, title, filename, upload_date) VALUES (:cid, :t, :f, :dt)");
+                    $stmtR->execute([
+                        ':cid' => $idCliente,
+                        ':t' => '📻 ' . $nomeRadio,
+                        ':f' => $urlRadio,
+                        ':dt' => date('Y-m-d H:i:s')
+                    ]);
+                    $msg = 'Rádio adicionada com sucesso aos seus arquivos!';
+                }
+            }
+
+            // Criar Nova Playlist
+            if (isset($_POST['criar_lista'])) {
+                $nomeLista = trim((string)$request->input('nome_lista', 'Nova Lista'));
+                $stmtPl = $pdo->prepare("INSERT INTO playlists (id_cliente, title, creation_date, is_active) VALUES (:cid, :t, :dt, 0)");
+                $stmtPl->execute([
+                    ':cid' => $idCliente,
+                    ':t' => $nomeLista,
+                    ':dt' => date('Y-m-d H:i:s')
+                ]);
+                $newListId = (int)$pdo->lastInsertId();
+
+                $stmtCnt = $pdo->prepare("SELECT COUNT(*) FROM playlists WHERE id_cliente = :cid");
+                $stmtCnt->execute([':cid' => $idCliente]);
+                if ((int)$stmtCnt->fetchColumn() === 1) {
+                    $pdo->prepare("UPDATE playlists SET is_active = 1 WHERE id = :id")->execute([':id' => $newListId]);
+                }
+
+                $this->redirect('/painel-cliente?client_id=' . $idCliente . '&tab=lista&edit_list=' . $newListId);
+                return;
+            }
+
+            // Tornar Playlist Ativa
+            if (isset($_POST['set_active'])) {
+                $tab = 'lista';
+                $idActive = (int)$request->input('id_playlist', 0);
+                $pdo->prepare("UPDATE playlists SET is_active = 0 WHERE id_cliente = :cid")->execute([':cid' => $idCliente]);
+                $pdo->prepare("UPDATE playlists SET is_active = 1 WHERE id = :id AND id_cliente = :cid")->execute([':id' => $idActive, ':cid' => $idCliente]);
+                $pdo->prepare("UPDATE telas SET id_playlist = :pl, force_reload = 1 WHERE id_cliente = :cid")->execute([':pl' => $idActive, ':cid' => $idCliente]);
+                $msg = 'Lista definida como ativa! O Player tocará esta lista.';
+            }
+
+            // Apagar Playlist
+            if (isset($_POST['apagar_lista'])) {
+                $tab = 'lista';
+                $idApagar = (int)$request->input('id_playlist', 0);
+                $pdo->prepare("DELETE FROM playlists WHERE id = :id AND id_cliente = :cid")->execute([':id' => $idApagar, ':cid' => $idCliente]);
+                $pdo->prepare("DELETE FROM playlist_videos WHERE id_playlist = :id")->execute([':id' => $idApagar]);
+                $msg = 'Playlist apagada com sucesso.';
+            }
+
+            // Vincular Nova Tela
+            if (isset($_POST['vincular_tela']) || $action === 'add_screen') {
+                $tab = 'telas';
+                $nomeTela = trim((string)($request->input('nome_tela') ?: $request->input('title', 'Nova Tela')));
+                $code = strtoupper(trim((string)($request->input('codigo_tela') ?: $request->input('player_code', ''))));
+                if (empty($code)) {
+                    $code = strtoupper(substr(md5(uniqid((string)mt_rand(), true)), 0, 6));
+                }
+                $rotation = (int)$request->input('rotation', 0);
+
+                $stmtChk = $pdo->prepare("SELECT id FROM telas WHERE player_code = :c");
+                $stmtChk->execute([':c' => $code]);
+                if ($stmtChk->fetch()) {
+                    $err = 'Erro: Este código de player já está em uso.';
+                } else {
+                    Screen::create([
+                        'id_cliente' => $idCliente,
+                        'player_code' => $code,
+                        'title' => $nomeTela,
+                        'nome_tela' => $nomeTela,
+                        'rotation' => $rotation,
+                        'audio_mode' => 'video',
+                        'ultimo_ping' => date('Y-m-d H:i:s')
+                    ]);
+                    $msg = "Nova tela ({$code}) vinculada com sucesso!";
+                }
+            }
+
+            // Forçar recarregamento da tela
+            if (isset($_POST['force_reload'])) {
+                $tab = 'telas';
+                $idTela = (int)$request->input('id_tela', 0);
+                $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id = :id AND id_cliente = :cid")->execute([':id' => $idTela, ':cid' => $idCliente]);
+                $msg = 'Sinal de recarregamento enviado para a tela!';
+            }
+
+            // Apagar Tela
+            if (isset($_POST['apagar_tela'])) {
+                $tab = 'telas';
+                $idTela = (int)$request->input('id_tela', 0);
+                $pdo->prepare("DELETE FROM telas WHERE id = :id AND id_cliente = :cid")->execute([':id' => $idTela, ':cid' => $idCliente]);
+                $msg = 'Tela removida com sucesso.';
+            }
+
+            // Área do Afiliado: Atualizar Chave PIX
+            if (isset($_POST['update_pix'])) {
+                $tab = 'afiliado';
+                $pixKey = trim((string)$request->input('pixKey', ''));
+                $pdo->prepare("UPDATE ibo SET pixKey = :pk WHERE id = :id")->execute([':pk' => $pixKey, ':id' => $idCliente]);
+                $client['pixKey'] = $pixKey;
+                $msg = 'Chave PIX atualizada com sucesso!';
+            }
+
+            // Área do Afiliado: Solicitar Saque
+            if (isset($_POST['withdraw'])) {
+                $tab = 'afiliado';
+                $saldoAtual = $this->getAffiliateBalance($pdo, $idCliente);
+                if ($saldoAtual > 0) {
+                    if (empty($client['pixKey'])) {
+                        $err = 'Configure sua chave PIX antes de solicitar o saque.';
+                    } else {
+                        $stmtSq = $pdo->prepare("INSERT INTO affiliate_transactions (userId, amount, type, description) VALUES (:id, :amt, 'WITHDRAW_PENDING', 'Saque Solicitado')");
+                        $stmtSq->execute([':id' => $idCliente, ':amt' => $saldoAtual]);
+                        $msg = 'Saque de R$ ' . number_format($saldoAtual, 2, ',', '.') . ' solicitado com sucesso!';
+                    }
+                }
+            }
+
+            // Configurações: Atualizar Senha
+            if (isset($_POST['atualizar_senha'])) {
+                $tab = 'config';
+                $novaSenha = trim((string)$request->input('nova_senha', ''));
+                if (!empty($novaSenha)) {
+                    $pdo->prepare("UPDATE ibo SET password = :p WHERE id = :id")->execute([
+                        ':p' => Auth::hashPassword($novaSenha),
+                        ':id' => $idCliente
+                    ]);
+                    $msg = 'Senha atualizada com sucesso!';
+                }
+            }
+
+            // Configurações: Atualizar Dados de Faturamento
+            if (isset($_POST['atualizar_faturamento'])) {
+                $tab = 'config';
+                $stmtFat = $pdo->prepare("INSERT OR REPLACE INTO faturamento_cliente (id_cliente, nome_razao, cpf_cnpj, endereco, whats) VALUES (:id, :n, :c, :e, :w)");
+                $stmtFat->execute([
+                    ':id' => $idCliente,
+                    ':n' => trim((string)$request->input('nome_razao', '')),
+                    ':c' => trim((string)$request->input('cpf_cnpj', '')),
+                    ':e' => trim((string)$request->input('endereco', '')),
+                    ':w' => trim((string)$request->input('whats', ''))
+                ]);
+                $msg = 'Dados de faturamento atualizados com sucesso!';
+            }
+
+            // Configurações: Salvar Customização da Franquia
             if ($action === 'save_customization') {
-                $brandName = trim($request->input('brand_name', ''));
-                $primaryColor = trim($request->input('primary_color', '#34e2e4'));
-                $supportWhatsapp = trim($request->input('support_whatsapp', ''));
-                $supportEmail = trim($request->input('support_email', ''));
-                $customAnnouncement = trim($request->input('custom_announcement', ''));
+                $tab = 'config';
+                $brandName = trim((string)$request->input('brand_name', ''));
+                $primaryColor = trim((string)$request->input('primary_color', '#34e2e4'));
+                $supportWhatsapp = trim((string)$request->input('support_whatsapp', ''));
+                $supportEmail = trim((string)$request->input('support_email', ''));
+                $customAnnouncement = trim((string)$request->input('custom_announcement', ''));
 
                 $logoPath = null;
                 if (!empty($_FILES['custom_logo']['name']) && $_FILES['custom_logo']['error'] === UPLOAD_ERR_OK) {
                     $ext = strtolower(pathinfo($_FILES['custom_logo']['name'], PATHINFO_EXTENSION));
                     if (in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'svg'])) {
-                        $upDir = dirname(__DIR__, 2) . '/uploads/clientes/' . $idCliente;
-                        if (!is_dir($upDir)) @mkdir($upDir, 0777, true);
                         $logoName = 'logo_custom_' . time() . '.' . $ext;
-                        if (move_uploaded_file($_FILES['custom_logo']['tmp_name'], $upDir . '/' . $logoName)) {
+                        if (@move_uploaded_file($_FILES['custom_logo']['tmp_name'], $uploadDir . $logoName)) {
                             $logoPath = '/uploads/clientes/' . $idCliente . '/' . $logoName;
                         }
                     }
@@ -86,22 +587,12 @@ class ClientDashboardController extends Controller
                 $stmtCur = $pdo->prepare("SELECT logo_path FROM cliente_customizacoes WHERE id_cliente = :cid");
                 $stmtCur->execute([':cid' => $idCliente]);
                 $currCustom = $stmtCur->fetch();
-
                 if ($logoPath === null && $currCustom) {
                     $logoPath = $currCustom['logo_path'];
                 }
 
-                $stmtUpsert = $pdo->prepare("INSERT INTO cliente_customizacoes (id_cliente, brand_name, logo_path, primary_color, support_whatsapp, support_email, custom_announcement, updated_at)
-                    VALUES (:cid, :bname, :logo, :color, :whats, :email, :ann, datetime('now'))
-                    ON CONFLICT(id_cliente) DO UPDATE SET 
-                        brand_name = excluded.brand_name,
-                        logo_path = coalesce(excluded.logo_path, cliente_customizacoes.logo_path),
-                        primary_color = excluded.primary_color,
-                        support_whatsapp = excluded.support_whatsapp,
-                        support_email = excluded.support_email,
-                        custom_announcement = excluded.custom_announcement,
-                        updated_at = excluded.updated_at");
-
+                $stmtUpsert = $pdo->prepare("INSERT OR REPLACE INTO cliente_customizacoes (id_cliente, brand_name, logo_path, primary_color, support_whatsapp, support_email, custom_announcement, updated_at)
+                    VALUES (:cid, :bname, :logo, :color, :whats, :email, :ann, datetime('now'))");
                 $stmtUpsert->execute([
                     ':cid' => $idCliente,
                     ':bname' => $brandName,
@@ -111,142 +602,201 @@ class ClientDashboardController extends Controller
                     ':email' => $supportEmail,
                     ':ann' => $customAnnouncement
                 ]);
-
-                $msg = 'Personalização do portal e franquia salva com sucesso!';
-            }
-
-            // 2. Vincular Nova Tela
-            elseif ($action === 'add_screen') {
-                $title = trim($request->input('title', 'Meu Carro'));
-                $code = strtoupper(trim($request->input('player_code', '')));
-                if (empty($code)) {
-                    $code = strtoupper(substr(md5(uniqid((string)mt_rand(), true)), 0, 6));
-                }
-                $rotation = (int)$request->input('rotation', 0);
-
-                Screen::create([
-                    'id_cliente' => $idCliente,
-                    'player_code' => $code,
-                    'title' => $title,
-                    'nome_tela' => $title,
-                    'rotation' => $rotation,
-                    'audio_mode' => 'video',
-                    'ultimo_ping' => date('Y-m-d H:i:s')
-                ]);
-                $msg = "Nova tela ({$code}) vinculada com sucesso!";
-            }
-
-            // 3. Upload de Mídia
-            elseif ($action === 'upload_media') {
-                if (!empty($_FILES['media_file']['name']) && $_FILES['media_file']['error'] === UPLOAD_ERR_OK) {
-                    $ext = strtolower(pathinfo($_FILES['media_file']['name'], PATHINFO_EXTENSION));
-                    $allowed = ['mp4', 'webm', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
-                    if (in_array($ext, $allowed)) {
-                        $uploadDir = dirname(__DIR__, 2) . '/uploads/clientes/' . $idCliente;
-                        if (!is_dir($uploadDir)) {
-                            @mkdir($uploadDir, 0777, true);
-                        }
-                        @chmod($uploadDir, 0777);
-                        $filename = 'ad_' . time() . '_' . mt_rand(100, 999) . '.' . $ext;
-                        if (move_uploaded_file($_FILES['media_file']['tmp_name'], $uploadDir . '/' . $filename)) {
-                            @chmod($uploadDir . '/' . $filename, 0666);
-                            $title = trim($request->input('media_title', ''));
-                            if (empty($title)) {
-                                $title = pathinfo($_FILES['media_file']['name'], PATHINFO_FILENAME);
-                            }
-                            
-                            // Insere de forma compatível
-                            try {
-                                $stmtIns = $pdo->prepare("INSERT INTO videos (id_cliente, title, filename, sequence) VALUES (:cid, :t, :f, 0)");
-                                $stmtIns->execute([':cid' => $idCliente, ':t' => $title, ':f' => $filename]);
-                            } catch (\Throwable $e) {
-                                $stmtIns = $pdo->prepare("INSERT INTO videos (id_cliente, title, filename) VALUES (:cid, :t, :f)");
-                                $stmtIns->execute([':cid' => $idCliente, ':t' => $title, ':f' => $filename]);
-                            }
-
-                            $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id_cliente = :cid")->execute([':cid' => $idCliente]);
-                            $msg = 'Mídia enviada e sincronizada nas suas telas!';
-                        } else {
-                            $err = 'Erro ao salvar o arquivo na pasta de uploads.';
-                        }
-                    } else {
-                        $err = 'Formato inválido. Envie MP4, WEBM, JPG ou PNG.';
-                    }
-                }
-            }
-
-            // 4. Deletar Mídia
-            elseif ($action === 'delete_media') {
-                $vidId = (int)$request->input('video_id', 0);
-                $stmtV = $pdo->prepare("SELECT * FROM videos WHERE id = :id AND id_cliente = :cid");
-                $stmtV->execute([':id' => $vidId, ':cid' => $idCliente]);
-                $v = $stmtV->fetch();
-                if ($v) {
-                    $filePath = dirname(__DIR__, 2) . '/uploads/clientes/' . $idCliente . '/' . $v['filename'];
-                    if (is_file($filePath)) @unlink($filePath);
-                    $pdo->prepare("DELETE FROM videos WHERE id = :id")->execute([':id' => $vidId]);
-                    $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id_cliente = :cid")->execute([':cid' => $idCliente]);
-                    $msg = 'Mídia removida com sucesso.';
-                }
+                $msg = 'Personalização salva com sucesso!';
             }
         }
 
-        $client = Client::find($idCliente) ?: [
-            'id' => $idCliente,
-            'title' => 'Parceiro Player99',
-            'username' => 'parceiro',
-            'expire_date' => date('Y-m-d', strtotime('+30 days'))
-        ];
+        // Sincroniza entretenimentos globais (widgets) para os vídeos do cliente
+        $this->syncEntertainments($pdo, $idCliente);
 
-        // Carrega personalização do cliente
-        $stmtC = $pdo->prepare("SELECT * FROM cliente_customizacoes WHERE id_cliente = :cid");
-        $stmtC->execute([':cid' => $idCliente]);
-        $customization = $stmtC->fetch();
-
-        $defaultLogo = '/banners/logo.png';
-        if (!file_exists(dirname(__DIR__, 2) . '/banners/logo.png') && file_exists(dirname(__DIR__, 2) . '/assets/images/logo.png')) {
-            $defaultLogo = '/assets/images/logo.png';
-        }
-
-        if (!$customization) {
-            $customization = [
-                'brand_name' => $client['title'] ?? 'Player99 Franquia',
-                'logo_path' => $defaultLogo,
-                'primary_color' => '#34e2e4',
-                'support_whatsapp' => $client['whatsapp'] ?? '',
-                'support_email' => $client['email'] ?? '',
-                'custom_announcement' => 'Bem-vindo ao portal oficial da nossa rede de mídia indoor!'
-            ];
-        } else {
-            // Se o logo_path estiver vazio ou apontar para arquivo inexistente, usa a nossa logo padrão
-            if (empty($customization['logo_path'])) {
-                $customization['logo_path'] = $defaultLogo;
-            } else {
-                $realPath = dirname(__DIR__, 2) . '/' . ltrim($customization['logo_path'], '/');
-                if (!file_exists($realPath)) {
-                    $customization['logo_path'] = $defaultLogo;
-                }
-            }
-        }
-
+        // Carrega Telas
         $stmtTelas = $pdo->prepare("SELECT * FROM telas WHERE id_cliente = :cid ORDER BY id DESC");
         $stmtTelas->execute([':cid' => $idCliente]);
         $screens = $stmtTelas->fetchAll();
 
+        // Carrega Vídeos / Arquivos / Entretenimentos / Rádios
         $stmtVids = $pdo->prepare("SELECT * FROM videos WHERE id_cliente = :cid ORDER BY id DESC");
         $stmtVids->execute([':cid' => $idCliente]);
         $videos = $stmtVids->fetchAll();
+
+        $arquivosOnly = [];
+        $entOnly = [];
+        $radiosCliente = [];
+        foreach ($videos as $v) {
+            $fn = (string)($v['filename'] ?? '');
+            if (strpos($fn, '/widgets/') === 0 || strpos($fn, 'http') === 0) {
+                $entOnly[] = $v;
+                if (strpos($fn, 'http') === 0) {
+                    $radiosCliente[] = $v;
+                }
+            } else {
+                $arquivosOnly[] = $v;
+            }
+        }
+
+        // Carrega Playlists
+        $stmtPl = $pdo->prepare("
+            SELECT p.*, (SELECT COUNT(*) FROM playlist_videos pv WHERE pv.id_playlist = p.id) as qtd_videos 
+            FROM playlists p WHERE p.id_cliente = :cid ORDER BY p.id DESC
+        ");
+        $stmtPl->execute([':cid' => $idCliente]);
+        $playlistsList = $stmtPl->fetchAll();
+
+        // Se estiver editando uma playlist
+        $playlistEdit = null;
+        $playlistVideosData = [];
+        if ($editListId > 0) {
+            $stmtPe = $pdo->prepare("SELECT * FROM playlists WHERE id = :id AND id_cliente = :cid");
+            $stmtPe->execute([':id' => $editListId, ':cid' => $idCliente]);
+            $playlistEdit = $stmtPe->fetch();
+            if ($playlistEdit) {
+                $stmtPv = $pdo->prepare("
+                    SELECT v.*, pv.sequence, pv.duration 
+                    FROM playlist_videos pv 
+                    JOIN videos v ON pv.id_video = v.id 
+                    WHERE pv.id_playlist = :pl 
+                    ORDER BY pv.sequence ASC
+                ");
+                $stmtPv->execute([':pl' => $editListId]);
+                $playlistVideosData = $stmtPv->fetchAll();
+            }
+        }
+
+        // Rádios Globais
+        $radiosGlobais = [];
+        try {
+            $pdoRadios = Database::radios();
+            $radiosGlobais = $pdoRadios->query("SELECT id, nome FROM radios WHERE is_visible = 1 ORDER BY nome ASC")->fetchAll();
+        } catch (\Throwable $e) {}
+
+        // Faturamento e Faturas
+        $faturamento = ['nome_razao' => '', 'cpf_cnpj' => '', 'endereco' => '', 'whats' => ''];
+        $stmtFat = $pdo->prepare("SELECT * FROM faturamento_cliente WHERE id_cliente = :id");
+        $stmtFat->execute([':id' => $idCliente]);
+        if ($rowFat = $stmtFat->fetch()) {
+            $faturamento = $rowFat;
+        }
+
+        $faturas = [];
+        $totalAcumulado = 0.0;
+        $stmtFaturas = $pdo->prepare("SELECT * FROM faturas WHERE id_cliente = :id ORDER BY id DESC");
+        $stmtFaturas->execute([':id' => $idCliente]);
+        foreach ($stmtFaturas->fetchAll() as $rowF) {
+            $faturas[] = $rowF;
+            if (($rowF['status'] ?? '') === 'PAGA' && date('m', strtotime($rowF['data_gerada'] ?? 'now')) === date('m')) {
+                $totalAcumulado += (float)$rowF['valor_total'];
+            }
+        }
+        $totalPrevisto = count($screens) * 100.0;
+
+        // Saldo Afiliado
+        $affiliateBalance = $this->getAffiliateBalance($pdo, $idCliente);
+
+        // Customização da Franquia
+        $stmtC = $pdo->prepare("SELECT * FROM cliente_customizacoes WHERE id_cliente = :cid");
+        $stmtC->execute([':cid' => $idCliente]);
+        $customization = $stmtC->fetch();
+        $defaultLogo = \App\Core\View::logoUrl();
+        if (!$customization) {
+            $customization = [
+                'brand_name' => $client['title'] ?? 'Player99',
+                'logo_path' => $defaultLogo,
+                'primary_color' => '#00f3ff',
+                'support_whatsapp' => $client['whatsapp'] ?? '',
+                'support_email' => $client['email'] ?? '',
+                'custom_announcement' => ''
+            ];
+        } elseif (empty($customization['logo_path']) || !file_exists(dirname(__DIR__, 2) . '/' . ltrim($customization['logo_path'], '/'))) {
+            $customization['logo_path'] = $defaultLogo;
+        }
 
         $this->render('client/dashboard', [
             'client' => $client,
             'customization' => $customization,
             'screens' => $screens,
             'videos' => $videos,
+            'arquivosOnly' => $arquivosOnly,
+            'entOnly' => $entOnly,
+            'radiosCliente' => $radiosCliente,
+            'radiosGlobais' => $radiosGlobais,
+            'playlistsList' => $playlistsList,
+            'playlistEdit' => $playlistEdit,
+            'playlistVideosData' => $playlistVideosData,
+            'editListId' => $editListId,
+            'faturamento' => $faturamento,
+            'faturas' => $faturas,
+            'totalAcumulado' => $totalAcumulado,
+            'totalPrevisto' => $totalPrevisto,
+            'affiliateBalance' => $affiliateBalance,
+            'currentVideoCount' => $currentVideoCount,
+            'maxVideosAllowed' => $maxVideosAllowed,
+            'maxVideoSizeMb' => $maxVideoSizeMb,
+            'maxVideoSizeBytes' => $maxVideoSizeBytes,
             'allClients' => $allClients,
             'isAdmin' => $isAdmin,
             'selectedClientId' => $idCliente,
+            'tab' => $tab,
             'msg' => $msg,
             'err' => $err
         ], null);
+    }
+
+    private function getAffiliateBalance(\PDO $pdo, int $idCliente): float
+    {
+        $saldo = 0.0;
+        try {
+            $stmt = $pdo->prepare("SELECT amount, type FROM affiliate_transactions WHERE userId = :id");
+            $stmt->execute([':id' => $idCliente]);
+            foreach ($stmt->fetchAll() as $tx) {
+                if ($tx['type'] === 'COMMISSION') {
+                    $saldo += (float)$tx['amount'];
+                } elseif ($tx['type'] === 'PAYOUT' || $tx['type'] === 'WITHDRAW_PENDING') {
+                    $saldo -= (float)$tx['amount'];
+                }
+            }
+        } catch (\Throwable $e) {}
+        return max(0.0, $saldo);
+    }
+
+    private function syncEntertainments(\PDO $pdo, int $idCliente): void
+    {
+        try {
+            $pdoRadios = Database::radios();
+            $pdoRadios->exec("CREATE TABLE IF NOT EXISTS entretenimentos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                url TEXT NOT NULL,
+                icon TEXT DEFAULT 'fas fa-globe',
+                is_visible INTEGER DEFAULT 1
+            )");
+            $cnt = (int)$pdoRadios->query("SELECT COUNT(*) FROM entretenimentos")->fetchColumn();
+            if ($cnt === 0) {
+                $defaults = [
+                    ['Hora Atual', '/widgets/hora.php', 'fas fa-clock'],
+                    ['Frases e Pensamentos', '/widgets/frases.php', 'fas fa-quote-left'],
+                    ['Notícias (Últimas)', '/widgets/noticias.php', 'fas fa-newspaper'],
+                    ['Notícias de Carros', '/widgets/carros.php', 'fas fa-car']
+                ];
+                $stmtE = $pdoRadios->prepare("INSERT INTO entretenimentos (nome, url, icon) VALUES (:n, :u, :i)");
+                foreach ($defaults as $d) {
+                    $stmtE->execute([':n' => $d[0], ':u' => $d[1], ':i' => $d[2]]);
+                }
+            }
+
+            $ents = $pdoRadios->query("SELECT * FROM entretenimentos WHERE is_visible = 1")->fetchAll();
+            foreach ($ents as $ent) {
+                $stmtChk = $pdo->prepare("SELECT id FROM videos WHERE id_cliente = :cid AND filename = :fn");
+                $stmtChk->execute([':cid' => $idCliente, ':fn' => $ent['url']]);
+                if (!$stmtChk->fetch()) {
+                    $stmtIns = $pdo->prepare("INSERT INTO videos (id_cliente, title, filename, upload_date) VALUES (:cid, :t, :fn, :dt)");
+                    $stmtIns->execute([
+                        ':cid' => $idCliente,
+                        ':t' => '⭐ ' . $ent['nome'],
+                        ':fn' => $ent['url'],
+                        ':dt' => date('Y-m-d H:i:s')
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {}
     }
 }
