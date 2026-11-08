@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  player99:
+    build: .
+    container_name: player99_app
+    restart: always
+    ports:
+      # Porta 8080 já está ocupada pela Evolution API no servidor, usando 8085:
+      - "8085:80"
+    volumes:
+      # Mapeamento do código e persistência dos dados
+      - ./:/var/www/html
+      - ./api/db:/var/www/html/api/db
+      - ./uploads:/var/www/html/uploads
+      - ./banners:/var/www/html/banners
+    environment:
+      - TZ=America/Sao_Paulo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

@@ -1,0 +1,25 @@
+{
+  "name": "Player99 - Gestão & Mídia Indoor",
+  "short_name": "Player99",
+  "description": "Painel de controle e gerenciamento de telas do Player99",
+  "start_url": "cliente_dashboard.php",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f1015",
+  "theme_color": "#0A38D1",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./banners/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./banners/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+[07-Dec-2024 18:55:52 America/Sao_Paulo] PHP Notice:  Undefined variable: targetPath in /home/pain0133/1.painelmaster.lol/api/allads.php on line 3
+[07-Dec-2024 18:55:52 America/Sao_Paulo] PHP Notice:  Undefined variable: targetDir in /home/pain0133/1.painelmaster.lol/api/allads.php on line 6
+[07-Dec-2024 18:55:52 America/Sao_Paulo] PHP Notice:  Undefined variable: targetDir in /home/pain0133/1.painelmaster.lol/api/allads.php on line 7
+[07-Dec-2024 18:55:52 America/Sao_Paulo] PHP Warning:  mkdir(): Invalid path in /home/pain0133/1.painelmaster.lol/api/allads.php on line 7
+[07-Dec-2024 18:55:52 America/Sao_Paulo] PHP Fatal error:  Uncaught Error: Call to undefined function resizeImage() in /home/pain0133/1.painelmaster.lol/api/allads.php:11
+Stack trace:
+#0 {main}
+  thrown in /home/pain0133/1.painelmaster.lol/api/allads.php on line 11
+[07-Dec-2024 20:34:29 America/Sao_Paulo] PHP Fatal error:  Uncaught Exception: Unable to open database: unable to open database file in /home/pain0133/1.painelmaster.lol/api/allads.php:3
+Stack trace:
+#0 /home/pain0133/1.painelmaster.lol/api/allads.php(3): SQLite3->__construct('./api/.adb.db')
+#1 {main}
+  thrown in /home/pain0133/1.painelmaster.lol/api/allads.php on line 3
+[07-Dec-2024 20:34:30 America/Sao_Paulo] PHP Fatal error:  Uncaught Exception: Unable to open database: unable to open database file in /home/pain0133/1.painelmaster.lol/api/allads.php:3
+Stack trace:
+#0 /home/pain0133/1.painelmaster.lol/api/allads.php(3): SQLite3->__construct('./api/.adb.db')
+#1 {main}
+  thrown in /home/pain0133/1.painelmaster.lol/api/allads.php on line 3
+[07-Dec-2024 20:34:57 America/Sao_Paulo] PHP Fatal error:  Uncaught Exception: Unable to open database: unable to open database file in /home/pain0133/1.painelmaster.lol/api/allads.php:3
+Stack trace:
+#0 /home/pain0133/1.painelmaster.lol/api/allads.php(3): SQLite3->__construct('/home/pain0133/...')
+#1 {main}
+  thrown in /home/pain0133/1.painelmaster.lol/api/allads.php on line 3
+[07-Dec-2024 20:34:58 America/Sao_Paulo] PHP Fatal error:  Uncaught Exception: Unable to open database: unable to open database file in /home/pain0133/1.painelmaster.lol/api/allads.php:3
+Stack trace:
+#0 /home/pain0133/1.painelmaster.lol/api/allads.php(3): SQLite3->__construct('/home/pain0133/...')
+#1 {main}
+  thrown in /home/pain0133/1.painelmaster.lol/api/allads.php on line 3
+[07-Dec-2024 20:35:30 America/Sao_Paulo] PHP Fatal error:  Uncaught Exception: Unable to open database: unable to open database file in /home/pain0133/1.painelmaster.lol/api/allads.php:3
+Stack trace:
+#0 /home/pain0133/1.painelmaster.lol/api/allads.php(3): SQLite3->__construct('/home/pain0133/...')
+#1 {main}
+  thrown in /home/pain0133/1.painelmaster.lol/api/allads.php on line 3
+[07-Dec-2024 20:35:30 America/Sao_Paulo] PHP Fatal error:  Uncaught Exception: Unable to open database: unable to open database file in /home/pain0133/1.painelmaster.lol/api/allads.php:3
+Stack trace:
+#0 /home/pain0133/1.painelmaster.lol/api/allads.php(3): SQLite3->__construct('/home/pain0133/...')
+#1 {main}
+  thrown in /home/pain0133/1.painelmaster.lol/api/allads.php on line 3
+[07-Dec-2024 23:19:13 America/Sao_Paulo] PHP Notice:  Undefined index: mac in /home/pain0133/1.painelmaster.lol/api/index.php on line 14
+[16-Jan-2025 16:27:11 America/Sao_Paulo] PHP Warning:  Undefined array key "parent_control" in /home/apktopco/ibo41.apktop.com.br/api/update.php on line 17
+[16-Jan-2025 16:42:51 America/Sao_Paulo] PHP Warning:  Undefined variable $api_key in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 27
+[16-Jan-2025 16:42:51 America/Sao_Paulo] PHP Warning:  Undefined variable $api_key in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 33
+[16-Jan-2025 16:42:51 America/Sao_Paulo] PHP Warning:  Undefined array key "results" in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 40
+[16-Jan-2025 16:42:51 America/Sao_Paulo] PHP Fatal error:  Uncaught TypeError: count(): Argument #1 ($value) must be of type Countable|array, null given in /home/apktopco/ibo41.apktop.com.br/api/movies.php:40
+Stack trace:
+#0 {main}
+  thrown in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 40
+[16-Jan-2025 17:06:45 America/Sao_Paulo] PHP Fatal error:  Uncaught Error: Class "PDO" not found in /home/apktopco/ibo41.apktop.com.br/api/bg.php:51
+Stack trace:
+#0 {main}
+  thrown in /home/apktopco/ibo41.apktop.com.br/api/bg.php on line 51
+[16-Jan-2025 17:06:53 America/Sao_Paulo] PHP Fatal error:  Uncaught Error: Class "PDO" not found in /home/apktopco/ibo41.apktop.com.br/api/bg.php:51
+Stack trace:
+#0 {main}
+  thrown in /home/apktopco/ibo41.apktop.com.br/api/bg.php on line 51
+[16-Jan-2025 18:25:28 America/Sao_Paulo] PHP Warning:  Undefined variable $api_key in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 27
+[16-Jan-2025 18:25:29 America/Sao_Paulo] PHP Warning:  Undefined variable $api_key in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 33
+[16-Jan-2025 18:25:29 America/Sao_Paulo] PHP Warning:  Undefined array key "results" in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 40
+[16-Jan-2025 18:25:29 America/Sao_Paulo] PHP Fatal error:  Uncaught TypeError: count(): Argument #1 ($value) must be of type Countable|array, null given in /home/apktopco/ibo41.apktop.com.br/api/movies.php:40
+Stack trace:
+#0 {main}
+  thrown in /home/apktopco/ibo41.apktop.com.br/api/movies.php on line 40
+[16-Jan-2025 21:02:08 America/Sao_Paulo] PHP Warning:  Undefined array key "mac" in /home/apktopco/ibo41.apktop.com.br/api/index.php on line 14
+[16-Jan-2025 21:03:18 America/Sao_Paulo] PHP Warning:  Undefined array key "mac" in /home/apktopco/ibo41.apktop.com.br/api/index.php on line 14
+[16-Jan-2025 21:03:18 America/Sao_Paulo] PHP Warning:  Undefined array key "mac" in /home/apktopco/ibo41.apktop.com.br/api/index.php on line 14
+[16-Jan-2025 21:03:18 America/Sao_Paulo] PHP Warning:  Undefined array key "mac" in /home/apktopco/ibo41.apktop.com.br/api/index.php on line 14
+[16-Jan-2025 21:03:22 America/Sao_Paulo] PHP Warning:  Undefined array key "mac" in /home/apktopco/ibo41.apktop.com.br/api/index.php on line 14
+[21-Jan-2025 19:05:20 America/Sao_Paulo] PHP Warning:  Undefined array key "mac" in /home/apktopco/ibo41.apktop.com.br/api/index.php on line 14

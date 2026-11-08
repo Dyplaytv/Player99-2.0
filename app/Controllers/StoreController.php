@@ -1,0 +1,107 @@
+<?php
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Request;
+use App\Core\Auth;
+use PDO;
+
+class StoreController extends Controller
+{
+    private function getDb(): PDO
+    {
+        $dbPath = dirname(__DIR__, 2) . '/api/db/studiolivecode_loja.db';
+        $pdo = new PDO("sqlite:{$dbPath}", null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+        $pdo->exec("CREATE TABLE IF NOT EXISTS produtos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            descricao TEXT,
+            preco REAL NOT NULL,
+            imagem TEXT,
+            parceiro_id INTEGER NOT NULL DEFAULT 0,
+            ativo INTEGER DEFAULT 1,
+            data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
+        )");
+        return $pdo;
+    }
+
+    public function index(Request $request): void
+    {
+        if (!Auth::check() || !Auth::isAdmin()) {
+            $this->redirect('/login');
+        }
+
+        $pdo = $this->getDb();
+        $msg = '';
+
+        $targetDir = dirname(__DIR__, 2) . '/uploads/loja/';
+        if (!is_dir($targetDir)) {
+            @mkdir($targetDir, 0755, true);
+        }
+
+        // Deletar
+        if ($request->input('delete') !== null) {
+            $delId = (int)$request->input('delete');
+            $stmt = $pdo->prepare("SELECT imagem FROM produtos WHERE id = :id");
+            $stmt->bindValue(':id', $delId);
+            $stmt->execute();
+            $row = $stmt->fetch();
+            if ($row && !empty($row['imagem'])) {
+                @unlink($targetDir . $row['imagem']);
+            }
+            $stmtDel = $pdo->prepare("DELETE FROM produtos WHERE id = :id");
+            $stmtDel->bindValue(':id', $delId);
+            $stmtDel->execute();
+            $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Produto excluído com sucesso!</div>";
+        }
+
+        // Salvar / Adicionar
+        if ($request->isPost() && $request->input('action') === 'save') {
+            $id = (int)$request->input('id', 0);
+            $titulo = trim($request->input('titulo', ''));
+            $descricao = trim($request->input('descricao', ''));
+            $preco = (float)str_replace(['R$', ' ', '.'], '', str_replace(',', '.', $request->input('preco', '0')));
+            $imagem = '';
+
+            if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
+                $imagem = 'prod_' . uniqid() . '.' . $ext;
+                move_uploaded_file($_FILES['imagem']['tmp_name'], $targetDir . $imagem);
+            }
+
+            if ($id > 0) {
+                $sql = "UPDATE produtos SET titulo = :t, descricao = :d, preco = :p" . ($imagem ? ", imagem = :img" : "") . " WHERE id = :id";
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindValue(':id', $id);
+            } else {
+                $sql = "INSERT INTO produtos (titulo, descricao, preco, imagem, parceiro_id) VALUES (:t, :d, :p, :img, 0)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindValue(':img', $imagem);
+            }
+
+            $stmt->bindValue(':t', $titulo);
+            $stmt->bindValue(':d', $descricao);
+            $stmt->bindValue(':p', $preco);
+            if ($imagem && $id > 0) {
+                $stmt->bindValue(':img', $imagem);
+            }
+
+            $stmt->execute();
+            $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Produto salvo com sucesso!</div>";
+        }
+
+        $produtos = $pdo->query("SELECT * FROM produtos ORDER BY id DESC")->fetchAll();
+
+        $this->render('admin/store', [
+            'pageTitle' => 'Minha Loja - Player99',
+            'pageHeading' => 'Gerenciamento da Loja de Produtos & Dispositivos',
+            'currentRoute' => '/admin/loja',
+            'currentUser' => Auth::user(),
+            'produtos' => $produtos,
+            'msg' => $msg
+        ], 'layouts/master');
+    }
+}

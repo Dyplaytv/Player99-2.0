@@ -1,0 +1,27 @@
+# Arquivos de Sistema e IDEs
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs e Sessões Locais
+/api/db/sessions/
+/api/db/*.log
+*.log
+
+# Bancos de Dados SQLite com dados de produção (para não vazar dados reais de clientes)
+/api/db/*.db-wal
+/api/db/*.db-shm
+/api/db/*.bak
+
+# Uploads pesados de clientes (vídeos/fotos temporárias de teste)
+/uploads/clientes/*/*
+!/uploads/clientes/.gitkeep
+/uploads/bloqueio/*
+!/uploads/bloqueio/.gitkeep
+
+# Arquivos de ambiente locais
+.env

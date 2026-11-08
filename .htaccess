@@ -1,0 +1,40 @@
+Options -Indexes
+
+# Bloqueio de arquivos sensíveis e configurações
+<FilesMatch "(^\.|\.(env|ini|log|db|sqlite|sqlite3|json|sql|bak|sh|git.*))$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Headers de Segurança
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+RewriteEngine On
+
+# Roteador MVC: Se o arquivo ou diretório físico não existir, direciona para o index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [L,QSA]
+
+# Limites de Upload para Mídias e Vídeos
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 256M
+    php_value max_execution_time 300
+    php_value memory_limit 256M
+</IfModule>
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 256M
+    php_value max_execution_time 300
+    php_value memory_limit 256M
+</IfModule>

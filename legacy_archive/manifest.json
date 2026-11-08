@@ -1,0 +1,21 @@
+{
+  "name": "Player99",
+  "short_name": "Player99",
+  "start_url": "tv.php",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./banners/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./banners/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

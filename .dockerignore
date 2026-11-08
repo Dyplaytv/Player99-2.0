@@ -1,0 +1,7 @@
+.git
+node_modules
+*.pptx
+*.log
+scratch/
+test_*.php
+check_*.php

@@ -1,0 +1,23 @@
+# Proteção de Bancos de Dados e Arquivos Sensíveis na pasta API
+<FilesMatch "\.(db|sqlite|sqlite3|db-wal|db-shm|json|log|bak|sql)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Bloqueia arquivos ocultos (como .adb.db, .db.db)
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+Options -Indexes
