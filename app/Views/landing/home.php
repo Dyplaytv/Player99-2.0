@@ -230,7 +230,7 @@
     </div>
 
     <footer style="background-color: #0a0c10; padding: 25px 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center; color: #8e9bb0; font-size: 14px;">
-        <p style="margin: 0; font-weight: 500;">Player 99 2.1</p>
+        <p style="margin: 0; font-weight: 500;">Player 99 2.2</p>
     </footer>
 
 </body>
