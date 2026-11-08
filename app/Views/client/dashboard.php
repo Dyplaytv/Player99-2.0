@@ -404,14 +404,20 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                 </div>
 
                                 <div class="tab-pane fade" id="pane-ent" role="tabpanel">
-                                    <div class="dnd-header">
-                                        <input type="text" id="searchEnt" class="form-control form-control-sm" placeholder="Procurar entretenimento...">
+                                    <div class="dnd-header" style="gap: 8px;">
+                                        <input type="text" id="searchEnt" class="form-control form-control-sm" placeholder="Procurar entretenimento ou RSS...">
+                                        <button type="button" class="btn btn-sm btn-warning font-weight-bold text-nowrap" data-toggle="modal" data-target="#novoRssModal" title="Cadastrar novo Feed RSS">
+                                            <i class="fas fa-rss mr-1"></i> + RSS
+                                        </button>
                                     </div>
                                     <div class="video-list" id="sourceEnt">
                                         <?php foreach ($entOnly as $vid): ?>
                                             <div class="video-item" data-id="<?= (int)$vid['id'] ?>">
                                                 <i class="fas fa-grip-vertical drag-handle"></i>
                                                 <div class="vid-title"><?= htmlspecialchars($vid['title'] ?: $vid['filename']) ?></div>
+                                                <?php if (strpos((string)$vid['filename'], '/widgets/') === 0): ?>
+                                                    <a href="<?= htmlspecialchars($vid['filename']) ?>" target="_blank" class="text-info ml-2 mr-1 preview-btn" title="Visualizar Tela RSS"><i class="fas fa-eye"></i></a>
+                                                <?php endif; ?>
                                                 <i class="fas fa-plus-circle text-success ml-2" style="cursor:pointer;font-size:18px;" onclick="moveToTarget(this)" title="Adicionar à Playlist"></i>
                                             </div>
                                         <?php endforeach; ?>
@@ -443,6 +449,43 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                         </div>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Adicionar Novo Canal RSS -->
+                    <div class="modal fade" id="novoRssModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow">
+                                <div class="modal-header bg-warning text-dark">
+                                    <h5 class="modal-title font-weight-bold"><i class="fas fa-rss mr-2"></i> Adicionar Canal de Notícias RSS</h5>
+                                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                </div>
+                                <form method="post" action="?<?= $baseParam ?>tab=lista&edit_list=<?= (int)$editListId ?>">
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Nome do Canal / Categoria</label>
+                                            <input type="text" name="rss_nome" id="rss_nome_input" class="form-control" placeholder="Ex: RSS: UOL Esporte" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">URL do Feed RSS (.xml)</label>
+                                            <input type="url" name="rss_url" id="rss_url_input" class="form-control" placeholder="https://..." required>
+                                        </div>
+                                        <div class="form-group mb-0">
+                                            <small class="text-muted d-block mb-2 font-weight-bold">Sugestões rápidas (clique para preencher):</small>
+                                            <div class="d-flex flex-wrap" style="gap: 6px;">
+                                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm" onclick="document.getElementById('rss_nome_input').value='RSS: CNN Brasil';document.getElementById('rss_url_input').value='https://www.cnnbrasil.com.br/feed/';">CNN Brasil</button>
+                                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm" onclick="document.getElementById('rss_nome_input').value='RSS: R7 Notícias';document.getElementById('rss_url_input').value='https://noticias.r7.com/feed.xml';">R7 Notícias</button>
+                                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm" onclick="document.getElementById('rss_nome_input').value='RSS: Canaltech';document.getElementById('rss_url_input').value='https://rss.canaltech.com.br/rss/';">Canaltech</button>
+                                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm" onclick="document.getElementById('rss_nome_input').value='RSS: InfoMoney';document.getElementById('rss_url_input').value='https://www.infomoney.com.br/feed/';">InfoMoney</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-light border-0">
+                                        <button type="button" class="btn btn-light" data-dismiss="modal">Cancelar</button>
+                                        <button type="submit" name="add_custom_rss" value="1" class="btn btn-warning font-weight-bold px-4">SALVAR RSS</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -1161,6 +1204,22 @@ if (uploadForm) {
         xhr.send(formData);
     });
 }
+
+// Filtro de busca nas abas Arquivos e Entretenimentos
+document.getElementById('searchVideos')?.addEventListener('keyup', function() {
+    const f = this.value.toLowerCase();
+    document.querySelectorAll('#sourceList .video-item').forEach(it => {
+        const txt = (it.querySelector('.vid-title')?.innerText || '').toLowerCase();
+        it.style.display = txt.includes(f) ? '' : 'none';
+    });
+});
+document.getElementById('searchEnt')?.addEventListener('keyup', function() {
+    const f = this.value.toLowerCase();
+    document.querySelectorAll('#sourceEnt .video-item').forEach(it => {
+        const txt = (it.querySelector('.vid-title')?.innerText || '').toLowerCase();
+        it.style.display = txt.includes(f) ? '' : 'none';
+    });
+});
 
 // Drag & Drop Editor (Aba Playlist)
 if (document.getElementById('sourceList') && document.getElementById('targetList')) {

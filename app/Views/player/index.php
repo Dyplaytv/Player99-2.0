@@ -36,16 +36,17 @@ $rotation = (int)($screen['rotation'] ?? 0);
             background-color: #000;
         }
 
-        video, img {
+        video, img, iframe.media-item {
             width: 100%;
             height: 100%;
             object-fit: contain; /* Mantém a proporção exata sem cortar detalhes */
             background-color: #000;
             pointer-events: none; /* Bloqueia toques acidentais do passageiro */
+            border: none;
             display: none;
         }
 
-        video.active, img.active {
+        video.active, img.active, iframe.media-item.active {
             display: block;
         }
 
@@ -142,15 +143,20 @@ $rotation = (int)($screen['rotation'] ?? 0);
                 <p>Nenhuma mídia vinculada no momento. Envie vídeos ou imagens pelo painel.</p>
             </div>
         <?php else: ?>
-            <?php foreach ($videos as $idx => $v): 
-                $ext = strtolower(pathinfo($v['filename'], PATHINFO_EXTENSION));
+            <?php foreach ($videos as $idx => $v):
+                $fn = (string)($v['filename'] ?? '');
+                $durMs = ((int)($v['duration'] ?? 15) ?: 15) * 1000;
+                $isWidget = (strpos($fn, '/widgets/') === 0);
+                $ext = strtolower(pathinfo($fn, PATHINFO_EXTENSION));
                 $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
-                $mediaUrl = '/uploads/clientes/' . $screen['id_cliente'] . '/' . $v['filename'];
+                $mediaUrl = $isWidget ? $fn : ('/uploads/clientes/' . $screen['id_cliente'] . '/' . $fn);
             ?>
-                <?php if ($isImg): ?>
-                    <img src="<?= $mediaUrl ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="image" data-duration="10000" id="media_<?= $idx ?>">
+                <?php if ($isWidget): ?>
+                    <iframe src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="widget" data-duration="<?= $durMs ?>" id="media_<?= $idx ?>"></iframe>
+                <?php elseif ($isImg): ?>
+                    <img src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="image" data-duration="<?= $durMs ?>" id="media_<?= $idx ?>">
                 <?php else: ?>
-                    <video src="<?= $mediaUrl ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="video" id="media_<?= $idx ?>" playsinline webkit-playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback" <?= ($screen['audio_mode'] ?? 'video') === 'mute' ? 'muted' : '' ?>></video>
+                    <video src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="video" id="media_<?= $idx ?>" playsinline webkit-playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback" <?= ($screen['audio_mode'] ?? 'video') === 'mute' ? 'muted' : '' ?>></video>
                 <?php endif; ?>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -169,7 +175,6 @@ $rotation = (int)($screen['rotation'] ?? 0);
         function applyRotation(rot) {
             rot = parseInt(rot, 10) || 0;
             if (rot === currentRotation) return;
-            // Se mudou entre modo horizontal e vertical (ou vice-versa), recarrega para aplicar o layout limpo
             window.location.reload();
         }
 
@@ -195,7 +200,7 @@ $rotation = (int)($screen['rotation'] ?? 0);
                 });
                 current.onended = playNext;
             } else {
-                setTimeout(playNext, parseInt(current.getAttribute('data-duration') || '10000'));
+                setTimeout(playNext, parseInt(current.getAttribute('data-duration') || '15000'));
             }
         }
 
@@ -206,7 +211,7 @@ $rotation = (int)($screen['rotation'] ?? 0);
                 first.play().catch(() => {});
                 first.onended = playNext;
             } else {
-                setTimeout(playNext, parseInt(first.getAttribute('data-duration') || '10000'));
+                setTimeout(playNext, parseInt(first.getAttribute('data-duration') || '15000'));
             }
         }
 

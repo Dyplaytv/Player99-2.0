@@ -28,3 +28,5 @@ Desktop.ini
 
 /api/db/studiolivecode_loja.db
 /router.php
+
+/api/db/rss_cache_*.json

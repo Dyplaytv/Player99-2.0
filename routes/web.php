@@ -82,6 +82,7 @@ $router->get('/player/{codigo}', [ScreenController::class, 'player']);
 $router->get('/player', [ScreenController::class, 'player']);
 $router->get('/player.php', [ScreenController::class, 'player']);
 $router->get('/api/ping', [ScreenController::class, 'ping']);
+$router->get('/widgets/{slug}', [ScreenController::class, 'widget']);
 
 // Gestão de Usuários & Clientes (com Modo Espião e Painel Completo)
 $router->get('/admin/usuarios', [UserController::class, 'list']);

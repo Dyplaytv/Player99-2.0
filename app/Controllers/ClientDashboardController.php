@@ -469,6 +469,27 @@ class ClientDashboardController extends Controller
                 $msg = 'Playlist apagada com sucesso.';
             }
 
+            // Adicionar Novo Canal RSS em Entretenimentos
+            if (isset($_POST['add_custom_rss'])) {
+                $tab = 'lista';
+                $rssNome = trim((string)$request->input('rss_nome', ''));
+                $rssUrl = trim((string)$request->input('rss_url', ''));
+                if (!empty($rssNome) && !empty($rssUrl)) {
+                    try {
+                        $pdoRadios = Database::radios();
+                        try { $pdoRadios->exec("ALTER TABLE entretenimentos ADD COLUMN rss_url TEXT"); } catch (\Throwable $e) {}
+                        $stmtRss = $pdoRadios->prepare("INSERT INTO entretenimentos (nome, url, icon, is_visible, rss_url) VALUES (:n, '/widgets/temp', 'fas fa-rss', 1, :r)");
+                        $stmtRss->execute([':n' => $rssNome, ':r' => $rssUrl]);
+                        $rssId = (int)$pdoRadios->lastInsertId();
+                        $widgetUrl = '/widgets/rss_' . $rssId . '.php';
+                        $pdoRadios->prepare("UPDATE entretenimentos SET url = :u WHERE id = :id")->execute([':u' => $widgetUrl, ':id' => $rssId]);
+                        $msg = 'Canal RSS (' . htmlspecialchars($rssNome) . ') adicionado aos Entretenimentos!';
+                    } catch (\Throwable $e) {
+                        $err = 'Erro ao salvar canal RSS.';
+                    }
+                }
+            }
+
             // Vincular Nova Tela
             if (isset($_POST['vincular_tela']) || $action === 'add_screen') {
                 $tab = 'telas';
@@ -767,31 +788,55 @@ class ClientDashboardController extends Controller
                 nome TEXT NOT NULL,
                 url TEXT NOT NULL,
                 icon TEXT DEFAULT 'fas fa-globe',
-                is_visible INTEGER DEFAULT 1
+                is_visible INTEGER DEFAULT 1,
+                rss_url TEXT,
+                bg_image TEXT
             )");
-            $cnt = (int)$pdoRadios->query("SELECT COUNT(*) FROM entretenimentos")->fetchColumn();
-            if ($cnt === 0) {
-                $defaults = [
-                    ['Hora Atual', '/widgets/hora.php', 'fas fa-clock'],
-                    ['Frases e Pensamentos', '/widgets/frases.php', 'fas fa-quote-left'],
-                    ['Notícias (Últimas)', '/widgets/noticias.php', 'fas fa-newspaper'],
-                    ['Notícias de Carros', '/widgets/carros.php', 'fas fa-car']
-                ];
-                $stmtE = $pdoRadios->prepare("INSERT INTO entretenimentos (nome, url, icon) VALUES (:n, :u, :i)");
-                foreach ($defaults as $d) {
-                    $stmtE->execute([':n' => $d[0], ':u' => $d[1], ':i' => $d[2]]);
+            try { $pdoRadios->exec("ALTER TABLE entretenimentos ADD COLUMN rss_url TEXT"); } catch (\Throwable $e) {}
+            try { $pdoRadios->exec("ALTER TABLE entretenimentos ADD COLUMN bg_image TEXT"); } catch (\Throwable $e) {}
+
+            $defaults = [
+                ['Hora Atual', '/widgets/hora.php', 'fas fa-clock', ''],
+                ['Frases e Pensamentos', '/widgets/frases.php', 'fas fa-quote-left', ''],
+                ['RSS: Notícias (Últimas - G1)', '/widgets/noticias.php', 'fas fa-newspaper', 'https://g1.globo.com/rss/g1/'],
+                ['RSS: Carros & Motos (AutoEsporte)', '/widgets/carros.php', 'fas fa-car', 'https://g1.globo.com/dynamo/carros/rss2.xml'],
+                ['RSS: Esportes & Futebol (GE Globo)', '/widgets/rss_esportes.php', 'fas fa-futbol', 'https://ge.globo.com/rss/ge/'],
+                ['RSS: Economia & Negócios (G1)', '/widgets/rss_economia.php', 'fas fa-chart-line', 'https://g1.globo.com/dynamo/economia/rss2.xml'],
+                ['RSS: Tecnologia & Inovação (G1)', '/widgets/rss_tecnologia.php', 'fas fa-microchip', 'https://g1.globo.com/dynamo/tecnologia/rss2.xml'],
+                ['RSS: Pop, Música & Cinema (G1)', '/widgets/rss_pop.php', 'fas fa-music', 'https://g1.globo.com/dynamo/pop-arte/rss2.xml'],
+                ['RSS: Mundo & Internacional (G1)', '/widgets/rss_mundo.php', 'fas fa-globe-americas', 'https://g1.globo.com/dynamo/mundo/rss2.xml'],
+                ['RSS: Saúde & Bem-Estar (G1)', '/widgets/rss_saude.php', 'fas fa-heartbeat', 'https://g1.globo.com/dynamo/ciencia-e-saude/rss2.xml'],
+                ['RSS: Turismo & Viagem (G1)', '/widgets/rss_turismo.php', 'fas fa-plane', 'https://g1.globo.com/dynamo/turismo-e-viagem/rss2.xml'],
+                ['RSS: Loterias & Curiosidades', '/widgets/rss_loterias.php', 'fas fa-star', 'https://g1.globo.com/dynamo/loterias/rss2.xml']
+            ];
+
+            $stmtChkEnt = $pdoRadios->prepare("SELECT id FROM entretenimentos WHERE url = :u");
+            $stmtInsEnt = $pdoRadios->prepare("INSERT INTO entretenimentos (nome, url, icon, is_visible, rss_url) VALUES (:n, :u, :i, 1, :r)");
+            $stmtUpdEnt = $pdoRadios->prepare("UPDATE entretenimentos SET rss_url = :r WHERE url = :u AND (rss_url IS NULL OR rss_url = '')");
+
+            foreach ($defaults as $d) {
+                $stmtChkEnt->execute([':u' => $d[1]]);
+                if (!$stmtChkEnt->fetch()) {
+                    $stmtInsEnt->execute([':n' => $d[0], ':u' => $d[1], ':i' => $d[2], ':r' => $d[3]]);
+                } elseif (!empty($d[3])) {
+                    $stmtUpdEnt->execute([':r' => $d[3], ':u' => $d[1]]);
                 }
             }
 
-            $ents = $pdoRadios->query("SELECT * FROM entretenimentos WHERE is_visible = 1")->fetchAll();
+            $ents = $pdoRadios->query("SELECT * FROM entretenimentos WHERE is_visible = 1 ORDER BY id DESC")->fetchAll();
             foreach ($ents as $ent) {
-                $stmtChk = $pdo->prepare("SELECT id FROM videos WHERE id_cliente = :cid AND filename = :fn");
+                $prefix = !empty($ent['rss_url']) ? '📡 ' : '⭐ ';
+                $cleanName = preg_replace('/^(⭐|📡)\s*/u', '', $ent['nome']);
+                $fullTitle = $prefix . $cleanName;
+
+                $stmtChk = $pdo->prepare("SELECT id, title FROM videos WHERE id_cliente = :cid AND filename = :fn");
                 $stmtChk->execute([':cid' => $idCliente, ':fn' => $ent['url']]);
-                if (!$stmtChk->fetch()) {
+                $existing = $stmtChk->fetch();
+                if (!$existing) {
                     $stmtIns = $pdo->prepare("INSERT INTO videos (id_cliente, title, filename, upload_date) VALUES (:cid, :t, :fn, :dt)");
                     $stmtIns->execute([
                         ':cid' => $idCliente,
-                        ':t' => '⭐ ' . $ent['nome'],
+                        ':t' => $fullTitle,
                         ':fn' => $ent['url'],
                         ':dt' => date('Y-m-d H:i:s')
                     ]);

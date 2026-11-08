@@ -304,4 +304,237 @@ class ScreenController extends Controller
 
         $this->json(['status' => 'not_found'], 404);
     }
+
+    public function widget(Request $request, string $slug = ''): void
+    {
+        $slug = str_replace('.php', '', trim($slug));
+        $presets = [
+            'hora' => [
+                'title' => 'Hora Certa',
+                'icon' => 'fas fa-clock',
+                'rss' => '',
+                'mode' => 'clock',
+                'bg' => 'linear-gradient(135deg, #090d16 0%, #0f172a 100%)',
+                'accent' => '#00b4d8'
+            ],
+            'frases' => [
+                'title' => 'Pensamento do Dia',
+                'icon' => 'fas fa-quote-left',
+                'rss' => '',
+                'mode' => 'quotes',
+                'bg' => 'linear-gradient(135deg, #1f1c2c 0%, #4a3f6b 100%)',
+                'accent' => '#9b5de5'
+            ],
+            'noticias' => [
+                'title' => 'Últimas Notícias • G1',
+                'icon' => 'fas fa-newspaper',
+                'rss' => 'https://g1.globo.com/rss/g1/',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #4a0404 0%, #140505 100%)',
+                'accent' => '#c4170c'
+            ],
+            'carros' => [
+                'title' => 'Carros & Motos • AutoEsporte',
+                'icon' => 'fas fa-car',
+                'rss' => 'https://g1.globo.com/dynamo/carros/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #2b0909 0%, #0d1117 100%)',
+                'accent' => '#e63946'
+            ],
+            'rss_esportes' => [
+                'title' => 'Esportes & Futebol • GE',
+                'icon' => 'fas fa-futbol',
+                'rss' => 'https://ge.globo.com/rss/ge/',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #063b16 0%, #07170c 100%)',
+                'accent' => '#06aa48'
+            ],
+            'rss_economia' => [
+                'title' => 'Economia & Negócios • G1',
+                'icon' => 'fas fa-chart-line',
+                'rss' => 'https://g1.globo.com/dynamo/economia/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #0a2540 0%, #07111e 100%)',
+                'accent' => '#0077b6'
+            ],
+            'rss_tecnologia' => [
+                'title' => 'Tecnologia & Inovação • G1',
+                'icon' => 'fas fa-microchip',
+                'rss' => 'https://g1.globo.com/dynamo/tecnologia/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
+                'accent' => '#3b82f6'
+            ],
+            'rss_pop' => [
+                'title' => 'Pop, Música & Cinema • G1',
+                'icon' => 'fas fa-music',
+                'rss' => 'https://g1.globo.com/dynamo/pop-arte/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #3b0764 0%, #11052c 100%)',
+                'accent' => '#d946ef'
+            ],
+            'rss_mundo' => [
+                'title' => 'Mundo & Internacional • G1',
+                'icon' => 'fas fa-globe-americas',
+                'rss' => 'https://g1.globo.com/dynamo/mundo/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #172554 0%, #090d16 100%)',
+                'accent' => '#2563eb'
+            ],
+            'rss_saude' => [
+                'title' => 'Saúde & Bem-Estar • G1',
+                'icon' => 'fas fa-heartbeat',
+                'rss' => 'https://g1.globo.com/dynamo/ciencia-e-saude/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #064e3b 0%, #091512 100%)',
+                'accent' => '#10b981'
+            ],
+            'rss_turismo' => [
+                'title' => 'Turismo & Viagem • G1',
+                'icon' => 'fas fa-plane',
+                'rss' => 'https://g1.globo.com/dynamo/turismo-e-viagem/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #0c4a6e 0%, #081420 100%)',
+                'accent' => '#0ea5e9'
+            ],
+            'rss_loterias' => [
+                'title' => 'Loterias & Curiosidades',
+                'icon' => 'fas fa-star',
+                'rss' => 'https://g1.globo.com/dynamo/loterias/rss2.xml',
+                'mode' => 'rss',
+                'bg' => 'linear-gradient(135deg, #14532d 0%, #091910 100%)',
+                'accent' => '#22c55e'
+            ]
+        ];
+
+        $cfg = $presets[$slug] ?? null;
+        if (!$cfg) {
+            // Verifica no banco studiolivecode_radios.db
+            try {
+                $pdoR = Database::radios();
+                $urlTarget = '/widgets/' . $slug . '.php';
+                $stmt = $pdoR->prepare("SELECT * FROM entretenimentos WHERE url = :u LIMIT 1");
+                $stmt->execute([':u' => $urlTarget]);
+                $row = $stmt->fetch();
+                if ($row) {
+                    $cfg = [
+                        'title' => $row['nome'],
+                        'icon' => $row['icon'] ?: 'fas fa-rss',
+                        'rss' => $row['rss_url'] ?? '',
+                        'mode' => 'rss',
+                        'bg' => 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                        'accent' => '#00b4d8'
+                    ];
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        if (!$cfg) {
+            $cfg = $presets['noticias'];
+        }
+
+        $items = [];
+        $bgImage = '';
+
+        if ($cfg['mode'] === 'clock') {
+            $items = [['title' => date('H:i'), 'desc' => date('d/m/Y')]];
+        } elseif ($cfg['mode'] === 'quotes') {
+            $quotes = [
+                ['title' => '“O sucesso é a soma de pequenos esforços repetidos dia após dia.”', 'desc' => 'Robert Collier'],
+                ['title' => '“A persistência é o caminho mais curto para o êxito.”', 'desc' => 'Charles Chaplin'],
+                ['title' => '“A melhor maneira de prever o futuro é criá-lo.”', 'desc' => 'Peter Drucker'],
+                ['title' => '“Tudo o que um sonho precisa para ser realizado é alguém que acredite nele.”', 'desc' => 'Roberto Shinyashiki'],
+                ['title' => '“Desejamos a você uma excelente viagem com a Player99!”', 'desc' => 'Boa viagem']
+            ];
+            shuffle($quotes);
+            $items = $quotes;
+        } elseif (!empty($cfg['rss'])) {
+            $items = $this->fetchRssItems($cfg['rss'], $slug);
+            foreach ($items as $it) {
+                if (!empty($it['image'])) {
+                    $bgImage = $it['image'];
+                    break;
+                }
+            }
+        }
+
+        if (empty($items)) {
+            $items = [
+                ['title' => 'Acompanhe as principais notícias e atualizações em tempo real na tela Player99.', 'desc' => $cfg['title']]
+            ];
+        }
+
+        $this->render('player/widget', [
+            'title' => $cfg['title'],
+            'icon' => $cfg['icon'],
+            'mode' => $cfg['mode'],
+            'bgGradient' => $cfg['bg'],
+            'accentColor' => $cfg['accent'],
+            'bgImage' => $bgImage,
+            'items' => $items
+        ], null);
+    }
+
+    private function fetchRssItems(string $rssUrl, string $cacheKey): array
+    {
+        $cacheDir = dirname(__DIR__, 2) . '/api/db';
+        $cacheFile = $cacheDir . '/rss_cache_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $cacheKey) . '.json';
+
+        if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 900) {
+            $cached = json_decode((string)@file_get_contents($cacheFile), true);
+            if (!empty($cached) && is_array($cached)) {
+                return $cached;
+            }
+        }
+
+        $items = [];
+        try {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $rssUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 Player99-DOOH/2.3');
+            $xmlRaw = curl_exec($ch);
+            curl_close($ch);
+
+            if ($xmlRaw) {
+                $xml = @simplexml_load_string($xmlRaw, 'SimpleXMLElement', LIBXML_NOCDATA);
+                if ($xml && isset($xml->channel->item)) {
+                    $count = 0;
+                    foreach ($xml->channel->item as $item) {
+                        if ($count >= 6) break;
+                        $title = trim(strip_tags((string)$item->title));
+                        $descRaw = (string)($item->description ?? '');
+                        $img = '';
+                        if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $descRaw, $m)) {
+                            $img = $m[1];
+                        }
+                        if (empty($img) && isset($item->enclosure['url'])) {
+                            $img = (string)$item->enclosure['url'];
+                        }
+                        $desc = trim( strip_tags($descRaw) );
+                        if (mb_strlen($desc) > 180) {
+                            $desc = mb_substr($desc, 0, 177) . '...';
+                        }
+                        if (!empty($title)) {
+                            $items[] = [
+                                'title' => $title,
+                                'desc' => $desc,
+                                'image' => $img
+                            ];
+                            $count++;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        if (!empty($items)) {
+            @file_put_contents($cacheFile, json_encode($items, JSON_UNESCAPED_UNICODE));
+        }
+
+        return $items;
+    }
 }
