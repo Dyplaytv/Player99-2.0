@@ -25,6 +25,8 @@ class AuthController extends Controller
 
         if ($err === 'invalid_credentials') {
             $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-times-circle'></i> <b>Credenciais Incorretas!</b><br>Verifique seu e-mail/usuário e senha.</div>";
+        } elseif ($err === 'blocked') {
+            $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-ban'></i> <b>Conta Bloqueada!</b><br>Seu acesso foi temporariamente suspenso. Entre em contato com o suporte.</div>";
         } elseif ($err === 'expired') {
             $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-clock-o'></i> Acesso expirado. Entre em contato para renovar.</div>";
         } elseif ($request->input('cadastrado') === '1') {
@@ -233,4 +235,16 @@ class AuthController extends Controller
                 'inputEmail' => $email,
                 'inputWhatsapp' => $whatsapp,
                 'ref' => $ref
-        
+            ], null);
+            return;
+        }
+
+        $this->redirect('/login?cadastrado=1');
+    }
+
+    public function logout(): void
+    {
+        Auth::logout();
+        $this->redirect('/login');
+    }
+}

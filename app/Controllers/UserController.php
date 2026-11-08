@@ -37,8 +37,17 @@ class UserController extends Controller
                 $newState = (int)$request->input('new_state');
                 if ($cid > 0) {
                     $stmt = $pdoClients->prepare("UPDATE ibo SET active = :act WHERE id = :id");
-                    $stmt->execute([':act' => $newState, ':id' => $cid]);
-                    echo json_encode(['status' => 'success']);
+                    $stmt->bindValue(':act', $newState, \PDO::PARAM_INT);
+                    $stmt->bindValue(':id', $cid, \PDO::PARAM_INT);
+                    $stmt->execute();
+
+                    // Se bloqueou (0), força reload nas telas desse cliente para entrarem em modo de bloqueio
+                    // Se desbloqueou (1), força reload para voltarem a tocar anúncios
+                    try {
+                        $pdoClients->prepare("UPDATE telas SET force_reload = 1 WHERE id_cliente = :cid")->execute([':cid' => $cid]);
+                    } catch (\Throwable $e) {}
+
+                    echo json_encode(['status' => 'success', 'new_state' => $newState]);
                     return;
                 }
             } elseif ($action === 'update_multiplo') {

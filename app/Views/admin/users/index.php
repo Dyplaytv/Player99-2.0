@@ -271,7 +271,16 @@ function toggleBlockClient(id, newState) {
 
         fetch('/admin/usuarios', { method: 'POST', body: formData })
             .then(res => res.json())
-            .then(() => window.location.reload());
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert('Erro ao atualizar status do cliente.');
+                }
+            })
+            .catch(err => {
+                alert('Erro na requisição. Tente novamente.');
+            });
     }
 }
 
