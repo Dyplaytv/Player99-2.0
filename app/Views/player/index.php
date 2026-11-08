@@ -13,7 +13,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
     <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
     <title>Player99 DOOH - Tela <?= htmlspecialchars($codigo) ?></title>

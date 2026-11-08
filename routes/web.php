@@ -86,6 +86,8 @@ $router->get('/tv.php', [ScreenController::class, 'tv']);
 $router->get('/api_pairing.php', [ScreenController::class, 'apiPairing']);
 $router->get('/api/pairing', [ScreenController::class, 'apiPairing']);
 $router->get('/manifest.json', [ScreenController::class, 'manifest']);
+$router->get('/manifest.webmanifest', [ScreenController::class, 'manifest']);
+$router->get('/pwa-manifest.php', [ScreenController::class, 'manifest']);
 $router->get('/sw.js', [ScreenController::class, 'serviceWorker']);
 $router->get('/api/ping', [ScreenController::class, 'ping']);
 $router->get('/widgets/{slug}', [ScreenController::class, 'widget']);

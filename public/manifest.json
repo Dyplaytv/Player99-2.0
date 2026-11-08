@@ -1,12 +1,11 @@
 {
-  "id": "/tv.php",
-  "name": "Player99 TV & Tablet",
+  "id": "/tv",
+  "name": "Player99 TV",
   "short_name": "Player99",
   "description": "Player DOOH Indoor para TVs, Tablets e Celulares Android",
-  "start_url": "/tv.php",
+  "start_url": "/tv",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["fullscreen", "standalone"],
   "background_color": "#0b132b",
   "theme_color": "#0b132b",
   "orientation": "any",
@@ -18,19 +17,19 @@
       "purpose": "any"
     },
     {
-      "src": "/assets/images/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
       "src": "/assets/images/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/images/icon-512.png",
+      "src": "/assets/images/icon-192.png?v=mask",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/images/icon-512.png?v=mask",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

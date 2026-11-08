@@ -11,6 +11,21 @@ Options -Indexes
     </IfModule>
 </FilesMatch>
 
+# Libera explicitamente os Manifestos PWA para instalação no Android/Chrome
+<FilesMatch "^(manifest|manifest_cliente)\.(json|webmanifest)$">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Allow from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
 # Headers de Segurança
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
