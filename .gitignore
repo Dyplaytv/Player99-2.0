@@ -25,3 +25,6 @@ Desktop.ini
 
 # Arquivos de ambiente locais
 .env
+
+/api/db/studiolivecode_loja.db
+/router.php
