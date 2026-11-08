@@ -1,5 +1,8 @@
 <?php
 $rotation = (int)($screen['rotation'] ?? 0);
+$audioMode = $radioInfo['audio_mode'] ?? ($screen['audio_mode'] ?? 'video');
+$radioUrl = $radioInfo['radio_url'] ?? '';
+$radioName = $radioInfo['radio_name'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -131,11 +134,34 @@ $rotation = (int)($screen['rotation'] ?? 0);
             pointer-events: none;
             z-index: 1000;
         }
+
+        #audioUnlockBanner {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.92);
+            color: #00f3ff;
+            border: 1px solid #00f3ff;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2000;
+            box-shadow: 0 4px 20px rgba(0, 243, 255, 0.35);
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body class="rot-<?= $rotation ?>">
 
     <div id="playerContainer">
+        <div id="audioUnlockBanner" onclick="unlockAudioNow()">
+            🔊 Toque aqui para ativar o som da Rádio <span id="unlockRadioName"><?= htmlspecialchars($radioName) ?></span>
+        </div>
+
         <?php if (empty($videos)): ?>
             <div class="no-media">
                 <h2>Player99 em Operação</h2>
@@ -156,26 +182,101 @@ $rotation = (int)($screen['rotation'] ?? 0);
                 <?php elseif ($isImg): ?>
                     <img src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="image" data-duration="<?= $durMs ?>" id="media_<?= $idx ?>">
                 <?php else: ?>
-                    <video src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="video" id="media_<?= $idx ?>" playsinline webkit-playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback" <?= ($screen['audio_mode'] ?? 'video') === 'mute' ? 'muted' : '' ?>></video>
+                    <video src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="video" id="media_<?= $idx ?>" playsinline webkit-playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback" <?= ($audioMode !== 'video') ? 'muted' : '' ?>></video>
                 <?php endif; ?>
             <?php endforeach; ?>
         <?php endif; ?>
 
         <div class="telemetry-badge">
-            Player99 • Cod: <?= htmlspecialchars($codigo) ?> • <span id="pingStatus">Online</span>
+            Player99 • Cod: <?= htmlspecialchars($codigo) ?>
+            <?php if ($audioMode === 'radio' && !empty($radioName)): ?>
+                • 📻 <span id="badgeRadioName"><?= htmlspecialchars($radioName) ?></span>
+            <?php endif; ?>
+            • <span id="pingStatus">Online</span>
         </div>
     </div>
+
+    <audio id="radioPlayer" preload="auto"></audio>
 
     <script>
         const codigo = <?= json_encode($codigo) ?>;
         let currentRotation = <?= $rotation ?>;
+        let currentAudioMode = <?= json_encode($audioMode) ?>;
+        let currentRadioUrl = <?= json_encode($radioUrl) ?>;
+        let currentRadioName = <?= json_encode($radioName) ?>;
         let currentIndex = 0;
+        let slideTimer = null;
         const mediaItems = document.querySelectorAll('.media-item');
+        const radioPlayer = document.getElementById('radioPlayer');
+        const unlockBanner = document.getElementById('audioUnlockBanner');
+
+        function syncAudioState() {
+            const videos = document.querySelectorAll('video.media-item');
+            if (currentAudioMode === 'radio' && currentRadioUrl) {
+                videos.forEach(v => { v.muted = true; });
+                if (radioPlayer.getAttribute('data-src') !== currentRadioUrl) {
+                    radioPlayer.setAttribute('data-src', currentRadioUrl);
+                    radioPlayer.src = currentRadioUrl;
+                    radioPlayer.load();
+                }
+                if (radioPlayer.paused) {
+                    radioPlayer.play().then(() => {
+                        unlockBanner.style.display = 'none';
+                    }).catch(() => {
+                        document.getElementById('unlockRadioName').innerText = currentRadioName ? ('(' + currentRadioName + ')') : '';
+                        unlockBanner.style.display = 'block';
+                    });
+                }
+            } else if (currentAudioMode === 'mute') {
+                videos.forEach(v => { v.muted = true; });
+                radioPlayer.pause();
+                unlockBanner.style.display = 'none';
+            } else {
+                radioPlayer.pause();
+                unlockBanner.style.display = 'none';
+                videos.forEach(v => { v.muted = false; });
+            }
+        }
+
+        function unlockAudioNow() {
+            unlockBanner.style.display = 'none';
+            if (currentAudioMode === 'radio' && currentRadioUrl) {
+                radioPlayer.play().catch(() => {});
+            } else if (currentAudioMode === 'video') {
+                const activeVid = document.querySelector('video.media-item.active');
+                if (activeVid) {
+                    activeVid.muted = false;
+                    activeVid.play().catch(() => {});
+                }
+            }
+        }
+
+        document.addEventListener('click', unlockAudioNow, { passive: true });
+        document.addEventListener('touchstart', unlockAudioNow, { passive: true });
 
         function applyRotation(rot) {
             rot = parseInt(rot, 10) || 0;
             if (rot === currentRotation) return;
             window.location.reload();
+        }
+
+        function startCurrentItem(item) {
+            if (slideTimer) clearTimeout(slideTimer);
+            if (!item) return;
+
+            if (item.tagName === 'VIDEO') {
+                item.muted = (currentAudioMode !== 'video');
+                item.currentTime = 0;
+                item.play().catch(() => {
+                    item.muted = true;
+                    item.play().catch(() => {
+                        slideTimer = setTimeout(playNext, 5000);
+                    });
+                });
+                item.onended = playNext;
+            } else {
+                slideTimer = setTimeout(playNext, parseInt(item.getAttribute('data-duration') || '15000', 10));
+            }
         }
 
         function playNext() {
@@ -192,30 +293,16 @@ $rotation = (int)($screen['rotation'] ?? 0);
             currentIndex = (currentIndex + 1) % mediaItems.length;
             const current = mediaItems[currentIndex];
             current.classList.add('active');
-
-            if (current.tagName === 'VIDEO') {
-                current.play().catch(e => {
-                    console.log("Autoplay bloqueado:", e);
-                    setTimeout(playNext, 5000);
-                });
-                current.onended = playNext;
-            } else {
-                setTimeout(playNext, parseInt(current.getAttribute('data-duration') || '15000'));
-            }
+            startCurrentItem(current);
         }
 
-        // Inicia reprodução
+        // Inicia reprodução de vídeo/imagem e rádio
+        syncAudioState();
         if (mediaItems.length > 0) {
-            const first = mediaItems[0];
-            if (first.tagName === 'VIDEO') {
-                first.play().catch(() => {});
-                first.onended = playNext;
-            } else {
-                setTimeout(playNext, parseInt(first.getAttribute('data-duration') || '15000'));
-            }
+            startCurrentItem(mediaItems[0]);
         }
 
-        // Telemetria e Ping Automático a cada 45 segundos
+        // Telemetria e Ping Automático a cada 6 segundos para resposta imediata de rotação e rádio
         function sendPing() {
             fetch('/api/ping?codigo=' + encodeURIComponent(codigo))
                 .then(res => res.json())
@@ -228,13 +315,22 @@ $rotation = (int)($screen['rotation'] ?? 0);
                     if (data.rotation !== undefined) {
                         applyRotation(data.rotation);
                     }
+                    if (data.audio_mode !== undefined) {
+                        const modeChanged = (data.audio_mode !== currentAudioMode) || ((data.radio_url || '') !== currentRadioUrl);
+                        currentAudioMode = data.audio_mode;
+                        currentRadioUrl = data.radio_url || '';
+                        currentRadioName = data.radio_name || '';
+                        if (modeChanged) {
+                            syncAudioState();
+                        }
+                    }
                 })
                 .catch(() => {
                     document.getElementById('pingStatus').innerText = 'Reconectando...';
                 });
         }
 
-        setInterval(sendPing, 45000);
+        setInterval(sendPing, 6000);
         sendPing();
     </script>
 </body>

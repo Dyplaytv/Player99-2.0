@@ -639,8 +639,27 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                                     <div class="input-group input-group-sm">
                                                         <input type="text" class="form-control font-weight-bold text-center" style="background:#e9ecef;" value="<?= htmlspecialchars($tela['player_code']) ?>" readonly>
                                                         <div class="input-group-append">
-                                                            <button type="button" class="btn btn-outline-secondary" onclick="toggleRotation(<?= (int)$tela['id'] ?>, <?= $currentRotation === 90 ? 0 : 90 ?>)" title="<?= $currentRotation === 90 ? 'Voltar para Horizontal (0°)' : 'Girar para Vertical (90°)' ?>">
-                                                                <i class="fas fa-sync-alt" style="<?= $currentRotation === 90 ? 'color:#00bcd4;' : '' ?>"></i>
+                                                            <button type="button"
+                                                                    class="btn btn-outline-secondary d-inline-flex align-items-center px-2 btn-rot-toggle"
+                                                                    id="btnRot_<?= (int)$tela['id'] ?>"
+                                                                    data-rot="<?= $currentRotation === 90 ? 90 : 0 ?>"
+                                                                    style="<?= $currentRotation === 90 ? 'border-color:#00bcd4;background:rgba(0,188,212,0.10);color:#008ba3;' : 'color:#495057;' ?>"
+                                                                    onclick="toggleRotation(this, <?= (int)$tela['id'] ?>)"
+                                                                    title="<?= $currentRotation === 90 ? 'Tela em Pé (Vertical 90°) - Clique para deixar Deitada (Horizontal 0°)' : 'Tela Deitada (Horizontal 0°) - Clique para deixar em Pé (Vertical 90°)' ?>">
+                                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="rot-svg">
+                                                                    <!-- Flechas circulares externas -->
+                                                                    <path d="M4.2 9.5A8.5 8.5 0 0 1 18.8 6.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                                                    <polyline points="16.2,4.2 19.2,7.0 16.0,9.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                                                    <path d="M19.8 14.5A8.5 8.5 0 0 1 5.2 17.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                                                    <polyline points="7.8,19.8 4.8,17.0 8.0,14.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                                                    <!-- Telinha interna: em pé (90°) ou deitada (0°) -->
+                                                                    <?php if ($currentRotation === 90): ?>
+                                                                        <rect class="mini-screen-rect" x="9" y="6.5" width="6" height="11" rx="1.2" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8"/>
+                                                                    <?php else: ?>
+                                                                        <rect class="mini-screen-rect" x="6.5" y="9" width="11" height="6" rx="1.2" fill="currentColor" fill-opacity="0.20" stroke="currentColor" stroke-width="1.8"/>
+                                                                    <?php endif; ?>
+                                                                </svg>
+                                                                <span class="rot-label ml-1 font-weight-bold" style="font-size:11px;"><?= $currentRotation === 90 ? '90°' : '0°' ?></span>
                                                             </button>
                                                             <button type="button" class="btn btn-outline-secondary" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($playerLink) ?>'); alert('Link do Player copiado!');" title="Copiar Link do Player">
                                                                 <i class="far fa-copy"></i>
@@ -718,21 +737,45 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                         <option value="radio">📻 Rádio Web de Fundo</option>
                                     </select>
                                 </div>
-                                <div class="form-group mb-4 text-left" id="div_radio_select" style="display:none;">
+                                <div class="form-group mb-3 text-left" id="div_radio_select" style="display:none;">
                                     <label class="font-weight-bold">Escolha a Rádio</label>
-                                    <select class="form-control form-control-lg" id="id_radio">
-                                        <option value="0">-- Selecione uma rádio --</option>
-                                        <optgroup label="⭐ Minhas Rádios Favoritas">
-                                            <?php foreach ($radiosCliente as $r): ?>
-                                                <option value="-<?= (int)$r['id'] ?>"><?= htmlspecialchars(str_replace('📻 ', '', $r['title'])) ?></option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                        <optgroup label="🌍 Rádios Globais">
-                                            <?php foreach ($radiosGlobais as $r): ?>
-                                                <option value="<?= (int)$r['id'] ?>"><?= htmlspecialchars($r['nome']) ?></option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                    </select>
+                                    <div class="input-group mb-2">
+                                        <select class="form-control form-control-lg" id="id_radio" onchange="stopModalRadioPreview()">
+                                            <option value="0" data-url="">-- Selecione uma rádio --</option>
+                                            <optgroup label="⭐ Minhas Rádios Favoritas" id="favRadiosOptgroup">
+                                                <?php foreach ($radiosCliente as $r): ?>
+                                                    <option value="-<?= (int)$r['id'] ?>" data-url="<?= htmlspecialchars($r['filename'] ?? '') ?>"><?= htmlspecialchars(str_replace('📻 ', '', $r['title'])) ?></option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
+                                            <optgroup label="🌍 Rádios Globais">
+                                                <?php foreach ($radiosGlobais as $r): ?>
+                                                    <option value="<?= (int)$r['id'] ?>" data-url="<?= htmlspecialchars($r['url'] ?? '') ?>"><?= htmlspecialchars($r['nome']) ?></option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
+                                        </select>
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-info font-weight-bold" id="btnPreviewSelectedRadio" onclick="previewSelectedRadio()" title="Ouvir rádio selecionada">
+                                                <i class="fas fa-play mr-1"></i> Ouvir
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <audio id="modalRadioPreviewAudio" style="display:none;"></audio>
+
+                                    <!-- Campo de Pesquisa para buscar uma rádio diferente e favoritar -->
+                                    <div class="p-3 mt-3 rounded border" style="background:#f8f9fa;">
+                                        <label class="font-weight-bold small text-uppercase text-secondary mb-1">
+                                            <i class="fas fa-search mr-1 text-primary"></i> Pesquisar Outra Rádio e Adicionar aos Favoritos
+                                        </label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" id="modalRadioSearchInput" class="form-control" placeholder="Digite o nome da rádio (Ex: Jovem Pan, Gaúcha, Kiss FM, Sertanejo...)" onkeypress="if(event.keyCode===13){event.preventDefault();searchRadioInModal();}">
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-success font-weight-bold" onclick="searchRadioInModal()">
+                                                    <i class="fas fa-search mr-1"></i> Buscar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div id="modalRadioSearchResults" class="mt-2" style="max-height:190px;overflow-y:auto;"></div>
+                                    </div>
                                 </div>
                                 <div class="d-flex justify-content-center mt-4" style="gap:10px;">
                                     <button type="button" class="btn btn-primary btn-lg px-4" onclick="saveAudioConfig()">SALVAR</button>
@@ -1088,19 +1131,53 @@ document.querySelectorAll('.select-playlist').forEach(select => {
     });
 });
 
-function toggleRotation(idTela, newRotation) {
+function toggleRotation(btnEl, idTela) {
+    const currentRot = parseInt(btnEl.getAttribute('data-rot') || '0', 10);
+    const newRot = (currentRot === 90) ? 0 : 90;
+
+    // Atualiza visualmente a telinha dentro das flechas imediatamente
+    btnEl.setAttribute('data-rot', String(newRot));
+    const rect = btnEl.querySelector('.mini-screen-rect');
+    const lbl = btnEl.querySelector('.rot-label');
+    if (newRot === 90) {
+        btnEl.style.borderColor = '#00bcd4';
+        btnEl.style.background = 'rgba(0,188,212,0.10)';
+        btnEl.style.color = '#008ba3';
+        btnEl.title = 'Tela em Pé (Vertical 90°) - Clique para deixar Deitada (Horizontal 0°)';
+        if (rect) {
+            rect.setAttribute('x', '9');
+            rect.setAttribute('y', '6.5');
+            rect.setAttribute('width', '6');
+            rect.setAttribute('height', '11');
+        }
+        if (lbl) lbl.innerText = '90°';
+    } else {
+        btnEl.style.borderColor = '';
+        btnEl.style.background = '';
+        btnEl.style.color = '#495057';
+        btnEl.title = 'Tela Deitada (Horizontal 0°) - Clique para deixar em Pé (Vertical 90°)';
+        if (rect) {
+            rect.setAttribute('x', '6.5');
+            rect.setAttribute('y', '9');
+            rect.setAttribute('width', '11');
+            rect.setAttribute('height', '6');
+        }
+        if (lbl) lbl.innerText = '0°';
+    }
+
     $.post(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
         ajax_action: 'toggle_rotation',
         id_tela: idTela,
-        rotation: newRotation
+        rotation: newRot
     }, function(res) {
-        if (res && res.success) {
-            window.location.reload();
+        if (!res || !res.success) {
+            alert('Erro ao salvar rotação da tela.');
         }
     }, 'json');
 }
 
 function openAudioModal(idTela, mode, idRadio) {
+    stopModalRadioPreview();
     $('#audio_id_tela').val(idTela);
     $('#audio_mode').val(mode);
     $('#id_radio').val(idRadio);
@@ -1108,7 +1185,12 @@ function openAudioModal(idTela, mode, idRadio) {
     $('#audioModal').modal('show');
 }
 
+$('#audioModal').on('hidden.bs.modal', function() {
+    stopModalRadioPreview();
+});
+
 function toggleRadioSelect() {
+    stopModalRadioPreview();
     if ($('#audio_mode').val() === 'radio') {
         $('#div_radio_select').show();
     } else {
@@ -1116,7 +1198,132 @@ function toggleRadioSelect() {
     }
 }
 
+function stopModalRadioPreview() {
+    const audio = document.getElementById('modalRadioPreviewAudio');
+    const btn = document.getElementById('btnPreviewSelectedRadio');
+    if (audio) {
+        audio.pause();
+        audio.removeAttribute('src');
+    }
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-play mr-1"></i> Ouvir';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-info');
+    }
+}
+
+function previewSelectedRadio(customUrl) {
+    const audio = document.getElementById('modalRadioPreviewAudio');
+    const btn = document.getElementById('btnPreviewSelectedRadio');
+    if (!audio) return;
+
+    if (!customUrl && !audio.paused) {
+        stopModalRadioPreview();
+        return;
+    }
+
+    let url = customUrl || '';
+    if (!url) {
+        const sel = document.getElementById('id_radio');
+        const opt = sel ? sel.options[sel.selectedIndex] : null;
+        url = opt ? (opt.getAttribute('data-url') || '') : '';
+    }
+    if (!url) {
+        alert('Selecione uma rádio primeiro para ouvir.');
+        return;
+    }
+
+    audio.src = url;
+    audio.play().then(() => {
+        if (btn && !customUrl) {
+            btn.innerHTML = '<i class="fas fa-stop mr-1"></i> Parar';
+            btn.classList.remove('btn-info');
+            btn.classList.add('btn-danger');
+        }
+    }).catch(() => {
+        alert('Não foi possível reproduzir esta transmissão no navegador.');
+    });
+}
+
+function searchRadioInModal() {
+    const input = document.getElementById('modalRadioSearchInput');
+    const resDiv = document.getElementById('modalRadioSearchResults');
+    if (!input || !input.value.trim()) return;
+
+    resDiv.innerHTML = '<div class="text-center py-2"><i class="fas fa-spinner fa-spin text-primary"></i> Buscando rádios...</div>';
+    fetch(window.location.pathname + '?<?= $baseParam ?>action=search_radios&q=' + encodeURIComponent(input.value.trim()))
+        .then(r => r.json())
+        .then(data => {
+            if (!data || data.length === 0) {
+                resDiv.innerHTML = '<div class="text-muted text-center py-2 small">Nenhuma rádio encontrada com esse nome.</div>';
+                return;
+            }
+            let html = '<ul class="list-group list-group-flush border rounded bg-white">';
+            data.forEach(st => {
+                if (st.url_resolved) {
+                    const safeName = (st.name || 'Rádio').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    const safeUrl = (st.url_resolved || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    html += <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-2">
+                        <div class="text-truncate mr-2" style="max-width:210px;">
+                            <strong class="small text-dark"></strong><br>
+                            <small class="text-muted"></small>
+                        </div>
+                        <div class="d-flex" style="gap:4px;">
+                            <button type="button" class="btn btn-xs btn-outline-info btn-sm py-1 px-2" onclick="previewSelectedRadio('')" title="Testar Áudio">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <button type="button" class="btn btn-xs btn-warning btn-sm font-weight-bold py-1 px-2" onclick="addRadioToFavoritesInModal('', '', this)">
+                                <i class="fas fa-star mr-1"></i> Favoritar
+                            </button>
+                        </div>
+                    </li>;
+                }
+            });
+            html += '</ul>';
+            resDiv.innerHTML = html;
+        })
+        .catch(() => {
+            resDiv.innerHTML = '<div class="text-danger text-center py-2 small">Erro ao buscar rádios.</div>';
+        });
+}
+
+function addRadioToFavoritesInModal(name, url, btnEl) {
+    const oldHtml = btnEl.innerHTML;
+    btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btnEl.disabled = true;
+
+    $.post(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
+        ajax_action: 'add_favorite_radio',
+        radio_name: name,
+        radio_url: url
+    }, function(res) {
+        if (res && res.success) {
+            const optGroup = document.getElementById('favRadiosOptgroup');
+            const select = document.getElementById('id_radio');
+            if (optGroup && select) {
+                const opt = document.createElement('option');
+                opt.value = String(res.radio_id);
+                opt.setAttribute('data-url', res.url);
+                opt.textContent = res.name;
+                optGroup.appendChild(opt);
+                select.value = String(res.radio_id);
+            }
+            btnEl.classList.replace('btn-warning', 'btn-success');
+            btnEl.innerHTML = '<i class="fas fa-check"></i> Favoritada!';
+        } else {
+            btnEl.innerHTML = oldHtml;
+            btnEl.disabled = false;
+            alert('Erro ao favoritar rádio.');
+        }
+    }, 'json');
+}
+
 function saveAudioConfig() {
+    if ($('#audio_mode').val() === 'radio' && ($('#id_radio').val() === '0' || !$('#id_radio').val())) {
+        alert('Por favor, selecione uma rádio da lista ou pesquise uma abaixo.');
+        return;
+    }
+    stopModalRadioPreview();
     $.post(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
         ajax_action: 'set_audio',
         id_tela: $('#audio_id_tela').val(),

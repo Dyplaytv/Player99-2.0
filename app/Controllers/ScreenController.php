@@ -249,6 +249,52 @@ class ScreenController extends Controller
         $this->redirect('/admin/telas?msg=deleted');
     }
 
+    private function resolveRadioInfo(\PDO $pdo, array $screen): array
+    {
+        $audioMode = $screen['audio_mode'] ?? 'video';
+        if ($audioMode === 'video' && !empty($screen['muted'])) {
+            $audioMode = 'mute';
+        }
+        $idRadio = (int)($screen['id_radio'] ?? 0);
+        $radioUrl = '';
+        $radioName = '';
+
+        if ($audioMode === 'radio' && $idRadio !== 0) {
+            if ($idRadio > 0) {
+                try {
+                    $pdoR = Database::radios();
+                    $stmtR = $pdoR->prepare("SELECT nome, url FROM radios WHERE id = :id LIMIT 1");
+                    $stmtR->execute([':id' => $idRadio]);
+                    $rRow = $stmtR->fetch();
+                    if ($rRow) {
+                        $radioName = (string)$rRow['nome'];
+                        $radioUrl = (string)$rRow['url'];
+                        if (preg_match('/(MIXFM_SPAAC|ALPHA_FMAAC|CBN_SPAAC|TRANSAMERICA_SPAAC)\.aac/i', $radioUrl, $m)) {
+                            $radioUrl = 'https://playerservices.streamtheworld.com/api/livestream-redirect/' . strtoupper($m[1]) . '.aac';
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            } else {
+                try {
+                    $stmtFav = $pdo->prepare("SELECT title, filename FROM videos WHERE id = :id LIMIT 1");
+                    $stmtFav->execute([':id' => abs($idRadio)]);
+                    $vRow = $stmtFav->fetch();
+                    if ($vRow) {
+                        $radioName = trim(str_replace('📻', '', (string)$vRow['title']));
+                        $radioUrl = (string)$vRow['filename'];
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+
+        return [
+            'audio_mode' => $audioMode,
+            'id_radio' => $idRadio,
+            'radio_url' => $radioUrl,
+            'radio_name' => $radioName
+        ];
+    }
+
     public function player(Request $request, string $codigo = ''): void
     {
         if ($codigo === '') {
@@ -268,17 +314,40 @@ class ScreenController extends Controller
 
         $pdo = Database::clients();
         $videos = [];
+        $cid = (int)($screen['id_cliente'] ?: $screen['id']);
+        $plId = (int)($screen['id_playlist'] ?? 0);
         try {
-            $stmt = $pdo->prepare("SELECT * FROM videos WHERE id_cliente = :cid ORDER BY id ASC");
-            $stmt->bindValue(':cid', $screen['id_cliente'] ?: $screen['id']);
-            $stmt->execute();
-            $videos = $stmt->fetchAll();
+            if ($plId <= 0) {
+                $stmtAct = $pdo->prepare("SELECT id FROM playlists WHERE id_cliente = :cid AND is_active = 1 LIMIT 1");
+                $stmtAct->execute([':cid' => $cid]);
+                $plId = (int)$stmtAct->fetchColumn();
+            }
+            if ($plId > 0) {
+                $stmtPl = $pdo->prepare("
+                    SELECT v.*, pv.duration 
+                    FROM playlist_videos pv 
+                    JOIN videos v ON pv.id_video = v.id 
+                    WHERE pv.id_playlist = :pl 
+                      AND v.filename NOT LIKE 'http%'
+                    ORDER BY pv.sequence ASC
+                ");
+                $stmtPl->execute([':pl' => $plId]);
+                $videos = $stmtPl->fetchAll();
+            }
+            if (empty($videos)) {
+                $stmt = $pdo->prepare("SELECT * FROM videos WHERE id_cliente = :cid AND filename NOT LIKE '/widgets/%' AND filename NOT LIKE 'http%' ORDER BY id ASC");
+                $stmt->execute([':cid' => $cid]);
+                $videos = $stmt->fetchAll();
+            }
         } catch (\Throwable $e) {}
+
+        $radioInfo = $this->resolveRadioInfo($pdo, $screen);
 
         $this->render('player/index', [
             'screen' => $screen,
             'videos' => $videos,
-            'codigo' => $codigo
+            'codigo' => $codigo,
+            'radioInfo' => $radioInfo
         ], null);
     }
 
@@ -293,12 +362,16 @@ class ScreenController extends Controller
         if ($screen) {
             $forceReload = (int)($screen['force_reload'] ?? 0);
             Screen::updatePing((int)$screen['id']);
+            $pdo = Database::clients();
+            $radioInfo = $this->resolveRadioInfo($pdo, $screen);
             $this->json([
                 'status' => 'ok',
                 'active' => 1,
                 'force_reload' => $forceReload,
                 'rotation' => (int)($screen['rotation'] ?? 0),
-                'audio_mode' => $screen['audio_mode'] ?? 'video'
+                'audio_mode' => $radioInfo['audio_mode'],
+                'radio_url' => $radioInfo['radio_url'],
+                'radio_name' => $radioInfo['radio_name']
             ]);
         }
 

@@ -173,7 +173,7 @@ class ClientDashboardController extends Controller
             exit;
         }
 
-        // Ações AJAX de Telas e Playlists (POST ajax_action)
+        // Ações AJAX de Telas, Rádios e Playlists (POST ajax_action)
         if ($request->isPost() && $request->input('ajax_action') !== null) {
             header('Content-Type: application/json; charset=utf-8');
             $ajaxAction = $request->input('ajax_action');
@@ -181,8 +181,8 @@ class ClientDashboardController extends Controller
             if ($ajaxAction === 'vincular_playlist') {
                 $idTela = (int)$request->input('id_tela', 0);
                 $idPlaylist = (int)$request->input('id_playlist', 0);
-                $stmt = $pdo->prepare("UPDATE telas SET id_playlist = :pl, force_reload = 1 WHERE id = :id AND id_cliente = :cid");
-                $ok = $stmt->execute([':pl' => $idPlaylist, ':id' => $idTela, ':cid' => $idCliente]);
+                $stmt = $pdo->prepare("UPDATE telas SET id_playlist = :pl, force_reload = 1 WHERE id = :id AND (id_cliente = :cid OR :adm = 1)");
+                $ok = $stmt->execute([':pl' => $idPlaylist, ':id' => $idTela, ':cid' => $idCliente, ':adm' => $isAdmin ? 1 : 0]);
                 echo json_encode(['success' => $ok]);
                 exit;
             }
@@ -192,8 +192,8 @@ class ClientDashboardController extends Controller
                 $audioMode = trim((string)$request->input('audio_mode', 'video'));
                 $idRadio = (int)$request->input('id_radio', 0);
                 $muted = ($audioMode === 'mute' || $audioMode === 'radio') ? 1 : 0;
-                $stmt = $pdo->prepare("UPDATE telas SET audio_mode = :am, id_radio = :ir, muted = :m, force_reload = 1 WHERE id = :id AND id_cliente = :cid");
-                $ok = $stmt->execute([':am' => $audioMode, ':ir' => $idRadio, ':m' => $muted, ':id' => $idTela, ':cid' => $idCliente]);
+                $stmt = $pdo->prepare("UPDATE telas SET audio_mode = :am, id_radio = :ir, muted = :m, force_reload = 1 WHERE id = :id AND (id_cliente = :cid OR :adm = 1)");
+                $ok = $stmt->execute([':am' => $audioMode, ':ir' => $idRadio, ':m' => $muted, ':id' => $idTela, ':cid' => $idCliente, ':adm' => $isAdmin ? 1 : 0]);
                 echo json_encode(['success' => $ok]);
                 exit;
             }
@@ -201,9 +201,28 @@ class ClientDashboardController extends Controller
             if ($ajaxAction === 'toggle_rotation') {
                 $idTela = (int)$request->input('id_tela', 0);
                 $rotation = (int)$request->input('rotation', 0);
-                $stmt = $pdo->prepare("UPDATE telas SET rotation = :rot, force_reload = 1 WHERE id = :id AND id_cliente = :cid");
-                $ok = $stmt->execute([':rot' => $rotation, ':id' => $idTela, ':cid' => $idCliente]);
-                echo json_encode(['success' => $ok]);
+                $stmt = $pdo->prepare("UPDATE telas SET rotation = :rot, force_reload = 1 WHERE id = :id AND (id_cliente = :cid OR :adm = 1)");
+                $ok = $stmt->execute([':rot' => $rotation, ':id' => $idTela, ':cid' => $idCliente, ':adm' => $isAdmin ? 1 : 0]);
+                echo json_encode(['success' => $ok, 'rotation' => $rotation, 'id_tela' => $idTela]);
+                exit;
+            }
+
+            if ($ajaxAction === 'add_favorite_radio') {
+                $nomeRadio = trim((string)$request->input('radio_name', ''));
+                $urlRadio = trim((string)$request->input('radio_url', ''));
+                if (!empty($nomeRadio) && !empty($urlRadio)) {
+                    $stmtR = $pdo->prepare("INSERT INTO videos (id_cliente, title, filename, upload_date) VALUES (:cid, :t, :f, :dt)");
+                    $stmtR->execute([
+                        ':cid' => $idCliente,
+                        ':t' => '📻 ' . $nomeRadio,
+                        ':f' => $urlRadio,
+                        ':dt' => date('Y-m-d H:i:s')
+                    ]);
+                    $newFavId = -(int)$pdo->lastInsertId();
+                    echo json_encode(['success' => true, 'radio_id' => $newFavId, 'name' => $nomeRadio, 'url' => $urlRadio]);
+                } else {
+                    echo json_encode(['success' => false, 'msg' => 'Nome ou URL da rádio inválidos.']);
+                }
                 exit;
             }
 
@@ -683,11 +702,12 @@ class ClientDashboardController extends Controller
             }
         }
 
-        // Rádios Globais
+        // Rádios Globais (garante streams HTTPS funcionais e carrega URL p/ preview)
         $radiosGlobais = [];
         try {
             $pdoRadios = Database::radios();
-            $radiosGlobais = $pdoRadios->query("SELECT id, nome FROM radios WHERE is_visible = 1 ORDER BY nome ASC")->fetchAll();
+            $this->ensureDefaultRadios($pdoRadios);
+            $radiosGlobais = $pdoRadios->query("SELECT id, nome, url FROM radios WHERE is_visible = 1 ORDER BY nome ASC")->fetchAll();
         } catch (\Throwable $e) {}
 
         // Faturamento e Faturas
@@ -840,6 +860,54 @@ class ClientDashboardController extends Controller
                         ':fn' => $ent['url'],
                         ':dt' => date('Y-m-d H:i:s')
                     ]);
+                }
+            }
+        } catch (\Throwable $e) {}
+    }
+
+    private function ensureDefaultRadios(\PDO $pdoRadios): void
+    {
+        try {
+            $pdoRadios->exec("CREATE TABLE IF NOT EXISTS radios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                url TEXT NOT NULL,
+                is_visible INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            // Corrige URLs antigas do StreamTheWorld com IP/servidor expirado para o balanceador oficial HTTPS
+            $fixes = [
+                'MIXFM_SPAAC.aac' => 'https://playerservices.streamtheworld.com/api/livestream-redirect/MIXFM_SPAAC.aac',
+                'ALPHA_FMAAC.aac' => 'https://playerservices.streamtheworld.com/api/livestream-redirect/ALPHA_FMAAC.aac',
+                'CBN_SPAAC.aac' => 'https://playerservices.streamtheworld.com/api/livestream-redirect/CBN_SPAAC.aac',
+                'TRANSAMERICA_SPAAC.aac' => 'https://playerservices.streamtheworld.com/api/livestream-redirect/TRANSAMERICA_SPAAC.aac'
+            ];
+            foreach ($fixes as $suffix => $newUrl) {
+                $stmtFix = $pdoRadios->prepare("UPDATE radios SET url = :newu WHERE url LIKE :like");
+                $stmtFix->execute([':newu' => $newUrl, ':like' => '%' . $suffix]);
+            }
+
+            $defaults = [
+                ['Antena 1 FM', 'https://antena1.newradio.it/stream'],
+                ['Mix FM', 'https://playerservices.streamtheworld.com/api/livestream-redirect/MIXFM_SPAAC.aac'],
+                ['Alpha FM', 'https://playerservices.streamtheworld.com/api/livestream-redirect/ALPHA_FMAAC.aac'],
+                ['Jovem Pan FM', 'https://playerservices.streamtheworld.com/api/livestream-redirect/JP_SP_FMAAC.aac'],
+                ['89 FM A Rádio Rock', 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_89FM_ADP.aac'],
+                ['CBN São Paulo', 'https://playerservices.streamtheworld.com/api/livestream-redirect/CBN_SPAAC.aac'],
+                ['Transamérica FM', 'https://playerservices.streamtheworld.com/api/livestream-redirect/TRANSAMERICA_SPAAC.aac'],
+                ['Hunter FM - Sertanejo', 'https://live.hunter.fm/sertanejo_normal'],
+                ['Hunter FM - Pop Hits', 'https://live.hunter.fm/pop_normal'],
+                ['Hunter FM - Pagode', 'https://live.hunter.fm/pagode_normal'],
+                ['Hunter FM - Anos 80', 'https://live.hunter.fm/80s_normal']
+            ];
+
+            $stmtChk = $pdoRadios->prepare("SELECT id FROM radios WHERE url = :u OR LOWER(nome) = LOWER(:n) LIMIT 1");
+            $stmtIns = $pdoRadios->prepare("INSERT INTO radios (nome, url, is_visible) VALUES (:n, :u, 1)");
+            foreach ($defaults as $r) {
+                $stmtChk->execute([':u' => $r[1], ':n' => $r[0]]);
+                if (!$stmtChk->fetch()) {
+                    $stmtIns->execute([':n' => $r[0], ':u' => $r[1]]);
                 }
             }
         } catch (\Throwable $e) {}
