@@ -184,31 +184,27 @@
             <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" class="logo-img" onerror="this.src='/assets/images/logo.png'">
         </a>
         <div class="nav-links">
-            <a href="/parceiros.php" class="nav-btn">Parceiros</a>
-            <a href="/afiliados.php" class="nav-btn">Afiliado</a>
+            <a href="/parceiros" class="nav-btn">Parceiros</a>
+            <a href="/afiliados" class="nav-btn">Afiliado</a>
             <a href="/loja.php" class="nav-btn nav-btn-highlight">Loja</a>
             <a href="/login" class="nav-btn nav-btn-register" style="background: linear-gradient(135deg, #0A38D1, #34e2e4); box-shadow: 0 4px 15px rgba(52, 226, 228, 0.4); font-weight: 700; border-radius: 25px; padding: 9px 20px;"><i class="fas fa-user-circle me-1"></i> Entrar / Cadastrar</a>
         </div>
     </nav>
 
+        <?php if (!empty($banners)): ?>
         <div class="landing-container">
-        <?php if ($hasImg1): ?>
-            <img src="/uploads/landing/img1.jpg" class="landing-img" alt="Banner 1">
-        <?php endif; ?>
-
-        <?php if ($hasImg2): ?>
-            <img src="/uploads/landing/img2.jpg" class="landing-img" alt="Banner 2">
-        <?php endif; ?>
-
-        <?php if ($hasImg3): ?>
-            <img src="/uploads/landing/img3.jpg" class="landing-img" alt="Banner 3">
-        <?php endif; ?>
-    </div>
-
-    <?php if (!$hasImg1 && !$hasImg2 && !$hasImg3): ?>
+            <?php foreach ($banners as $i => $b): ?>
+                <?php if ($b['link'] !== ''): ?>
+                    <a href="<?= htmlspecialchars($b['link']) ?>" style="display:block; pointer-events:auto;"><img src="<?= htmlspecialchars($b['url']) ?>" class="landing-img" alt="Banner <?= $i + 1 ?>"></a>
+                <?php else: ?>
+                    <img src="<?= htmlspecialchars($b['url']) ?>" class="landing-img" alt="Banner <?= $i + 1 ?>">
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
         <div class="no-image">
             <p>Página inicial pronta no modelo MVC.</p>
-            <p>As imagens de banner podem ser adicionadas em <code>uploads/landing/</code>.</p>
+            <p>Adicione containers da Home em <b>Editar Home</b> no painel administrativo.</p>
             <a href="/login" style="color: #34e2e4; font-weight: bold;">Acessar o Painel de Login</a>
         </div>
     <?php endif; ?>

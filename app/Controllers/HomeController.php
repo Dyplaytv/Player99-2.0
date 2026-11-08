@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Request;
+use App\Services\LandingPages;
 
 class HomeController extends Controller
 {
@@ -15,16 +16,29 @@ class HomeController extends Controller
             setcookie('affiliate_ref', $ref, time() + (86400 * 30), "/");
         }
 
-        $uploadsDir = dirname(__DIR__, 2) . '/uploads/landing/';
-        $hasImg1 = file_exists($uploadsDir . 'img1.jpg');
-        $hasImg2 = file_exists($uploadsDir . 'img2.jpg');
-        $hasImg3 = file_exists($uploadsDir . 'img3.jpg');
-
         $this->render('landing/home', [
-            'hasImg1' => $hasImg1,
-            'hasImg2' => $hasImg2,
-            'hasImg3' => $hasImg3,
+            'banners' => LandingPages::publicItems('home'),
             'ref' => $ref
+        ], null);
+    }
+
+    public function parceiros(Request $request): void
+    {
+        $this->renderLandingPage('parceiros', 'Player99 - Seja um Parceiro', 'Seja um parceiro Player99 e lucre com o melhor player de Mídia Indoor do mercado.');
+    }
+
+    public function afiliados(Request $request): void
+    {
+        $this->renderLandingPage('afiliados', 'Player99 - Seja um Afiliado', 'Seja um afiliado Player99 e lucre com o melhor player de Mídia Indoor do mercado.');
+    }
+
+    private function renderLandingPage(string $page, string $title, string $description): void
+    {
+        $this->render('landing/page', [
+            'pageKey' => $page,
+            'pageTitle' => $title,
+            'pageDescription' => $description,
+            'banners' => LandingPages::publicItems($page),
         ], null);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Auth;
+use App\Services\LandingPages;
 
 class LandingEditorController extends Controller
 {
@@ -15,78 +16,115 @@ class LandingEditorController extends Controller
 
         $msg = '';
         $baseDir = dirname(__DIR__, 2);
-        
+
         // Pasta padrão de uploads (já garantida com permissão de escrita para o Nginx/PHP)
-        $landingDir = $baseDir . '/uploads/landing/';
-        if (!is_dir($landingDir)) {
-            @mkdir($landingDir, 0777, true);
+        $landingDir = LandingPages::dir();
+
+        // Página ativa no editor (home | parceiros | afiliados)
+        $activePage = (string)$request->input('page', 'home');
+        if (!LandingPages::isValidPage($activePage)) {
+            $activePage = 'home';
         }
-        @chmod($landingDir, 0777);
 
         if ($request->isPost()) {
-            $updated = 0;
-
-            // 1. Upload da LOGO Oficial do Sistema
-            if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-                $tmpLogo = $_FILES['logo']['tmp_name'];
-                $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
-
-                if (in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'svg'])) {
-                    // Grava na pasta uploads/landing/logo.png (onde as permissões são 100% livres)
-                    $destLogo = $landingDir . 'logo.png';
-                    
-                    if (move_uploaded_file($tmpLogo, $destLogo) || @copy($tmpLogo, $destLogo)) {
-                        @chmod($destLogo, 0666);
-                        
-                        // Tenta replicar silenciosamente nas outras pastas se possível
-                        @copy($destLogo, $baseDir . '/banners/logo.png');
-                        @copy($destLogo, $baseDir . '/img/logo.png');
-                        @copy($destLogo, $baseDir . '/assets/images/logo.png');
-                        
-                        $updated++;
-                    }
-                }
+            $action = (string)$request->input('action', '');
+            $postPage = (string)$request->input('page', $activePage);
+            if (LandingPages::isValidPage($postPage)) {
+                $activePage = $postPage;
             }
 
-            // 2. Upload dos 3 Banners Sequenciais da Landing Page
-            $banners = ['img1' => 'img1.jpg', 'img2' => 'img2.jpg', 'img3' => 'img3.jpg'];
-            foreach ($banners as $inputName => $fileName) {
-                if (isset($_FILES[$inputName]) && $_FILES[$inputName]['error'] === UPLOAD_ERR_OK) {
-                    $tmp = $_FILES[$inputName]['tmp_name'];
-                    $dest = $landingDir . $fileName;
+            switch ($action) {
+                case 'logo':
+                    $msg = $this->handleLogo($landingDir, $baseDir);
+                    break;
 
-                    if (extension_loaded('gd') && function_exists('imagecreatefromstring')) {
-                        $imgData = @file_get_contents($tmp);
-                        if ($imgData !== false) {
-                            $src = @imagecreatefromstring($imgData);
-                            if ($src !== false) {
-                                imagejpeg($src, $dest, 85);
-                                imagedestroy($src);
-                                @chmod($dest, 0666);
-                                $updated++;
-                                continue;
-                            }
-                        }
-                    }
+                case 'add':
+                    $added = LandingPages::add(
+                        $activePage,
+                        $_FILES['images'] ?? [],
+                        (string)$request->input('link', '')
+                    );
+                    $msg = $added > 0
+                        ? $this->alert('success', "{$added} container(s) adicionado(s) com sucesso! Já estão ativos na página.")
+                        : $this->alert('warning', 'Nenhuma imagem válida enviada. Use JPG, PNG, WEBP ou GIF de até 15MB.');
+                    break;
 
-                    if (move_uploaded_file($tmp, $dest) || @copy($tmp, $dest)) {
-                        @chmod($dest, 0666);
-                        $updated++;
-                    }
-                }
-            }
+                case 'update':
+                    $ok = LandingPages::update(
+                        $activePage,
+                        (string)$request->input('id', ''),
+                        $_FILES['image'] ?? null,
+                        (string)$request->input('link', '')
+                    );
+                    $msg = $ok
+                        ? $this->alert('success', 'Container atualizado com sucesso!')
+                        : $this->alert('warning', 'Nada foi alterado neste container.');
+                    break;
 
-            if ($updated > 0) {
-                $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Arquivo(s) atualizado(s) com sucesso! A nova imagem já está ativa em toda a plataforma.</div>";
+                case 'delete':
+                    $ok = LandingPages::remove($activePage, (string)$request->input('id', ''));
+                    $msg = $ok
+                        ? $this->alert('success', 'Container removido da página.')
+                        : $this->alert('warning', 'Não foi possível remover o container.');
+                    break;
+
+                case 'move_up':
+                case 'move_down':
+                    LandingPages::move(
+                        $activePage,
+                        (string)$request->input('id', ''),
+                        $action === 'move_up' ? 'up' : 'down'
+                    );
+                    break;
             }
         }
 
         $this->render('admin/landing_editor', [
-            'pageTitle' => 'Editar Home & Logo - Player99',
-            'pageHeading' => 'Editor da Página Inicial (Logo & Banners)',
+            'pageTitle' => 'Editar Páginas - Player99',
+            'pageHeading' => 'Editor das Páginas Públicas (Home, Parceiros & Afiliados)',
             'currentRoute' => '/admin/landing-editor',
             'currentUser' => Auth::user(),
-            'msg' => $msg
+            'msg' => $msg,
+            'activePage' => $activePage,
+            'pages' => LandingPages::PAGES,
+            'itemsByPage' => [
+                'home' => LandingPages::items('home'),
+                'parceiros' => LandingPages::items('parceiros'),
+                'afiliados' => LandingPages::items('afiliados'),
+            ],
         ], 'layouts/master');
+    }
+
+    private function handleLogo(string $landingDir, string $baseDir): string
+    {
+        if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+            $tmpLogo = $_FILES['logo']['tmp_name'];
+            $ext = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
+
+            if (in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'svg'], true)) {
+                // Grava na pasta uploads/landing/logo.png (onde as permissões são 100% livres)
+                $destLogo = $landingDir . 'logo.png';
+
+                if (move_uploaded_file($tmpLogo, $destLogo) || @copy($tmpLogo, $destLogo)) {
+                    @chmod($destLogo, 0666);
+
+                    // Tenta replicar silenciosamente nas outras pastas se possível
+                    @copy($destLogo, $baseDir . '/banners/logo.png');
+                    @copy($destLogo, $baseDir . '/img/logo.png');
+                    @copy($destLogo, $baseDir . '/assets/images/logo.png');
+
+                    return $this->alert('success', 'Logo atualizada com sucesso! Já está ativa em toda a plataforma.');
+                }
+            }
+            return $this->alert('warning', 'Arquivo de logo inválido. Use PNG, JPG, WEBP ou SVG.');
+        }
+        return $this->alert('warning', 'Selecione um arquivo de logo para enviar.');
+    }
+
+    private function alert(string $type, string $text): string
+    {
+        $icon = $type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+        return "<div class='alert alert-{$type} d-flex align-items-center gap-2 mb-4'><i class='fa {$icon} fa-lg'></i> "
+            . htmlspecialchars($text) . "</div>";
     }
 }

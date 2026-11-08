@@ -26,6 +26,12 @@ $router->get('/', [HomeController::class, 'index']);
 $router->get('/index', [HomeController::class, 'index']);
 $router->get('/index.php', [HomeController::class, 'index']);
 
+// Páginas públicas gerenciadas pelo painel (Editar Home)
+$router->get('/parceiros', [HomeController::class, 'parceiros']);
+$router->get('/parceiros.php', [HomeController::class, 'parceiros']);
+$router->get('/afiliados', [HomeController::class, 'afiliados']);
+$router->get('/afiliados.php', [HomeController::class, 'afiliados']);
+
 // Autenticação (Login e Logout)
 $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);
