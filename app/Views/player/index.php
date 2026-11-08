@@ -8,7 +8,14 @@ $radioName = $radioInfo['radio_name'] ?? '';
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
+    <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
     <title>Player99 DOOH - Tela <?= htmlspecialchars($codigo) ?></title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -332,6 +339,10 @@ $radioName = $radioInfo['radio_name'] ?? '';
 
         setInterval(sendPing, 6000);
         sendPing();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+        }
     </script>
 </body>
 </html>

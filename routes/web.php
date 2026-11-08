@@ -67,7 +67,7 @@ $router->get('/admin/dashboard', [DashboardController::class, 'index']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
 $router->get('/estatisticas.php', [DashboardController::class, 'index']);
 
-// Telas & Carros (DOOH Engine - CRUD Completo + Mídias + Player)
+// Telas & Carros (DOOH Engine - CRUD Completo + Mídias + Player + App PWA tv.php)
 $router->get('/admin/telas', [ScreenController::class, 'list']);
 $router->get('/admin/telas/criar', [ScreenController::class, 'create']);
 $router->post('/admin/telas/criar', [ScreenController::class, 'create']);
@@ -81,6 +81,12 @@ $router->post('/users_create.php', [ScreenController::class, 'create']);
 $router->get('/player/{codigo}', [ScreenController::class, 'player']);
 $router->get('/player', [ScreenController::class, 'player']);
 $router->get('/player.php', [ScreenController::class, 'player']);
+$router->get('/tv', [ScreenController::class, 'tv']);
+$router->get('/tv.php', [ScreenController::class, 'tv']);
+$router->get('/api_pairing.php', [ScreenController::class, 'apiPairing']);
+$router->get('/api/pairing', [ScreenController::class, 'apiPairing']);
+$router->get('/manifest.json', [ScreenController::class, 'manifest']);
+$router->get('/sw.js', [ScreenController::class, 'serviceWorker']);
 $router->get('/api/ping', [ScreenController::class, 'ping']);
 $router->get('/widgets/{slug}', [ScreenController::class, 'widget']);
 

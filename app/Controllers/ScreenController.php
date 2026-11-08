@@ -610,4 +610,53 @@ class ScreenController extends Controller
 
         return $items;
     }
+
+    public function tv(Request $request): void
+    {
+        $this->render('player/tv', [], null);
+    }
+
+    public function apiPairing(Request $request): void
+    {
+        $code = strtoupper(trim((string)$request->input('code', '')));
+        if ($code === '') {
+            $this->json(['paired' => false]);
+        }
+
+        Screen::ensureSchema();
+        $screen = Screen::findByCode($code);
+        $this->json(['paired' => !empty($screen)]);
+    }
+
+    public function manifest(Request $request): void
+    {
+        header('Content-Type: application/manifest+json; charset=utf-8');
+        $manifestFile = dirname(__DIR__, 2) . '/manifest.json';
+        if (file_exists($manifestFile)) {
+            echo file_get_contents($manifestFile);
+        } else {
+            echo json_encode([
+                'id' => '/tv.php',
+                'name' => 'Player99 TV & Tablet',
+                'short_name' => 'Player99',
+                'start_url' => '/tv.php',
+                'scope' => '/',
+                'display' => 'standalone',
+                'background_color' => '#0b132b',
+                'theme_color' => '#0b132b'
+            ]);
+        }
+        exit;
+    }
+
+    public function serviceWorker(Request $request): void
+    {
+        header('Content-Type: application/javascript; charset=utf-8');
+        header('Service-Worker-Allowed: /');
+        $swFile = dirname(__DIR__, 2) . '/sw.js';
+        if (file_exists($swFile)) {
+            echo file_get_contents($swFile);
+        }
+        exit;
+    }
 }
