@@ -6,7 +6,7 @@ if ($nivel_admin != 1) {
     exit;
 }
 
-$dbRadios = new SQLite3(__DIR__ . "/api/db/studiolivecode_radios.db");
+$dbRadios = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_radios.db");
 $msg = '';
 
 $bgDir = __DIR__ . '/uploads/bg_entretenimentos/';

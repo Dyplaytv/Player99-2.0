@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/init_loja_db.php';
-$dbLoja = new SQLite3(__DIR__ . '/api/db/studiolivecode_loja.db');
+$dbPath = dirname(__DIR__) . '/api/db/studiolivecode_loja.db';
+$dbLoja = new SQLite3($dbPath);
 $produtos = $dbLoja->query("SELECT * FROM produtos WHERE ativo = 1 ORDER BY id DESC");
 ?>
 <!DOCTYPE html>
@@ -142,7 +143,7 @@ $produtos = $dbLoja->query("SELECT * FROM produtos WHERE ativo = 1 ORDER BY id D
     <!-- Navbar Global Dinâmica -->
     <nav class="glass-nav">
         <a href="index.php">
-            <img src="./banners/logo.png<?php echo '?v='.time(); ?>" alt="Logo" class="logo-img" onerror="this.src='assets/images/logo.png'">
+            <img src="<?= class_exists('\\App\\Core\\View') ? \App\Core\View::logoUrl() : '/assets/images/logo.png' ?>" alt="Logo" class="logo-img" onerror="this.src='assets/images/logo.png'">
         </a>
         <div class="nav-links">
             <a href="login.php" class="nav-btn">Entrar</a>

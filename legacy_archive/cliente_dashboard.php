@@ -349,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $diasRestantes = $diff->days;
                 if ($diasRestantes < 1) $diasRestantes = 1; // Pelo menos 1 dia
                 
-                $mpGoldConfig = json_decode(file_get_contents(__DIR__ . '/api/mercado_pago_gold/config.json'), true);
+                $mpGoldConfig = json_decode(file_get_contents(dirname(__DIR__) . '/api/mercado_pago_gold/config.json'), true);
                 $baseValorPorTela = isset($mpGoldConfig['plano_telas_ativas']['valor']) ? (float)$mpGoldConfig['plano_telas_ativas']['valor'] : 100.00;
                 $diasPorTela = isset($mpGoldConfig['plano_telas_ativas']['dias']) ? (int)$mpGoldConfig['plano_telas_ativas']['dias'] : 30;
                 
@@ -376,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $idFatura = $dbFinanceiro->lastInsertRowID();
                 
                 // Gerar link Mercado Pago
-                $config_file = __DIR__ . '/api/mercado_pago_gold/config.json';
+                $config_file = dirname(__DIR__) . '/api/mercado_pago_gold/config.json';
                 if (file_exists($config_file)) {
                     $config = json_decode(file_get_contents($config_file), true);
                     $access_token = $config['access_token'] ?? '';
@@ -497,7 +497,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // SINCRONIZAR ENTRETENIMENTOS GLOBAIS PARA O CLIENTE
 try {
-    $dbR = new SQLite3(__DIR__ . "/api/db/studiolivecode_radios.db");
+    $dbR = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_radios.db");
     
     // Garantir que a tabela exista
     $dbR->exec("CREATE TABLE IF NOT EXISTS entretenimentos (
@@ -593,7 +593,7 @@ while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
 // Busca rádios globais
 $radiosGlobais = [];
 try {
-    $dbR = new SQLite3(__DIR__ . "/api/db/studiolivecode_radios.db");
+    $dbR = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_radios.db");
     $resR = $dbR->query("SELECT id, nome FROM radios WHERE is_visible = 1 ORDER BY nome ASC");
     if ($resR) {
         while ($r = $resR->fetchArray(SQLITE3_ASSOC)) {

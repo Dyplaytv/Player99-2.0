@@ -13,7 +13,7 @@ if (!empty($_GET['ref'])) {
     // Registra o clique apenas se não clicou nas últimas 24h (evita F5/Spam de cliques)
     if (!isset($_COOKIE['clicked_ref_' . $ref])) {
         try {
-            $dbClick = new SQLite3(__DIR__ . "/api/db/studiolivecode_clientes.db");
+            $dbClick = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_clientes.db");
             $dbClick->busyTimeout(5000);
             
             // Verifica se as colunas existem (caso seja a primeira execução)

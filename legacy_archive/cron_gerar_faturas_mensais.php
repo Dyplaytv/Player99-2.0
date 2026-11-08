@@ -21,7 +21,7 @@ $dataGerada = $hoje->format('Y-m-d');
 $dataVencimento = $hoje->modify('+3 days')->format('Y-m-d');
 
 // Carregar config do Mercado Pago
-$config_file = __DIR__ . '/api/mercado_pago_gold/config.json';
+$config_file = dirname(__DIR__) . '/api/mercado_pago_gold/config.json';
 $access_token = '';
 if (file_exists($config_file)) {
     $config = json_decode(file_get_contents($config_file), true);
@@ -42,7 +42,7 @@ while ($row = $resClientes->fetchArray(SQLITE3_ASSOC)) {
     $countTelas = $dbCliente->querySingle("SELECT COUNT(*) FROM telas WHERE id_cliente = $idCliente");
 
     if ($countTelas > 0) {
-        $mpGoldConfig = json_decode(file_get_contents(__DIR__ . '/api/mercado_pago_gold/config.json'), true);
+        $mpGoldConfig = json_decode(file_get_contents(dirname(__DIR__) . '/api/mercado_pago_gold/config.json'), true);
         $baseValorPorTela = isset($mpGoldConfig['plano_telas_ativas']['valor']) ? (float)$mpGoldConfig['plano_telas_ativas']['valor'] : 100.00;
         
         $valorPorTela = $baseValorPorTela * $multiplo;

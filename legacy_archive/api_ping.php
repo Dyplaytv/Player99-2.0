@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($codigo)) {
         // Verifica a sessão atual e o status do cliente
         if ($sessionId !== 'old_player') {
-            $dbCliente->exec("ATTACH DATABASE '" . __DIR__ . "/api/db/studiolivecode_clientes.db' AS clientesDB");
+            $dbCliente->exec("ATTACH DATABASE '" . dirname(__DIR__) . "/api/db/studiolivecode_clientes.db' AS clientesDB");
             $stmt = $dbCliente->prepare("SELECT t.active_session_id, t.force_reload, i.active, i.expire_date FROM telas t LEFT JOIN clientesDB.ibo i ON t.id_cliente = i.id WHERE t.player_code = :codigo");
             $stmt->bindValue(':codigo', $codigo, SQLITE3_TEXT);
             $res = $stmt->execute();

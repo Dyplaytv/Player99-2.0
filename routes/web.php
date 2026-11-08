@@ -32,6 +32,10 @@ $router->get('/parceiros.php', [HomeController::class, 'parceiros']);
 $router->get('/afiliados', [HomeController::class, 'afiliados']);
 $router->get('/afiliados.php', [HomeController::class, 'afiliados']);
 
+// Loja Pública (Vitrine de Serviços & Vouchers)
+$router->get('/loja', [StoreController::class, 'publicStore']);
+$router->get('/loja.php', [StoreController::class, 'publicStore']);
+
 // Autenticação (Login e Logout)
 $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);

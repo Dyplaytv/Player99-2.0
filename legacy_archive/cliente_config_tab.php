@@ -30,7 +30,7 @@ if(isset($dbFinanceiro)) {
     }
     
     $countTelas = $dbCliente->querySingle("SELECT COUNT(*) FROM telas WHERE id_cliente = $idCliente") ?: 0;
-    $mpGoldConfig = json_decode(file_get_contents(__DIR__ . '/api/mercado_pago_gold/config.json'), true);
+    $mpGoldConfig = json_decode(file_get_contents(dirname(__DIR__) . '/api/mercado_pago_gold/config.json'), true);
     $baseValorPorTela = isset($mpGoldConfig['plano_telas_ativas']['valor']) ? (float)$mpGoldConfig['plano_telas_ativas']['valor'] : 100.00;
     $multiplo = $dbFinanceiro->querySingle("SELECT multiplo FROM ibo WHERE id = $idCliente") ?: 1.0;
     $totalPrevisto = $countTelas * ($baseValorPorTela * (float)$multiplo);

@@ -7,7 +7,7 @@ if (!isset($nivel_admin) || $nivel_admin != 1) {
     exit;
 }
 
-$dbPath = __DIR__ . "/api/db/error_logs.db";
+$dbPath = dirname(__DIR__) . "/api/db/error_logs.db";
 
 // Limpar logs
 if (isset($_GET['action']) && $_GET['action'] == 'clear') {

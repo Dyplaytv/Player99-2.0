@@ -139,7 +139,7 @@ if (empty($googleUserEmail)) {
 // =========================================================================
 
 // A) VERIFICA SE É USUÁRIO ADMINISTRATIVO / REVENDA OU ROOT (users)
-$usersDbPath = __DIR__ . "/api/db/studiolivecode_users.db";
+$usersDbPath = dirname(__DIR__) . "/api/db/studiolivecode_users.db";
 if (file_exists($usersDbPath)) {
     try {
         $dbUsers = new SQLite3($usersDbPath);
@@ -155,7 +155,7 @@ if (file_exists($usersDbPath)) {
 
             // Verifica vencimento administrativo se não for root
             if (!$isRoot) {
-                $vencPath = __DIR__ . "/api/db/studiolivecode_vencimento.db";
+                $vencPath = dirname(__DIR__) . "/api/db/studiolivecode_vencimento.db";
                 if (file_exists($vencPath)) {
                     $dbV = new SQLite3($vencPath);
                     $stmtV = $dbV->prepare("SELECT vencimento FROM vencimento WHERE id = :id");
@@ -196,7 +196,7 @@ if (file_exists($usersDbPath)) {
 }
 
 // B) VERIFICA SE É CLIENTE FINAL (ibo)
-$clientesDbPath = __DIR__ . "/api/db/studiolivecode_clientes.db";
+$clientesDbPath = dirname(__DIR__) . "/api/db/studiolivecode_clientes.db";
 if (file_exists($clientesDbPath)) {
     try {
         $dbClientes = new SQLite3($clientesDbPath);

@@ -44,7 +44,7 @@ if (isset($_POST['delete'])) {
 
     // Deleção em cascata: Vídeos, Playlists, Telas
     try {
-        $dbMedia = new SQLite3(__DIR__ . "/api/db/studiolivecode_cliente_media.db");
+        $dbMedia = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_cliente_media.db");
         $dbMedia->exec("DELETE FROM videos WHERE id_cliente = " . (int)$itemToDelete);
         $dbMedia->exec("DELETE FROM playlists WHERE id_cliente = " . (int)$itemToDelete);
         $dbMedia->exec("DELETE FROM telas WHERE id_cliente = " . (int)$itemToDelete);
@@ -53,7 +53,7 @@ if (isset($_POST['delete'])) {
 
     // Deleção em cascata: Financeiro (Faturas e Transações Afiliado)
     try {
-        $dbFin = new SQLite3(__DIR__ . "/api/db/studiolivecode_financeiro.db");
+        $dbFin = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_financeiro.db");
         $dbFin->exec("DELETE FROM faturas WHERE id_cliente = " . (int)$itemToDelete);
         $dbFin->exec("DELETE FROM affiliate_transactions WHERE userId = " . (int)$itemToDelete);
         $dbFin->close();
@@ -61,7 +61,7 @@ if (isset($_POST['delete'])) {
 
     // Deleção em cascata: Loja do Parceiro
     try {
-        $dbLoja = new SQLite3(__DIR__ . "/api/db/studiolivecode_loja.db");
+        $dbLoja = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_loja.db");
         $dbLoja->exec("DELETE FROM produtos WHERE parceiro_id = " . (int)$itemToDelete);
         $dbLoja->close();
     } catch (Exception $e) {}

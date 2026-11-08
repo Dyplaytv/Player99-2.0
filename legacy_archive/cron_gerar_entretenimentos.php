@@ -199,7 +199,7 @@ for ($i=1; $i<=5; $i++) {
 
 // === GERAR CATEGORIAS DINÂMICAS (RSS) ===
 try {
-    $dbRadios = new SQLite3(__DIR__ . "/api/db/studiolivecode_radios.db");
+    $dbRadios = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_radios.db");
     
     // Assegura que a tabela entretenimentos possui as colunas dinâmicas (Migração via Cron)
     $resEntCols = $dbRadios->query("PRAGMA table_info(entretenimentos)");

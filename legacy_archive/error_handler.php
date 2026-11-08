@@ -5,7 +5,7 @@
 // Função para registrar o erro no banco de dados
 function logErrorToDatabase($message, $file, $line, $type) {
     try {
-        $dbPath = __DIR__ . "/api/db/error_logs.db";
+        $dbPath = dirname(__DIR__) . "/api/db/error_logs.db";
         $db = new SQLite3($dbPath);
         $db->exec("CREATE TABLE IF NOT EXISTS system_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

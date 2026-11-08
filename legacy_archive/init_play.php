@@ -18,7 +18,7 @@ if (file_exists($banners_dir . 'bg.png')) {
 }
 
 // 3. Inicializar os bancos de dados
-$db_logo = new SQLite3(__DIR__ . '/api/.db_logo.db');
+$db_logo = new SQLite3(dirname(__DIR__) . '/api/.db_logo.db');
 $db_logo->exec("CREATE TABLE IF NOT EXISTS ads(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title VARCHAR(100), caminho TEXT)");
 $resL = $db_logo->query("SELECT COUNT(*) as count FROM ads");
 $rowL = $resL->fetchArray();
@@ -27,7 +27,7 @@ if ($rowL['count'] == 0) {
 }
 $db_logo->close();
 
-$db_bg = new SQLite3(__DIR__ . '/api/.db_bg.db');
+$db_bg = new SQLite3(dirname(__DIR__) . '/api/.db_bg.db');
 $db_bg->exec("CREATE TABLE IF NOT EXISTS ads(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title VARCHAR(100), caminho TEXT)");
 $resB = $db_bg->query("SELECT COUNT(*) as count FROM ads");
 $rowB = $resB->fetchArray();

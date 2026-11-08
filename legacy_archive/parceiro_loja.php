@@ -10,7 +10,7 @@ $parceiro_id = $_SESSION['cliente_id'];
 // Inicializa banco da Loja se não existir
 require_once __DIR__ . '/init_loja_db.php';
 
-$dbLoja = new SQLite3(__DIR__ . '/api/db/studiolivecode_loja.db');
+$dbLoja = new SQLite3(dirname(__DIR__) . '/api/db/studiolivecode_loja.db');
 
 $msg = '';
 

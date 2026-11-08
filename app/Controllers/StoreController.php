@@ -10,22 +10,62 @@ class StoreController extends Controller
 {
     private function getDb(): PDO
     {
-        $dbPath = dirname(__DIR__, 2) . '/api/db/studiolivecode_loja.db';
+        $dbDir = dirname(__DIR__, 2) . '/api/db';
+        if (!is_dir($dbDir)) {
+            @mkdir($dbDir, 0777, true);
+        }
+        @chmod($dbDir, 0777);
+
+        $dbPath = $dbDir . '/studiolivecode_loja.db';
         $pdo = new PDO("sqlite:{$dbPath}", null, null, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]);
-        $pdo->exec("CREATE TABLE IF NOT EXISTS produtos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT NOT NULL,
-            descricao TEXT,
-            preco REAL NOT NULL,
-            imagem TEXT,
-            parceiro_id INTEGER NOT NULL DEFAULT 0,
-            ativo INTEGER DEFAULT 1,
-            data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
-        )");
+        @chmod($dbPath, 0666);
+
+        try {
+            $pdo->exec("PRAGMA busy_timeout = 5000;");
+            $pdo->exec("CREATE TABLE IF NOT EXISTS produtos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT NOT NULL,
+                descricao TEXT,
+                preco REAL NOT NULL,
+                imagem TEXT,
+                parceiro_id INTEGER NOT NULL DEFAULT 0,
+                ativo INTEGER DEFAULT 1,
+                data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+            $pdo->exec("CREATE TABLE IF NOT EXISTS pedidos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                produto_id INTEGER NOT NULL,
+                cliente_email TEXT,
+                cliente_nome TEXT,
+                status_pagamento TEXT DEFAULT 'pendente',
+                mp_payment_id TEXT,
+                voucher TEXT,
+                data_pedido DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+        } catch (\Throwable $e) {}
+
         return $pdo;
+    }
+
+    /** Vitrine pública da Loja (/loja e /loja.php) */
+    public function publicStore(Request $request): void
+    {
+        $pdo = $this->getDb();
+        try {
+            $stmt = $pdo->query("SELECT * FROM produtos WHERE ativo = 1 ORDER BY id DESC");
+            $produtos = $stmt ? $stmt->fetchAll() : [];
+        } catch (\Throwable $e) {
+            $produtos = [];
+        }
+
+        $this->render('store/public', [
+            'pageTitle' => 'Loja de Serviços Digitais - Player99',
+            'pageDescription' => 'Adquira serviços e receba seu Voucher instantaneamente.',
+            'produtos' => $produtos
+        ], null);
     }
 
     public function index(Request $request): void
@@ -39,8 +79,9 @@ class StoreController extends Controller
 
         $targetDir = dirname(__DIR__, 2) . '/uploads/loja/';
         if (!is_dir($targetDir)) {
-            @mkdir($targetDir, 0755, true);
+            @mkdir($targetDir, 0777, true);
         }
+        @chmod($targetDir, 0777);
 
         // Deletar
         if ($request->input('delete') !== null) {
@@ -70,6 +111,7 @@ class StoreController extends Controller
                 $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
                 $imagem = 'prod_' . uniqid() . '.' . $ext;
                 move_uploaded_file($_FILES['imagem']['tmp_name'], $targetDir . $imagem);
+                @chmod($targetDir . $imagem, 0666);
             }
 
             if ($id > 0) {

@@ -25,7 +25,7 @@ $isDry = in_array('--dry', $argv ?? []);
 require_once __DIR__ . '/includes/db_cliente.php';
 require_once __DIR__ . '/whatsapp_api.php';
 
-$dbClientes = openSqliteSafe(__DIR__ . '/api/db/studiolivecode_clientes.db');
+$dbClientes = openSqliteSafe(dirname(__DIR__) . '/api/db/studiolivecode_clientes.db');
 
 $dbClientes->exec("CREATE TABLE IF NOT EXISTS alertas_whatsapp(
     id INTEGER PRIMARY KEY AUTOINCREMENT,

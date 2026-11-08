@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($audioMode === 'radio' && $idRadio != 0) {
             if ($idRadio > 0) {
                 try {
-                    $dbR = new SQLite3(__DIR__ . "/api/db/studiolivecode_radios.db");
+                    $dbR = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_radios.db");
                     $rRow = $dbR->querySingle("SELECT url FROM radios WHERE id = $idRadio", true);
                     if ($rRow) {
                         $radioUrl = $rRow['url'];

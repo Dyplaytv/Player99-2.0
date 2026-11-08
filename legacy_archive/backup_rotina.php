@@ -13,7 +13,7 @@ $date_str = date('Y-m-d_H-i-s');
 $zip_filename = $backup_dir . 'backup_player99_' . $date_str . '.zip';
 
 $directories_to_backup = [
-    __DIR__ . '/api/db',
+    dirname(__DIR__) . '/api/db',
     __DIR__ . '/uploads',
     __DIR__ . '/banners'
 ];

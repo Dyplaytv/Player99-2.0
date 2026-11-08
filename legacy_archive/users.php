@@ -34,13 +34,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->exec("DELETE FROM affiliate_transactions WHERE userId = " . (int)$itemToDelete);
         
         try {
-            $dbFin = new SQLite3(__DIR__ . "/api/db/studiolivecode_financeiro.db");
+            $dbFin = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_financeiro.db");
             $dbFin->exec("DELETE FROM faturas WHERE id_cliente = " . (int)$itemToDelete);
             $dbFin->close();
         } catch (Exception $e) {}
         
         try {
-            $dbLoja = new SQLite3(__DIR__ . "/api/db/studiolivecode_loja.db");
+            $dbLoja = new SQLite3(dirname(__DIR__) . "/api/db/studiolivecode_loja.db");
             $dbLoja->exec("DELETE FROM produtos WHERE parceiro_id = " . (int)$itemToDelete);
             $dbLoja->close();
         } catch (Exception $e) {}

@@ -1,5 +1,5 @@
 <?php
-$dbPath = __DIR__ . '/api/db/studiolivecode_radios.db';
+$dbPath = dirname(__DIR__) . '/api/db/studiolivecode_radios.db';
 $db = new SQLite3($dbPath);
 
 $db->exec("CREATE TABLE IF NOT EXISTS radios (

@@ -85,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["salvar_configuracoes"
     // Sincroniza TMDB se fornecido
     if (!empty($tmdbKey)) {
         try {
-            $dbTmdb = new SQLite3(__DIR__ . "/api/.bet_tmdb.db");
+            $dbTmdb = new SQLite3(dirname(__DIR__) . "/api/.bet_tmdb.db");
             $dbTmdb->exec("CREATE TABLE IF NOT EXISTS api_key (id INTEGER PRIMARY KEY, key TEXT)");
             $stmtTmdb = $dbTmdb->prepare("UPDATE api_key SET key = :k WHERE id = 1");
             $stmtTmdb->bindValue(':k', $tmdbKey, SQLITE3_TEXT);
@@ -124,9 +124,9 @@ $anthropicApiKey = getSystemSetting('anthropic_api_key', '');
 $aiDefaultProvider = getSystemSetting('ai_default_provider', 'gemini');
 
 $tmdbApiKey = getSystemSetting('tmdb_api_key', '');
-if (empty($tmdbApiKey) && file_exists(__DIR__ . "/api/.bet_tmdb.db")) {
+if (empty($tmdbApiKey) && file_exists(dirname(__DIR__) . "/api/.bet_tmdb.db")) {
     try {
-        $dbT = new SQLite3(__DIR__ . "/api/.bet_tmdb.db");
+        $dbT = new SQLite3(dirname(__DIR__) . "/api/.bet_tmdb.db");
         $rT = $dbT->querySingle("SELECT key FROM api_key WHERE id = 1");
         if ($rT) $tmdbApiKey = $rT;
         $dbT->close();
