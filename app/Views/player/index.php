@@ -1,3 +1,6 @@
+<?php
+$rotation = (int)($screen['rotation'] ?? 0);
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -6,34 +9,108 @@
     <title>Player99 DOOH - Tela <?= htmlspecialchars($codigo) ?></title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* A) Modo Horizontal Padrão (Landscape) */
         body, html {
+            margin: 0;
+            padding: 0;
             width: 100%;
             height: 100%;
+            background-color: #000;
             overflow: hidden;
-            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         #playerContainer {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            transform-origin: center center;
-            transition: transform 0.4s ease;
+            background-color: #000;
         }
 
         video, img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain; /* Mantém a proporção exata sem cortar detalhes */
+            background-color: #000;
+            pointer-events: none; /* Bloqueia toques acidentais do passageiro */
             display: none;
         }
+
         video.active, img.active {
             display: block;
         }
+
+        /* Esconder todos os controles nativos do Android/WebView */
+        video::-webkit-media-controls,
+        video::-webkit-media-controls-enclosure,
+        video::-webkit-media-controls-panel,
+        video::-webkit-media-controls-play-button,
+        video::-webkit-media-controls-start-playback-button {
+            display: none !important;
+            opacity: 0 !important;
+        }
+
+        /* Modo Horizontal Invertido (180°) */
+        body.rot-180 {
+            transform: rotate(180deg) !important;
+            transform-origin: center center !important;
+        }
+
+        /* B) Modo Rotação 90° / 270° (Tablet na Vertical / Retrato) */
+        body.rot-90 {
+            width: 100vh !important;
+            height: 100vw !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) rotate(90deg) !important;
+            transform-origin: center center !important;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        body.rot-270 {
+            width: 100vh !important;
+            height: 100vw !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) rotate(270deg) !important;
+            transform-origin: center center !important;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        body.rot-90 video, body.rot-90 img,
+        body.rot-270 video, body.rot-270 img {
+            object-fit: cover !important; /* Na vertical preenche 100% da tela sem faixas pretas */
+        }
+
+        <?php if ($rotation === 90 || $rotation === 270): ?>
+        body {
+            width: 100vh !important;
+            height: 100vw !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) rotate(<?= $rotation ?>deg) !important;
+            transform-origin: center center !important;
+            overflow: hidden;
+            background-color: #000;
+        }
+        video, img {
+            object-fit: cover !important; /* Na vertical preenche 100% da tela sem faixas pretas */
+        }
+        <?php endif; ?>
 
         .no-media {
             color: #fff;
@@ -55,9 +132,9 @@
         }
     </style>
 </head>
-<body>
+<body class="rot-<?= $rotation ?>">
 
-    <div id="playerContainer" style="transform: rotate(<?= (int)($screen['rotation'] ?? 0) ?>deg);">
+    <div id="playerContainer">
         <?php if (empty($videos)): ?>
             <div class="no-media">
                 <h2>Player99 em Operação</h2>
@@ -73,7 +150,7 @@
                 <?php if ($isImg): ?>
                     <img src="<?= $mediaUrl ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="image" data-duration="10000" id="media_<?= $idx ?>">
                 <?php else: ?>
-                    <video src="<?= $mediaUrl ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="video" id="media_<?= $idx ?>" playsinline <?= ($screen['audio_mode'] ?? 'video') === 'mute' ? 'muted' : '' ?>></video>
+                    <video src="<?= $mediaUrl ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="video" id="media_<?= $idx ?>" playsinline webkit-playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback" <?= ($screen['audio_mode'] ?? 'video') === 'mute' ? 'muted' : '' ?>></video>
                 <?php endif; ?>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -85,8 +162,16 @@
 
     <script>
         const codigo = <?= json_encode($codigo) ?>;
+        let currentRotation = <?= $rotation ?>;
         let currentIndex = 0;
         const mediaItems = document.querySelectorAll('.media-item');
+
+        function applyRotation(rot) {
+            rot = parseInt(rot, 10) || 0;
+            if (rot === currentRotation) return;
+            // Se mudou entre modo horizontal e vertical (ou vice-versa), recarrega para aplicar o layout limpo
+            window.location.reload();
+        }
 
         function playNext() {
             if (mediaItems.length === 0) return;
@@ -133,9 +218,10 @@
                     document.getElementById('pingStatus').innerText = 'Online ' + new Date().toLocaleTimeString();
                     if (data.force_reload == 1) {
                         window.location.reload();
+                        return;
                     }
                     if (data.rotation !== undefined) {
-                        document.getElementById('playerContainer').style.transform = 'rotate(' + data.rotation + 'deg)';
+                        applyRotation(data.rotation);
                     }
                 })
                 .catch(() => {

@@ -249,8 +249,11 @@ class ScreenController extends Controller
         $this->redirect('/admin/telas?msg=deleted');
     }
 
-    public function player(Request $request, string $codigo): void
+    public function player(Request $request, string $codigo = ''): void
     {
+        if ($codigo === '') {
+            $codigo = trim((string)$request->input('codigo', ''));
+        }
         Screen::ensureSchema();
         $screen = Screen::findByCode($codigo);
         if (!$screen) {

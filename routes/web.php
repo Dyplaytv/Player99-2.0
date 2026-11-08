@@ -79,6 +79,8 @@ $router->get('/users.php', [ScreenController::class, 'list']);
 $router->get('/users_create.php', [ScreenController::class, 'create']);
 $router->post('/users_create.php', [ScreenController::class, 'create']);
 $router->get('/player/{codigo}', [ScreenController::class, 'player']);
+$router->get('/player', [ScreenController::class, 'player']);
+$router->get('/player.php', [ScreenController::class, 'player']);
 $router->get('/api/ping', [ScreenController::class, 'ping']);
 
 // Gestão de Usuários & Clientes (com Modo Espião e Painel Completo)
