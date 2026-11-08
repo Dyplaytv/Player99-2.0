@@ -19,7 +19,7 @@
             <div class="col-12 col-md-4 text-center">
                 <div class="fw-bold mb-2 text-white"><i class="fa fa-image text-info me-1"></i> Logo Atual do Sistema</div>
                 <div class="p-3 rounded-4 d-inline-flex align-items-center justify-content-center" style="background: rgba(0, 0, 0, 0.6); border: 2px dashed rgba(52, 226, 228, 0.3); min-width: 220px; min-height: 120px;">
-                    <img src="/uploads/landing/logo.png?v=<?= time() ?>" alt="Logo Oficial Player99" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(52, 226, 228, 0.3));" onerror="this.onerror=null; this.src='/banners/logo.png';">
+                    <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo Oficial Player99" style="max-height: 90px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(52, 226, 228, 0.3));" onerror="this.onerror=null; this.src='/assets/images/logo.png';">
                 </div>
             </div>
 

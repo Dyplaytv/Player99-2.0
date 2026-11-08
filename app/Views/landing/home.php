@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="<?= \App\Core\View::logoUrl() ?>">
     <title>Player99 - O Melhor Player de Mídia Indoor</title>
     <meta name="description" content="Transforme qualquer TV em uma vitrine digital inteligente com o Player99. Notícias, Loterias, Clima e muito mais!">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
@@ -180,7 +181,7 @@
 
     <nav class="glass-nav">
         <a href="/">
-            <img src="/uploads/landing/logo.png" alt="Logo" class="logo-img" onerror="this.src='/assets/images/logo.png'">
+            <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" class="logo-img" onerror="this.src='/assets/images/logo.png'">
         </a>
         <div class="nav-links">
             <a href="/parceiros.php" class="nav-btn">Parceiros</a>

@@ -7,6 +7,7 @@
 
     <link rel="manifest" href="/manifest_cliente.json">
     <meta name="theme-color" content="#0d0f17">
+    <link rel="icon" type="image/png" href="<?= \App\Core\View::logoUrl() ?>">
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -232,7 +233,7 @@
 
     <div class="register-card">
         <div class="register-header">
-            <img src="/banners/logo.png" alt="Player99" class="brand-logo" onerror="this.style.display='none'">
+            <img src="<?= \App\Core\View::logoUrl() ?>" alt="Player99" class="brand-logo" onerror="this.src='/assets/images/logo.png'">
             <h3>Cadastro de Parceiro</h3>
             <p>Conecte seus veículos e comece a faturar com mídia</p>
         </div>

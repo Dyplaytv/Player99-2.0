@@ -7,6 +7,7 @@
 
     <link rel="manifest" href="/manifest_cliente.json">
     <meta name="theme-color" content="#0d0f17">
+    <link rel="icon" type="image/png" href="<?= \App\Core\View::logoUrl() ?>">
 
     <!-- CSS Frameworks & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -320,7 +321,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <a href="/admin/dashboard" class="sidebar-brand">
-            <img src="/uploads/landing/logo.png?v=<?= time() ?>" alt="Logo" onerror="this.onerror=null; this.src='/banners/logo.png';">
+            <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" onerror="this.onerror=null; this.src='/assets/images/logo.png';">
             <span>Player99</span>
         </a>
 
