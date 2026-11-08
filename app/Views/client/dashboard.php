@@ -1131,6 +1131,23 @@ document.querySelectorAll('.select-playlist').forEach(select => {
     });
 });
 
+function showToastFeedback(msg, isError) {
+    let toast = document.getElementById('driverToastFeedback');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'driverToastFeedback';
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;padding:12px 20px;border-radius:8px;color:#fff;font-weight:700;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,0.25);transition:opacity 0.3s ease;opacity:0;pointer-events:none;';
+        document.body.appendChild(toast);
+    }
+    toast.style.backgroundColor = isError ? '#dc3545' : '#008ba3';
+    toast.innerHTML = msg;
+    toast.style.opacity = '1';
+    clearTimeout(window._driverToastTimer);
+    window._driverToastTimer = setTimeout(function() {
+        toast.style.opacity = '0';
+    }, 2800);
+}
+
 function toggleRotation(btnEl, idTela) {
     const currentRot = parseInt(btnEl.getAttribute('data-rot') || '0', 10);
     const newRot = (currentRot === 90) ? 0 : 90;
@@ -1165,36 +1182,70 @@ function toggleRotation(btnEl, idTela) {
         if (lbl) lbl.innerText = '0°';
     }
 
-    $.post(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
-        ajax_action: 'toggle_rotation',
-        id_tela: idTela,
-        rotation: newRot
-    }, function(res) {
-        if (!res || !res.success) {
-            alert('Erro ao salvar rotação da tela.');
+    const params = new URLSearchParams();
+    params.append('ajax_action', 'toggle_rotation');
+    params.append('id_tela', String(idTela));
+    params.append('rotation', String(newRot));
+
+    fetch(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: params.toString()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res && res.success) {
+            showToastFeedback(
+                newRot === 90
+                    ? '<i class="fas fa-mobile-alt mr-2"></i> Modo Vertical (90° - Tela em Pé) ativado!'
+                    : '<i class="fas fa-tv mr-2"></i> Modo Horizontal (0° - Tela Deitada) ativado!',
+                false
+            );
+        } else {
+            showToastFeedback('Erro ao salvar rotação da tela.', true);
         }
-    }, 'json');
+    })
+    .catch(function() {
+        showToastFeedback('Erro de conexão ao salvar rotação.', true);
+    });
 }
 
 function openAudioModal(idTela, mode, idRadio) {
     stopModalRadioPreview();
-    $('#audio_id_tela').val(idTela);
-    $('#audio_mode').val(mode);
-    $('#id_radio').val(idRadio);
+    const elTela = document.getElementById('audio_id_tela');
+    const elMode = document.getElementById('audio_mode');
+    const elRadio = document.getElementById('id_radio');
+    if (elTela) elTela.value = String(idTela);
+    if (elMode) elMode.value = mode || 'video';
+    if (elRadio) elRadio.value = String(idRadio || 0);
     toggleRadioSelect();
-    $('#audioModal').modal('show');
+    if (window.jQuery && $('#audioModal').modal) {
+        $('#audioModal').modal('show');
+    } else {
+        const modalEl = document.getElementById('audioModal');
+        if (modalEl) {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            document.body.classList.add('modal-open');
+        }
+    }
 }
 
-$('#audioModal').on('hidden.bs.modal', function() {
-    stopModalRadioPreview();
-});
+if (window.jQuery) {
+    $('#audioModal').on('hidden.bs.modal', function() {
+        stopModalRadioPreview();
+    });
+}
 
 function toggleRadioSelect() {
     stopModalRadioPreview();
-    if ($('#audio_mode').val() === 'radio') {
-        $('#div_radio_select').show();
+    const elMode = document.getElementById('audio_mode');
+    const divRadio = document.getElementById('div_radio_select');
+    if (!divRadio) return;
+    if (elMode && elMode.value === 'radio') {
+        divRadio.style.display = 'block';
     } else {
-        $('#div_radio_select').hide();
+        divRadio.style.display = 'none';
     }
 }
 
@@ -1234,15 +1285,24 @@ function previewSelectedRadio(customUrl) {
     }
 
     audio.src = url;
-    audio.play().then(() => {
+    audio.play().then(function() {
         if (btn && !customUrl) {
             btn.innerHTML = '<i class="fas fa-stop mr-1"></i> Parar';
             btn.classList.remove('btn-info');
             btn.classList.add('btn-danger');
         }
-    }).catch(() => {
+    }).catch(function() {
         alert('Não foi possível reproduzir esta transmissão no navegador.');
     });
+}
+
+function escapeHtmlAttr(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function searchRadioInModal() {
@@ -1252,37 +1312,38 @@ function searchRadioInModal() {
 
     resDiv.innerHTML = '<div class="text-center py-2"><i class="fas fa-spinner fa-spin text-primary"></i> Buscando rádios...</div>';
     fetch(window.location.pathname + '?<?= $baseParam ?>action=search_radios&q=' + encodeURIComponent(input.value.trim()))
-        .then(r => r.json())
-        .then(data => {
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             if (!data || data.length === 0) {
                 resDiv.innerHTML = '<div class="text-muted text-center py-2 small">Nenhuma rádio encontrada com esse nome.</div>';
                 return;
             }
             let html = '<ul class="list-group list-group-flush border rounded bg-white">';
-            data.forEach(st => {
+            data.forEach(function(st) {
                 if (st.url_resolved) {
-                    const safeName = (st.name || 'Rádio').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                    const safeUrl = (st.url_resolved || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                    html += <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-2">
-                        <div class="text-truncate mr-2" style="max-width:210px;">
-                            <strong class="small text-dark"></strong><br>
-                            <small class="text-muted"></small>
-                        </div>
-                        <div class="d-flex" style="gap:4px;">
-                            <button type="button" class="btn btn-xs btn-outline-info btn-sm py-1 px-2" onclick="previewSelectedRadio('')" title="Testar Áudio">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
-                            <button type="button" class="btn btn-xs btn-warning btn-sm font-weight-bold py-1 px-2" onclick="addRadioToFavoritesInModal('', '', this)">
-                                <i class="fas fa-star mr-1"></i> Favoritar
-                            </button>
-                        </div>
-                    </li>;
+                    const safeName = escapeHtmlAttr(st.name || 'Rádio');
+                    const safeCountry = escapeHtmlAttr(st.country || 'Brasil');
+                    const safeUrl = escapeHtmlAttr(st.url_resolved);
+                    html += '<li class="list-group-item d-flex justify-content-between align-items-center py-2 px-2">'
+                        + '<div class="text-truncate mr-2" style="max-width:210px;">'
+                        + '<strong class="small text-dark">' + safeName + '</strong><br>'
+                        + '<small class="text-muted">' + safeCountry + '</small>'
+                        + '</div>'
+                        + '<div class="d-flex" style="gap:4px;">'
+                        + '<button type="button" class="btn btn-xs btn-outline-info btn-sm py-1 px-2" data-url="' + safeUrl + '" onclick="previewSelectedRadio(this.getAttribute(\'data-url\'))" title="Testar Áudio">'
+                        + '<i class="fas fa-volume-up"></i>'
+                        + '</button>'
+                        + '<button type="button" class="btn btn-xs btn-warning btn-sm font-weight-bold py-1 px-2" data-name="' + safeName + '" data-url="' + safeUrl + '" onclick="addRadioToFavoritesInModal(this.getAttribute(\'data-name\'), this.getAttribute(\'data-url\'), this)">'
+                        + '<i class="fas fa-star mr-1"></i> Favoritar'
+                        + '</button>'
+                        + '</div>'
+                        + '</li>';
                 }
             });
             html += '</ul>';
             resDiv.innerHTML = html;
         })
-        .catch(() => {
+        .catch(function() {
             resDiv.innerHTML = '<div class="text-danger text-center py-2 small">Erro ao buscar rádios.</div>';
         });
 }
@@ -1292,11 +1353,18 @@ function addRadioToFavoritesInModal(name, url, btnEl) {
     btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     btnEl.disabled = true;
 
-    $.post(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
-        ajax_action: 'add_favorite_radio',
-        radio_name: name,
-        radio_url: url
-    }, function(res) {
+    const params = new URLSearchParams();
+    params.append('ajax_action', 'add_favorite_radio');
+    params.append('radio_name', name);
+    params.append('radio_url', url);
+
+    fetch(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: params.toString()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
         if (res && res.success) {
             const optGroup = document.getElementById('favRadiosOptgroup');
             const select = document.getElementById('id_radio');
@@ -1308,32 +1376,59 @@ function addRadioToFavoritesInModal(name, url, btnEl) {
                 optGroup.appendChild(opt);
                 select.value = String(res.radio_id);
             }
-            btnEl.classList.replace('btn-warning', 'btn-success');
+            btnEl.classList.remove('btn-warning');
+            btnEl.classList.add('btn-success');
             btnEl.innerHTML = '<i class="fas fa-check"></i> Favoritada!';
+            showToastFeedback('<i class="fas fa-star mr-2"></i> Rádio adicionada aos favoritos e selecionada!', false);
         } else {
             btnEl.innerHTML = oldHtml;
             btnEl.disabled = false;
             alert('Erro ao favoritar rádio.');
         }
-    }, 'json');
+    })
+    .catch(function() {
+        btnEl.innerHTML = oldHtml;
+        btnEl.disabled = false;
+        alert('Erro de conexão ao favoritar rádio.');
+    });
 }
 
 function saveAudioConfig() {
-    if ($('#audio_mode').val() === 'radio' && ($('#id_radio').val() === '0' || !$('#id_radio').val())) {
+    const modeEl = document.getElementById('audio_mode');
+    const radioEl = document.getElementById('id_radio');
+    const telaEl = document.getElementById('audio_id_tela');
+    const modeVal = modeEl ? modeEl.value : 'video';
+    const radioVal = radioEl ? radioEl.value : '0';
+    const telaVal = telaEl ? telaEl.value : '0';
+
+    if (modeVal === 'radio' && (radioVal === '0' || !radioVal)) {
         alert('Por favor, selecione uma rádio da lista ou pesquise uma abaixo.');
         return;
     }
     stopModalRadioPreview();
-    $.post(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
-        ajax_action: 'set_audio',
-        id_tela: $('#audio_id_tela').val(),
-        audio_mode: $('#audio_mode').val(),
-        id_radio: $('#id_radio').val()
-    }, function(res) {
+
+    const params = new URLSearchParams();
+    params.append('ajax_action', 'set_audio');
+    params.append('id_tela', telaVal);
+    params.append('audio_mode', modeVal);
+    params.append('id_radio', radioVal);
+
+    fetch(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: params.toString()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
         if (res && res.success) {
             window.location.reload();
+        } else {
+            alert('Erro ao salvar configuração de áudio.');
         }
-    }, 'json');
+    })
+    .catch(function() {
+        alert('Erro de conexão ao salvar configuração de áudio.');
+    });
 }
 
 // Buscador de Rádios (Aba Arquivos)
@@ -1344,33 +1439,35 @@ function searchRadio() {
     resDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin text-success" style="font-size:24px;"></i><br>Buscando...</div>';
 
     fetch(window.location.pathname + '?<?= $baseParam ?>action=search_radios&q=' + encodeURIComponent(input.value.trim()))
-        .then(r => r.json())
-        .then(data => {
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             if (!data || data.length === 0) {
                 resDiv.innerHTML = '<div class="text-warning text-center py-2">Nenhuma rádio encontrada.</div>';
                 return;
             }
             let html = '<ul class="list-group list-group-flush border border-secondary rounded" style="max-height: 280px; overflow-y: auto;">';
-            data.forEach(st => {
+            data.forEach(function(st) {
                 if (st.url_resolved) {
-                    const safeName = (st.name || '').replace(/"/g, '&quot;');
-                    html += `<li class="list-group-item d-flex justify-content-between align-items-center" style="background-color:#23262d;border-color:#2a2d35;">
-                        <div>
-                            <strong class="text-white">${st.name}</strong><br>
-                            <small class="text-muted">${st.country || 'Brasil'}</small>
-                        </div>
-                        <form method="post" action="?<?= $baseParam ?>tab=arquivos" class="m-0">
-                            <input type="hidden" name="add_radio_name" value="${safeName}">
-                            <input type="hidden" name="add_radio_url" value="${st.url_resolved}">
-                            <button type="submit" name="add_radio_submit" value="1" class="btn btn-sm btn-success">Adicionar</button>
-                        </form>
-                    </li>`;
+                    const safeName = escapeHtmlAttr(st.name || 'Rádio');
+                    const safeCountry = escapeHtmlAttr(st.country || 'Brasil');
+                    const safeUrl = escapeHtmlAttr(st.url_resolved);
+                    html += '<li class="list-group-item d-flex justify-content-between align-items-center" style="background-color:#23262d;border-color:#2a2d35;">'
+                        + '<div>'
+                        + '<strong class="text-white">' + safeName + '</strong><br>'
+                        + '<small class="text-muted">' + safeCountry + '</small>'
+                        + '</div>'
+                        + '<form method="post" action="?<?= $baseParam ?>tab=arquivos" class="m-0">'
+                        + '<input type="hidden" name="add_radio_name" value="' + safeName + '">'
+                        + '<input type="hidden" name="add_radio_url" value="' + safeUrl + '">'
+                        + '<button type="submit" name="add_radio_submit" value="1" class="btn btn-sm btn-success">Adicionar</button>'
+                        + '</form>'
+                        + '</li>';
                 }
             });
             html += '</ul>';
             resDiv.innerHTML = html;
         })
-        .catch(() => {
+        .catch(function() {
             resDiv.innerHTML = '<div class="text-danger text-center py-2">Erro ao buscar rádios.</div>';
         });
 }
