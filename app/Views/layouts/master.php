@@ -336,8 +336,8 @@
                 </li>
                 <li>
                     <a href="/painel-cliente" class="sidebar-link" style="color: #34e2e4; border: 1px dashed rgba(52, 226, 228, 0.4); background: rgba(52, 226, 228, 0.05); margin-bottom: 6px;">
-                        <i class="fa fa-store text-cyan"></i>
-                        <span>Portal do Franqueado</span>
+                        <i class="fa fa-car text-cyan"></i>
+                        <span>Portal do Motorista</span>
                     </a>
                 </li>
             <?php endif; ?>
