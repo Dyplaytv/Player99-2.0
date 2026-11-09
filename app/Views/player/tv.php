@@ -177,27 +177,6 @@
             background: rgba(255, 255, 255, 0.15);
             color: #fff;
         }
-        .manual-code-box {
-            display: none;
-            margin-top: 16px;
-            padding: 14px;
-            border-radius: 14px;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-        .manual-code-input {
-            background: #0b132b;
-            border: 1px solid #334155;
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            width: 160px;
-            text-align: center;
-        }
         /* Modal de Instrução de Instalação Android */
         .install-modal-backdrop {
             display: none;
@@ -273,23 +252,9 @@
             <i class="fas fa-mobile-alt"></i> INSTALAR APP NO CELULAR / TABLET
         </button>
 
-        <button type="button" class="btn-pwa btn-secondary-outline" onclick="toggleManualCode()">
-            <i class="fas fa-keyboard"></i> Digitar Código Existente
-        </button>
-
         <button type="button" class="btn-pwa btn-secondary-outline" id="btnFullscreenToggle" onclick="enterFullScreen()">
             <i class="fas fa-expand"></i> Tela Cheia
         </button>
-    </div>
-
-    <div class="manual-code-box" id="manualCodeBox">
-        <div style="font-size:13px;color:#cbd5e1;margin-bottom:8px;">Já criou a tela no painel? Digite o código dela:</div>
-        <div style="display:flex;justify-content:center;gap:8px;">
-            <input type="text" id="inputCustomCode" class="manual-code-input" placeholder="EX: 79T7SW" maxlength="10">
-            <button type="button" class="btn-pwa" style="background:#10b981;color:#fff;padding:10px 18px;border-radius:8px;" onclick="applyCustomCode()">
-                Conectar
-            </button>
-        </div>
     </div>
 </div>
 
@@ -458,16 +423,6 @@
         }
     }
 
-    function toggleManualCode() {
-        const box = document.getElementById('manualCodeBox');
-        if (box) {
-            box.style.display = (box.style.display === 'block') ? 'none' : 'block';
-            if (box.style.display === 'block') {
-                document.getElementById('inputCustomCode').focus();
-            }
-        }
-    }
-
     function generateCode() {
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let result = '';
@@ -504,17 +459,6 @@
         } else {
             window.location.href = targetUrl;
         }
-    }
-
-    function applyCustomCode() {
-        const input = document.getElementById('inputCustomCode');
-        if (!input || !input.value.trim()) return;
-        tvCode = input.value.trim().toUpperCase();
-        localStorage.setItem('tv_code', tvCode);
-        document.getElementById('displayCode').innerText = tvCode;
-        document.getElementById('manualCodeBox').style.display = 'none';
-        enterFullScreen();
-        checkPairing();
     }
 
     function checkPairing() {
