@@ -67,6 +67,11 @@
             color: #34e2e4;
         }
 
+        .glass-nav .nav-btn.current {
+            color: #34e2e4;
+            background: rgba(52, 226, 228, 0.12);
+        }
+
         .glass-nav .nav-btn-highlight {
             background: #00f3ff;
             color: #000 !important;
@@ -184,6 +189,7 @@
             <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" class="logo-img" onerror="this.src='/assets/images/logo.png'">
         </a>
         <div class="nav-links">
+            <a href="/" class="nav-btn current"><i class="fas fa-car" style="margin-right: 6px;"></i>Motoristas</a>
             <a href="/parceiros" class="nav-btn">Parceiros</a>
             <a href="/afiliados" class="nav-btn">Afiliado</a>
             <a href="/loja.php" class="nav-btn nav-btn-highlight">Loja</a>

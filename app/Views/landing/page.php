@@ -83,6 +83,7 @@
             <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" class="logo-img" onerror="this.src='/assets/images/logo.png'">
         </a>
         <div class="nav-links">
+            <a href="/" class="nav-btn"><i class="fas fa-car" style="margin-right: 6px;"></i>Motoristas</a>
             <a href="/parceiros" class="nav-btn <?= $pageKey === 'parceiros' ? 'current' : '' ?>">Parceiros</a>
             <a href="/afiliados" class="nav-btn <?= $pageKey === 'afiliados' ? 'current' : '' ?>">Afiliado</a>
             <a href="/loja.php" class="nav-btn nav-btn-highlight">Loja</a>

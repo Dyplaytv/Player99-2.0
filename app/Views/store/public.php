@@ -167,6 +167,7 @@
             <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" class="logo-img" onerror="this.src='/assets/images/logo.png'">
         </a>
         <div class="nav-links">
+            <a href="/" class="nav-btn"><i class="fas fa-car" style="margin-right: 6px;"></i>Motoristas</a>
             <a href="/parceiros" class="nav-btn">Parceiros</a>
             <a href="/afiliados" class="nav-btn">Afiliado</a>
             <a href="/loja" class="nav-btn nav-btn-highlight">Loja</a>
