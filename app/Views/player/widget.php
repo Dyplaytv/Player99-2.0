@@ -21,20 +21,19 @@
             position: relative;
             user-select: none;
         }
-        <?php if (!empty($bgImage)): ?>
         .bg-photo {
             position: absolute;
             inset: 0;
-            background: url(<?= json_encode($bgImage) ?>) center center / cover no-repeat;
+            background: <?= !empty($bgImage) ? ('url(' . json_encode($bgImage) . ')') : 'none' ?> center center / cover no-repeat;
             filter: brightness(0.35) saturate(1.15);
             z-index: 0;
             animation: zoomBg 18s ease-in-out infinite alternate;
+            transition: background-image 0.5s ease-in-out, opacity 0.4s ease;
         }
         @keyframes zoomBg {
             from { transform: scale(1); }
             to { transform: scale(1.08); }
         }
-        <?php endif; ?>
         .overlay {
             position: absolute;
             inset: 0;
@@ -78,6 +77,11 @@
             padding: 20px 60px;
             max-width: 1500px;
             margin: auto 0;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .center-content.fade-out {
+            opacity: 0;
+            transform: translateY(10px);
         }
         .headline {
             font-size: clamp(2rem, 4.2vw, 3.8rem);
@@ -134,6 +138,7 @@
         }
         .dots {
             display: flex;
+            align-items: center;
             gap: 8px;
         }
         .dot {
@@ -141,6 +146,7 @@
             height: 10px;
             border-radius: 50%;
             background: rgba(255,255,255,0.25);
+            transition: all 0.3s ease;
         }
         .dot.active {
             width: 28px;
@@ -150,9 +156,7 @@
     </style>
 </head>
 <body>
-    <?php if (!empty($bgImage)): ?>
-        <div class="bg-photo" id="bgPhoto"></div>
-    <?php endif; ?>
+    <div class="bg-photo" id="bgPhoto" style="<?= empty($bgImage) ? 'opacity:0;' : 'opacity:1;' ?>"></div>
     <div class="overlay"></div>
 
     <div class="top-bar">
@@ -163,7 +167,7 @@
         <div class="live-clock" id="topClock"><?= date('H:i') ?></div>
     </div>
 
-    <div class="center-content">
+    <div class="center-content" id="centerContent">
         <?php if ($mode === 'clock'): ?>
             <div class="clock-hero">
                 <div class="big-time" id="heroTime"><?= date('H:i:s') ?></div>
@@ -171,11 +175,7 @@
             </div>
         <?php else: ?>
             <div class="headline" id="slideHeadline"><?= htmlspecialchars($items[0]['title'] ?? '') ?></div>
-            <?php if (!empty($items[0]['desc'])): ?>
-                <div class="subtext" id="slideDesc"><?= htmlspecialchars($items[0]['desc']) ?></div>
-            <?php else: ?>
-                <div class="subtext" id="slideDesc"></div>
-            <?php endif; ?>
+            <div class="subtext" id="slideDesc"><?= htmlspecialchars($items[0]['desc'] ?? '') ?></div>
         <?php endif; ?>
     </div>
 
@@ -209,23 +209,145 @@
         setInterval(updateClocks, 1000);
         updateClocks();
 
-        const slides = <?= json_encode($items) ?>;
-        let sIdx = 0;
-        if (slides.length > 1) {
-            setInterval(() => {
-                sIdx = (sIdx + 1) % slides.length;
-                const item = slides[sIdx];
-                const h = document.getElementById('slideHeadline');
-                const d = document.getElementById('slideDesc');
-                const bg = document.getElementById('bgPhoto');
+        const widgetSlug = <?= json_encode($slug ?? 'noticias') ?>;
+        const widgetMode = <?= json_encode($mode ?? 'rss') ?>;
+        const slides = <?= json_encode(array_values($items)) ?>;
+        const storageKey = 'p99_rss_offset_' + widgetSlug;
+
+        // Pré-carrega as imagens de fundo para transição instantânea
+        slides.forEach(function(s) {
+            if (s && s.image) {
+                const img = new Image();
+                img.src = s.image;
+            }
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const defaultDurMs = Math.max(4000, parseInt(urlParams.get('dur') || '15000', 10) || 15000);
+        const autoStart = urlParams.get('autostart') !== '0';
+
+        let pairTimer = null;
+        let standaloneLoopTimer = null;
+        let lastCycleStartTime = 0;
+        let memoryOffset = 0;
+
+        function getSavedOffset() {
+            if (slides.length === 0) return 0;
+            try {
+                const raw = localStorage.getItem(storageKey);
+                if (raw !== null) {
+                    const parsed = parseInt(raw, 10);
+                    if (!isNaN(parsed) && parsed >= 0) {
+                        return parsed % slides.length;
+                    }
+                }
+            } catch (e) {}
+            return memoryOffset % slides.length;
+        }
+
+        function saveNextOffset(nextIdx) {
+            if (slides.length === 0) return;
+            memoryOffset = nextIdx % slides.length;
+            try {
+                localStorage.setItem(storageKey, String(memoryOffset));
+            } catch (e) {}
+        }
+
+        function renderSlideByIndex(idx, animate) {
+            if (!slides.length || widgetMode === 'clock') return;
+            const safeIdx = ((idx % slides.length) + slides.length) % slides.length;
+            const item = slides[safeIdx] || {};
+            const center = document.getElementById('centerContent');
+            const h = document.getElementById('slideHeadline');
+            const d = document.getElementById('slideDesc');
+            const bg = document.getElementById('bgPhoto');
+            const dots = document.querySelectorAll('#dotsContainer .dot');
+
+            const applyContent = function() {
                 if (h) h.innerText = item.title || '';
                 if (d) d.innerText = item.desc || '';
-                if (bg && item.image) {
-                    bg.style.backgroundImage = 'url(' + JSON.stringify(item.image) + ')';
+                if (bg) {
+                    if (item.image) {
+                        bg.style.backgroundImage = 'url(' + JSON.stringify(item.image) + ')';
+                        bg.style.opacity = '1';
+                    }
                 }
-                const dots = document.querySelectorAll('#dotsContainer .dot');
-                dots.forEach((dot, i) => dot.classList.toggle('active', i === sIdx));
-            }, 5000);
+                dots.forEach(function(dot, i) {
+                    dot.classList.toggle('active', i === safeIdx);
+                });
+            };
+
+            if (animate && center) {
+                center.classList.add('fade-out');
+                setTimeout(function() {
+                    applyContent();
+                    center.classList.remove('fade-out');
+                }, 260);
+            } else {
+                applyContent();
+            }
+        }
+
+        /**
+         * Exibe no máximo 2 notícias por entrada da categoria:
+         * - 1ª notícia do par entra imediatamente (0s até metade do tempo)
+         * - 2ª notícia do par entra na metade do tempo (ex: aos 7.5s de 15s)
+         * - Salva o próximo índice (+2) para que na próxima vez que a categoria entrar
+         *   na playlist ela exiba as próximas 2 notícias até finalizar todas e recomeçar.
+         */
+        function startPairCycle(durationMs) {
+            if (widgetMode === 'clock' || slides.length <= 1) return;
+
+            const now = Date.now();
+            if (now - lastCycleStartTime < 1200) {
+                return;
+            }
+            lastCycleStartTime = now;
+
+            if (pairTimer) {
+                clearTimeout(pairTimer);
+                pairTimer = null;
+            }
+
+            const totalMs = Math.max(4000, parseInt(durationMs || defaultDurMs, 10) || 15000);
+            const halfMs = Math.floor(totalMs / 2);
+
+            const firstIdx = getSavedOffset();
+            const hasSecondInBatch = (firstIdx + 1) < slides.length;
+            const nextOffset = (firstIdx + 2 >= slides.length) ? 0 : (firstIdx + 2);
+
+            // Salva imediatamente o ponteiro para a próxima entrada desta categoria
+            saveNextOffset(nextOffset);
+
+            // Mostra a 1ª notícia deste ciclo imediatamente
+            renderSlideByIndex(firstIdx, false);
+
+            // Na metade do tempo da categoria (ex: 7.5s de 15s), mostra no máximo a 2ª notícia e para
+            if (hasSecondInBatch) {
+                pairTimer = setTimeout(function() {
+                    renderSlideByIndex(firstIdx + 1, true);
+                }, halfMs);
+            }
+        }
+
+        // Prepara visualmente a notícia atual sem avançar o contador caso esteja pré-carregado oculto
+        renderSlideByIndex(getSavedOffset(), false);
+
+        // Escuta o comando do player principal quando este widget fica ativo na tela
+        window.addEventListener('message', function(event) {
+            if (event && event.data && event.data.type === 'START_WIDGET_CYCLE') {
+                startPairCycle(event.data.durationMs || defaultDurMs);
+            }
+        });
+
+        // Se for o primeiro item da playlist ou aberto diretamente no navegador
+        if (autoStart || window.self === window.top) {
+            startPairCycle(defaultDurMs);
+            if (window.self === window.top && slides.length > 1) {
+                standaloneLoopTimer = setInterval(function() {
+                    startPairCycle(defaultDurMs);
+                }, defaultDurMs);
+            }
         }
     </script>
 </body>

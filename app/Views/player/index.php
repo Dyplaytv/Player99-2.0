@@ -184,8 +184,11 @@ $radioName = $radioInfo['radio_name'] ?? '';
                 $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
                 $mediaUrl = $isWidget ? $fn : ('/uploads/clientes/' . $screen['id_cliente'] . '/' . $fn);
             ?>
-                <?php if ($isWidget): ?>
-                    <iframe src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="widget" data-duration="<?= $durMs ?>" id="media_<?= $idx ?>"></iframe>
+                <?php if ($isWidget):
+                    $sep = (strpos($mediaUrl, '?') !== false) ? '&' : '?';
+                    $widgetUrlWithParams = $mediaUrl . $sep . 'dur=' . $durMs . '&autostart=' . ($idx === 0 ? '1' : '0');
+                ?>
+                    <iframe src="<?= htmlspecialchars($widgetUrlWithParams) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="widget" data-duration="<?= $durMs ?>" id="media_<?= $idx ?>"></iframe>
                 <?php elseif ($isImg): ?>
                     <img src="<?= htmlspecialchars($mediaUrl) ?>" class="media-item <?= $idx === 0 ? 'active' : '' ?>" data-type="image" data-duration="<?= $durMs ?>" id="media_<?= $idx ?>">
                 <?php else: ?>
@@ -245,7 +248,30 @@ $radioName = $radioInfo['radio_name'] ?? '';
             }
         }
 
+        function tryPlayerFullScreen() {
+            try {
+                if ('wakeLock' in navigator) {
+                    navigator.wakeLock.request('screen').catch(function() {});
+                }
+            } catch (e) {}
+            try {
+                const targetDoc = (window.top && window.top.document) ? window.top.document : document;
+                const isFs = !!(targetDoc.fullscreenElement || targetDoc.webkitFullscreenElement || targetDoc.mozFullScreenElement || targetDoc.msFullscreenElement);
+                if (!isFs) {
+                    const el = targetDoc.documentElement;
+                    if (el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).catch(function() {});
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+                    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+                }
+            } catch (e) {}
+        }
+
+        window.addEventListener('DOMContentLoaded', tryPlayerFullScreen);
+        window.addEventListener('load', tryPlayerFullScreen);
+
         function unlockAudioNow() {
+            tryPlayerFullScreen();
             unlockBanner.style.display = 'none';
             if (currentAudioMode === 'radio' && currentRadioUrl) {
                 radioPlayer.play().catch(() => {});
@@ -260,6 +286,8 @@ $radioName = $radioInfo['radio_name'] ?? '';
 
         document.addEventListener('click', unlockAudioNow, { passive: true });
         document.addEventListener('touchstart', unlockAudioNow, { passive: true });
+        document.addEventListener('pointerdown', unlockAudioNow, { passive: true });
+        document.addEventListener('keydown', unlockAudioNow, { passive: true });
 
         function applyRotation(rot) {
             rot = parseInt(rot, 10) || 0;
@@ -282,7 +310,13 @@ $radioName = $radioInfo['radio_name'] ?? '';
                 });
                 item.onended = playNext;
             } else {
-                slideTimer = setTimeout(playNext, parseInt(item.getAttribute('data-duration') || '15000', 10));
+                const durMs = parseInt(item.getAttribute('data-duration') || '15000', 10) || 15000;
+                if (item.getAttribute('data-type') === 'widget' && item.contentWindow) {
+                    try {
+                        item.contentWindow.postMessage({ type: 'START_WIDGET_CYCLE', durationMs: durMs }, '*');
+                    } catch (e) {}
+                }
+                slideTimer = setTimeout(playNext, durMs);
             }
         }
 

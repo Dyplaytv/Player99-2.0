@@ -20,6 +20,7 @@
             margin: 0;
             padding: 0;
             width: 100%;
+            height: 100%;
             min-height: 100vh;
             background: radial-gradient(circle at 50% 20%, #1c2541 0%, #0b132b 70%, #050814 100%);
             color: #fff;
@@ -29,6 +30,48 @@
             align-items: center;
             text-align: center;
             padding: 16px;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body.player-mode {
+            padding: 0 !important;
+            background: #000 !important;
+        }
+        #playerFrameContainer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 5000;
+        }
+        #playerFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000;
+            display: block;
+        }
+        #fullscreenPromptBanner {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(11, 19, 43, 0.92);
+            color: #00f2fe;
+            border: 1px solid rgba(0, 242, 254, 0.55);
+            padding: 10px 22px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            z-index: 9500;
+            box-shadow: 0 6px 24px rgba(0, 242, 254, 0.28);
+            white-space: nowrap;
+            backdrop-filter: blur(8px);
         }
         .tv-card {
             width: 100%;
@@ -202,7 +245,15 @@
 </head>
 <body>
 
-<div class="tv-card">
+<div id="fullscreenPromptBanner" onclick="enterFullScreen()">
+    <i class="fas fa-expand mr-1"></i> Toque na tela para ativar o Modo Tela Cheia
+</div>
+
+<div id="playerFrameContainer">
+    <iframe id="playerFrame" src="about:blank" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+</div>
+
+<div class="tv-card" id="pairingCard">
     <div class="logo-wrap">
         <img src="<?= \App\Core\View::logoUrl() ?>" alt="Player99" onerror="this.src='/assets/images/logo.png'">
     </div>
@@ -226,7 +277,7 @@
             <i class="fas fa-keyboard"></i> Digitar Código Existente
         </button>
 
-        <button type="button" class="btn-pwa btn-secondary-outline" onclick="enterFullScreen()">
+        <button type="button" class="btn-pwa btn-secondary-outline" id="btnFullscreenToggle" onclick="enterFullScreen()">
             <i class="fas fa-expand"></i> Tela Cheia
         </button>
     </div>
@@ -275,9 +326,104 @@
 
 <script>
     let deferredPwaPrompt = null;
+    let isPlayerActive = false;
+    let wakeLockSentinel = null;
 
-    // Se já estiver rodando como App instalado (standalone), oculta o botão de instalar
-    if (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches || window.navigator.standalone === true) {
+    function isStandaloneApp() {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+               window.matchMedia('(display-mode: fullscreen)').matches ||
+               window.navigator.standalone === true;
+    }
+
+    function isCurrentlyFullscreen() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    }
+
+    function updateFullscreenUi() {
+        const banner = document.getElementById('fullscreenPromptBanner');
+        const btnFs = document.getElementById('btnFullscreenToggle');
+        const inFs = isCurrentlyFullscreen() || window.matchMedia('(display-mode: fullscreen)').matches;
+        if (banner) {
+            banner.style.display = inFs ? 'none' : 'block';
+        }
+        if (btnFs) {
+            btnFs.style.display = inFs ? 'none' : 'inline-flex';
+        }
+    }
+
+    function requestScreenWakeLock() {
+        if ('wakeLock' in navigator && !wakeLockSentinel) {
+            navigator.wakeLock.request('screen').then(function(sentinel) {
+                wakeLockSentinel = sentinel;
+                sentinel.addEventListener('release', function() {
+                    wakeLockSentinel = null;
+                });
+            }).catch(function() {});
+        }
+    }
+
+    function enterFullScreen() {
+        requestScreenWakeLock();
+        if (isCurrentlyFullscreen()) {
+            updateFullscreenUi();
+            return;
+        }
+        const el = document.documentElement;
+        try {
+            let p = null;
+            if (el.requestFullscreen) {
+                p = el.requestFullscreen({ navigationUI: 'hide' });
+            } else if (el.webkitRequestFullscreen) {
+                p = el.webkitRequestFullscreen();
+            } else if (el.mozRequestFullScreen) {
+                p = el.mozRequestFullScreen();
+            } else if (el.msRequestFullscreen) {
+                p = el.msRequestFullscreen();
+            }
+            if (p && typeof p.then === 'function') {
+                p.then(function() {
+                    updateFullscreenUi();
+                }).catch(function() {
+                    updateFullscreenUi();
+                });
+            } else {
+                setTimeout(updateFullscreenUi, 200);
+            }
+        } catch (e) {
+            updateFullscreenUi();
+        }
+    }
+
+    // Tenta entrar em tela cheia automaticamente ao carregar a página
+    window.addEventListener('DOMContentLoaded', function() {
+        enterFullScreen();
+        setTimeout(enterFullScreen, 350);
+    });
+    window.addEventListener('load', enterFullScreen);
+
+    // Garante que qualquer primeiro toque/clique/tecla na tela ative o modo tela cheia imediatamente
+    ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown'].forEach(function(evtName) {
+        document.addEventListener(evtName, function(e) {
+            // Não interrompe digitação no input de código manual
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.closest('#installHelpModal'))) {
+                return;
+            }
+            if (!isCurrentlyFullscreen()) {
+                enterFullScreen();
+            }
+        }, { passive: true });
+    });
+
+    document.addEventListener('fullscreenchange', updateFullscreenUi);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenUi);
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            requestScreenWakeLock();
+        }
+    });
+
+    // Se já estiver rodando como App instalado, oculta o botão de instalar
+    if (isStandaloneApp()) {
         const btn = document.getElementById('btnInstallApp');
         if (btn) btn.style.display = 'none';
     }
@@ -286,7 +432,7 @@
         e.preventDefault();
         deferredPwaPrompt = e;
         const btn = document.getElementById('btnInstallApp');
-        if (btn) {
+        if (btn && !isStandaloneApp()) {
             btn.style.display = 'inline-flex';
         }
     });
@@ -310,12 +456,6 @@
         } else {
             document.getElementById('installHelpModal').style.display = 'flex';
         }
-    }
-
-    function enterFullScreen() {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     }
 
     function toggleManualCode() {
@@ -344,6 +484,28 @@
     }
     document.getElementById('displayCode').innerText = tvCode;
 
+    function launchPlayerInFullscreen(code) {
+        const targetUrl = '/player/' + encodeURIComponent(code);
+        const container = document.getElementById('playerFrameContainer');
+        const frame = document.getElementById('playerFrame');
+        const card = document.getElementById('pairingCard');
+
+        enterFullScreen();
+
+        if (container && frame) {
+            isPlayerActive = true;
+            document.body.classList.add('player-mode');
+            if (card) card.style.display = 'none';
+            container.style.display = 'block';
+            if (frame.getAttribute('data-loaded-code') !== code) {
+                frame.setAttribute('data-loaded-code', code);
+                frame.src = targetUrl;
+            }
+        } else {
+            window.location.href = targetUrl;
+        }
+    }
+
     function applyCustomCode() {
         const input = document.getElementById('inputCustomCode');
         if (!input || !input.value.trim()) return;
@@ -351,13 +513,14 @@
         localStorage.setItem('tv_code', tvCode);
         document.getElementById('displayCode').innerText = tvCode;
         document.getElementById('manualCodeBox').style.display = 'none';
+        enterFullScreen();
         checkPairing();
     }
 
     function checkPairing() {
         try {
             if (!navigator.onLine && localStorage.getItem('is_paired') === 'true') {
-                window.location.href = '/player/' + encodeURIComponent(tvCode);
+                launchPlayerInFullscreen(tvCode);
                 return;
             }
         } catch (e) {}
@@ -367,13 +530,24 @@
             .then(function(res) {
                 if (res && res.paired) {
                     try { localStorage.setItem('is_paired', 'true'); } catch (e) {}
-                    window.location.href = '/player/' + encodeURIComponent(tvCode);
+                    if (!isPlayerActive) {
+                        launchPlayerInFullscreen(tvCode);
+                    }
+                } else if (isPlayerActive) {
+                    // Caso a tela tenha sido desvinculada/excluída no painel
+                    try { localStorage.removeItem('is_paired'); } catch (e) {}
+                    isPlayerActive = false;
+                    document.body.classList.remove('player-mode');
+                    document.getElementById('playerFrameContainer').style.display = 'none';
+                    document.getElementById('playerFrame').src = 'about:blank';
+                    document.getElementById('playerFrame').removeAttribute('data-loaded-code');
+                    document.getElementById('pairingCard').style.display = 'block';
                 }
             })
             .catch(function() {
                 try {
-                    if (localStorage.getItem('is_paired') === 'true') {
-                        window.location.href = '/player/' + encodeURIComponent(tvCode);
+                    if (localStorage.getItem('is_paired') === 'true' && !isPlayerActive) {
+                        launchPlayerInFullscreen(tvCode);
                     }
                 } catch (e) {}
             });

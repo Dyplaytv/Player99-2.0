@@ -517,9 +517,9 @@ class ScreenController extends Controller
                 ['title' => '“A persistência é o caminho mais curto para o êxito.”', 'desc' => 'Charles Chaplin'],
                 ['title' => '“A melhor maneira de prever o futuro é criá-lo.”', 'desc' => 'Peter Drucker'],
                 ['title' => '“Tudo o que um sonho precisa para ser realizado é alguém que acredite nele.”', 'desc' => 'Roberto Shinyashiki'],
+                ['title' => '“Acredite em si próprio e chegará um dia em que os outros não terão outra escolha senão acreditar com você.”', 'desc' => 'Cynthia Kersey'],
                 ['title' => '“Desejamos a você uma excelente viagem com a Player99!”', 'desc' => 'Boa viagem']
             ];
-            shuffle($quotes);
             $items = $quotes;
         } elseif (!empty($cfg['rss'])) {
             $items = $this->fetchRssItems($cfg['rss'], $slug);
@@ -538,6 +538,7 @@ class ScreenController extends Controller
         }
 
         $this->render('player/widget', [
+            'slug' => $slug,
             'title' => $cfg['title'],
             'icon' => $cfg['icon'],
             'mode' => $cfg['mode'],
@@ -636,12 +637,13 @@ class ScreenController extends Controller
             echo file_get_contents($manifestFile);
         } else {
             echo json_encode([
-                'id' => '/tv.php',
-                'name' => 'Player99 TV & Tablet',
+                'id' => '/tv',
+                'name' => 'Player99 TV',
                 'short_name' => 'Player99',
-                'start_url' => '/tv.php',
+                'start_url' => '/tv',
                 'scope' => '/',
-                'display' => 'standalone',
+                'display' => 'fullscreen',
+                'display_override' => ['fullscreen', 'standalone'],
                 'background_color' => '#0b132b',
                 'theme_color' => '#0b132b'
             ]);
