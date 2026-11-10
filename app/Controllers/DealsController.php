@@ -7,6 +7,7 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Models\Deal;
 use App\Services\LinkConverterService;
+use App\Services\EvolutionService;
 use PDO;
 
 class DealsController extends Controller
@@ -250,5 +251,86 @@ class DealsController extends Controller
             'msg' => "Verificação concluída: {$checked} ofertas checadas, {$deactivated} links quebrados desativados."
         ]);
         exit;
+    }
+
+    /**
+     * Resolve o cliente Evolution API para instâncias de ofertas
+     */
+    private function getEvolutionService(string $instanceName = 'player99_ofertas'): EvolutionService
+    {
+        $pdo = Database::users();
+        $stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
+        $settings = [];
+        if ($stmt) {
+            while ($row = $stmt->fetch()) {
+                $settings[$row['setting_key']] = $row['setting_value'];
+            }
+        }
+
+        $url = !empty($settings['evolution_api_url']) ? $settings['evolution_api_url'] : 'http://172.17.0.1:8095';
+        $key = !empty($settings['evolution_api_key']) ? $settings['evolution_api_key'] : 'PLAYER99_EVO_KEY_2026_94a73e51bc084d28f92b71c6e';
+
+        return new EvolutionService($url, $key, $instanceName);
+    }
+
+    /**
+     * Checa status da instância de ofertas
+     */
+    public function evolutionStatus(Request $request): void
+    {
+        if (!Auth::check() || !Auth::isAdmin()) {
+            echo json_encode(['success' => false, 'error' => 'Acesso negado']);
+            return;
+        }
+        header('Content-Type: application/json');
+        $raw = json_decode(file_get_contents('php://input'), true) ?? [];
+        $instance = trim($request->input('instance') ?: ($raw['instance'] ?? 'player99_ofertas'));
+        if (empty($instance)) $instance = 'player99_ofertas';
+
+        $evo = $this->getEvolutionService($instance);
+        echo json_encode($evo->getConnectionState());
+    }
+
+    /**
+     * Cria e gera QR Code para a instância de ofertas
+     */
+    public function evolutionConnect(Request $request): void
+    {
+        if (!Auth::check() || !Auth::isAdmin()) {
+            echo json_encode(['success' => false, 'error' => 'Acesso negado']);
+            return;
+        }
+        header('Content-Type: application/json');
+        $raw = json_decode(file_get_contents('php://input'), true) ?? [];
+        $instance = trim($request->input('instance') ?: ($raw['instance'] ?? 'player99_ofertas'));
+        if (empty($instance)) $instance = 'player99_ofertas';
+
+        $evo = $this->getEvolutionService($instance);
+
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? '75.119.156.103';
+        $webhookUrl = $protocol . '://' . $host . '/api/evolution/deals-webhook';
+
+        $evo->createInstance($webhookUrl);
+        $res = $evo->connect();
+        echo json_encode($res);
+    }
+
+    /**
+     * Desconecta WhatsApp de ofertas
+     */
+    public function evolutionLogout(Request $request): void
+    {
+        if (!Auth::check() || !Auth::isAdmin()) {
+            echo json_encode(['success' => false, 'error' => 'Acesso negado']);
+            return;
+        }
+        header('Content-Type: application/json');
+        $raw = json_decode(file_get_contents('php://input'), true) ?? [];
+        $instance = trim($request->input('instance') ?: ($raw['instance'] ?? 'player99_ofertas'));
+        if (empty($instance)) $instance = 'player99_ofertas';
+
+        $evo = $this->getEvolutionService($instance);
+        echo json_encode($evo->logout());
     }
 }

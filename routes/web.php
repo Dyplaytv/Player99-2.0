@@ -182,6 +182,12 @@ $router->get('/admin/achadinhos/test-convert', [DealsController::class, 'testCon
 $router->post('/admin/achadinhos/test-convert', [DealsController::class, 'testConvert']);
 $router->get('/admin/achadinhos/check-health', [DealsController::class, 'checkLinksHealth']);
 $router->get('/api/deals/active', [DealsController::class, 'apiActiveDeals']);
+$router->get('/admin/achadinhos/evolution-status', [DealsController::class, 'evolutionStatus']);
+$router->post('/admin/achadinhos/evolution-status', [DealsController::class, 'evolutionStatus']);
+$router->get('/admin/achadinhos/evolution-connect', [DealsController::class, 'evolutionConnect']);
+$router->post('/admin/achadinhos/evolution-connect', [DealsController::class, 'evolutionConnect']);
+$router->get('/admin/achadinhos/evolution-logout', [DealsController::class, 'evolutionLogout']);
+$router->post('/admin/achadinhos/evolution-logout', [DealsController::class, 'evolutionLogout']);
 
 // Redirecionamento e Rastreio de QR Code do Passageiro
 $router->get('/o/{id}', [DealsController::class, 'redirectDeal']);

@@ -124,6 +124,57 @@
         </div>
     </div>
 
+    <!-- 0. Conexão Oficial WhatsApp de Ofertas (Evolution API) -->
+    <div class="card bg-dark border-secondary border-opacity-25 mb-4">
+        <div class="card-header bg-dark border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="mb-0 fw-bold text-success"><i class="fab fa-whatsapp me-2"></i> WhatsApp de Ofertas (Instância Dedicada Evolution)</h6>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-info fw-bold" onclick="checkDealsEvoStatus()">
+                    <i class="fa fa-sync-alt me-1"></i> Checar Conexão
+                </button>
+                <button type="button" class="btn btn-sm btn-success fw-bold" onclick="connectDealsEvo()">
+                    <i class="fa fa-qrcode me-1"></i> Gerar QR Code
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="disconnectDealsEvo()">
+                    <i class="fa fa-power-off me-1"></i> Desconectar
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="dealsEvoBadgeContainer" class="mb-3">
+                <span id="dealsEvoBadge" class="badge bg-secondary bg-opacity-25 text-muted border border-secondary border-opacity-50 px-3 py-2">
+                    <i class="fa fa-circle me-1" style="font-size: 8px;"></i> Status: Clique em 'Checar Conexão'
+                </span>
+            </div>
+
+            <!-- Box Modal QR Code -->
+            <div id="dealsQrCodeWrapper" class="p-4 mb-3 bg-black rounded-3 text-center d-none border border-success border-opacity-50">
+                <h6 class="text-white fw-bold mb-2">Escaneie com o WhatsApp que está no Grupo de Promoções</h6>
+                <p class="text-muted small mb-3">Abra o WhatsApp > Aparelhos Conectados > Conectar um aparelho e aponte para o código abaixo:</p>
+                <div id="dealsQrCodeHolder" class="d-flex justify-content-center mb-2"></div>
+                <small class="text-info font-monospace" id="dealsQrTimer">Aguardando leitura...</small>
+            </div>
+
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-md-5">
+                    <label class="form-label deals-label">NOME DA INSTÂNCIA DEDICADA</label>
+                    <input type="text" id="dealsEvoInstance" class="form-control form-control-sm deals-input" value="player99_ofertas">
+                    <small class="deals-subtext" style="font-size: 11px;">Instância exclusiva para monitorar ofertas sem interferir no suporte.</small>
+                </div>
+                <div class="col-12 col-md-7">
+                    <label class="form-label deals-label">WEBHOOK AUTOCONFIGURADO</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" readonly class="form-control deals-input text-info" value="<?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '75.119.156.103') ?>/api/evolution/deals-webhook" id="inputWebhookUrl">
+                        <button type="button" class="btn btn-outline-info deals-addon" onclick="navigator.clipboard.writeText(document.getElementById('inputWebhookUrl').value); alert('URL copiada!');">
+                            <i class="fa fa-copy"></i>
+                        </button>
+                    </div>
+                    <small class="deals-subtext" style="font-size: 11px;">Ao clicar em 'Gerar QR Code', a Evolution já amarra esse webhook automaticamente!</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 1. Configurações de Afiliados por Plataforma -->
     <div class="card bg-dark border-secondary border-opacity-25 mb-4">
         <div class="card-header bg-dark border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
@@ -389,6 +440,109 @@
 </div>
 
 <script>
+// ===============================================
+// GESTÃO DA INSTÂNCIA WHATSAPP DE OFERTAS
+// ===============================================
+function checkDealsEvoStatus() {
+    const badge = document.getElementById('dealsEvoBadge');
+    badge.className = 'badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-3 py-2';
+    badge.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Verificando conexão da instância de ofertas...';
+
+    const inst = document.getElementById('dealsEvoInstance').value.trim() || 'player99_ofertas';
+    fetch('/admin/achadinhos/evolution-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instance: inst })
+    })
+        .then(r => r.json())
+        .then(res => {
+            const state = res.data?.instance?.state || res.data?.state || 'close';
+            if (state === 'open') {
+                badge.className = 'badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 px-3 py-2 fw-bold';
+                badge.innerHTML = '<i class="fa fa-check-circle me-1"></i> Conectado e Operacional (Monitorando Grupos)';
+                document.getElementById('dealsQrCodeWrapper').classList.add('d-none');
+            } else if (state === 'connecting') {
+                badge.className = 'badge bg-info bg-opacity-25 text-info border border-info border-opacity-50 px-3 py-2';
+                badge.innerHTML = '<i class="fa fa-sync fa-spin me-1"></i> Conectando...';
+            } else {
+                badge.className = 'badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-3 py-2';
+                badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> Desconectado (' + state + ') - Clique em Gerar QR Code';
+            }
+        })
+        .catch(() => {
+            badge.className = 'badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-3 py-2';
+            badge.innerHTML = '<i class="fa fa-exclamation-triangle me-1"></i> Erro ao consultar servidor Evolution';
+        });
+}
+
+function connectDealsEvo() {
+    const wrapper = document.getElementById('dealsQrCodeWrapper');
+    const holder = document.getElementById('dealsQrCodeHolder');
+    const timer = document.getElementById('dealsQrTimer');
+
+    wrapper.classList.remove('d-none');
+    holder.innerHTML = '<div class="text-info py-4"><i class="fa fa-spinner fa-spin fa-2x"></i><p class="mt-2 mb-0">Criando instância e gerando QR Code...</p></div>';
+
+    const inst = document.getElementById('dealsEvoInstance').value.trim() || 'player99_ofertas';
+    fetch('/admin/achadinhos/evolution-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instance: inst })
+    })
+        .then(r => r.json())
+        .then(res => {
+            if (res.data?.base64 || res.data?.qrcode?.base64) {
+                const b64 = res.data.base64 || res.data.qrcode.base64;
+                holder.innerHTML = '<img src="' + b64 + '" style="max-width: 260px; border-radius: 12px; border: 4px solid #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" alt="QR Code">';
+                timer.innerText = 'QR Code gerado! Aponte o WhatsApp do celular para conectar.';
+
+                const interval = setInterval(() => {
+                    fetch('/admin/achadinhos/evolution-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ instance: inst })
+                    })
+                        .then(r2 => r2.json())
+                        .then(st => {
+                            const state = st.data?.instance?.state || st.data?.state;
+                            if (state === 'open') {
+                                clearInterval(interval);
+                                checkDealsEvoStatus();
+                                alert('WhatsApp de Ofertas Conectado com Sucesso!');
+                            }
+                        });
+                }, 4000);
+            } else if (res.data?.instance?.state === 'open') {
+                holder.innerHTML = '<div class="alert alert-success m-0 fw-bold"><i class="fa fa-check-circle me-1"></i> Este WhatsApp já está conectado e operacional!</div>';
+                checkDealsEvoStatus();
+            } else {
+                holder.innerHTML = '<div class="alert alert-danger m-0">' + (res.error || 'Não foi possível gerar o QR Code. Verifique se o servidor Evolution está ativo.') + '</div>';
+            }
+        })
+        .catch(() => {
+            holder.innerHTML = '<div class="alert alert-danger m-0">Falha na conexão com a Evolution API.</div>';
+        });
+}
+
+function disconnectDealsEvo() {
+    if (!confirm('Deseja realmente desconectar a instância de ofertas do WhatsApp?')) return;
+    const inst = document.getElementById('dealsEvoInstance').value.trim() || 'player99_ofertas';
+    fetch('/admin/achadinhos/evolution-logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instance: inst })
+    })
+        .then(r => r.json())
+        .then(() => {
+            alert('Instância desconectada.');
+            checkDealsEvoStatus();
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    checkDealsEvoStatus();
+});
+
 function runLiveTest() {
     const url = document.getElementById('testUrlInput').value.trim();
     const box = document.getElementById('testResultBox');
