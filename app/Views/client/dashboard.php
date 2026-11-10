@@ -643,6 +643,35 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             <!-- 3. MODO TELAS (PLAYER) - BASEADO NO MODELO ENVIADO        -->
             <!-- ========================================================= -->
             <?php if ($tab === 'telas'): ?>
+                <!-- Barra de Créditos & Planos de Recarga das Telas -->
+                <div class="card mb-3 border-0 shadow-sm" style="border-left: 5px solid #22c55e !important;">
+                    <div class="card-body py-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 12px;">
+                        <div class="d-flex align-items-center" style="gap: 14px;">
+                            <div style="width:46px;height:46px;border-radius:12px;background:rgba(34,197,94,0.15);color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:20px;">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold text-dark" style="font-size: 16px;">
+                                    Créditos Disponíveis para Recarga:
+                                    <span class="badge badge-success px-2 py-1 ml-1" style="font-size: 14px;"><?= count($creditosDisponiveis ?? []) ?> crédito(s)</span>
+                                </div>
+                                <small class="text-muted">
+                                    <?php if (!empty($creditosDisponiveis)): ?>
+                                        Você possui créditos prontos para uso! Clique em <b>⚡ Recarregar</b> na tela desejada abaixo.
+                                    <?php else: ?>
+                                        Adquira um plano para receber créditos e recarregar o tempo de uso das suas telas.
+                                    <?php endif; ?>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center" style="gap: 8px;">
+                            <button type="button" class="btn btn-success font-weight-bold px-3 shadow-sm" data-toggle="modal" data-target="#comprarPlanoModal">
+                                <i class="fas fa-shopping-cart mr-1"></i> COMPRAR PLANO / CRÉDITO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <div><i class="fas fa-desktop text-primary mr-2"></i> TELAS</div>
@@ -658,13 +687,14 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                         <th>NOME</th>
                                         <th>LISTA DE REPRODUÇÃO</th>
                                         <th>CÓDIGO DO PLAYER</th>
+                                        <th>VALIDADE</th>
                                         <th>STATUS</th>
                                         <th>AÇÕES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (empty($screens)): ?>
-                                        <tr><td colspan="5" class="text-center py-4 text-muted">Nenhuma tela vinculada. Clique em <b>+ VINCULAR TELA</b>!</td></tr>
+                                        <tr><td colspan="6" class="text-center py-4 text-muted">Nenhuma tela vinculada. Clique em <b>+ VINCULAR TELA</b>!</td></tr>
                                     <?php else: ?>
                                         <?php foreach ($screens as $tela):
                                             $playerLink = $protocol . $host . '/player/' . urlencode($tela['player_code']);
@@ -692,6 +722,11 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                                 $btnIcon = 'fa-broadcast-tower';
                                                 $btnTitle = 'Rádio Web';
                                             }
+
+                                            $telaExpire = !empty($tela['expire_date']) ? $tela['expire_date'] : ($client['expire_date'] ?? '');
+                                            $isExpired = ($telaExpire !== '' && $telaExpire < date('Y-m-d'));
+                                            $daysRemaining = ($telaExpire !== '') ? (int)ceil((strtotime($telaExpire) - strtotime(date('Y-m-d'))) / 86400) : 0;
+                                            $safeTelaName = htmlspecialchars($tela['nome_tela'] ?: $tela['title'] ?: ('Tela #' . $tela['id']), ENT_QUOTES);
                                         ?>
                                             <tr>
                                                 <td class="font-weight-bold align-middle tela-nome" data-label="NOME">
@@ -742,6 +777,19 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                                         </div>
                                                     </div>
                                                 </td>
+                                                <td class="align-middle" data-label="VALIDADE">
+                                                    <?php if ($telaExpire === ''): ?>
+                                                        <span class="badge badge-secondary px-2 py-1">Sem vencimento</span>
+                                                    <?php elseif ($isExpired): ?>
+                                                        <span class="badge badge-danger px-2 py-1" title="Venceu em <?= date('d/m/Y', strtotime($telaExpire)) ?>">
+                                                            Vencida (<?= date('d/m/Y', strtotime($telaExpire)) ?>)
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-success px-2 py-1" title="Vence em <?= date('d/m/Y', strtotime($telaExpire)) ?>">
+                                                            <?= date('d/m/Y', strtotime($telaExpire)) ?> (<?= $daysRemaining ?>d)
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td class="align-middle" data-label="STATUS">
                                                     <?php if ($isOnline): ?>
                                                         <i class="fas fa-circle text-success mr-1"></i> Online
@@ -750,6 +798,10 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="align-middle tela-acoes" data-label="AÇÕES">
+                                                    <button type="button" class="btn btn-sm btn-warning font-weight-bold" onclick="openRecarregarTelaModal(<?= (int)$tela['id'] ?>, '<?= $safeTelaName ?>')" title="Usar Crédito para Recarregar esta Tela">
+                                                        <i class="fas fa-bolt mr-1"></i> Recarregar
+                                                    </button>
+
                                                     <button class="btn btn-sm <?= $btnClass ?>" onclick="openAudioModal(<?= (int)$tela['id'] ?>, '<?= htmlspecialchars($audioMode) ?>', <?= $idRadio ?>)" title="Áudio: <?= $btnTitle ?>">
                                                         <i class="fas <?= $btnIcon ?>"></i>
                                                         <?php if ($audioMode === 'radio'): ?>
@@ -787,6 +839,100 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                     <?php endif; ?>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Recarregar Tela (Usar Crédito) -->
+                <div class="modal fade" id="recarregarTelaModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow">
+                            <div class="modal-header bg-warning text-dark">
+                                <h5 class="modal-title font-weight-bold"><i class="fas fa-bolt mr-2"></i> Recarregar Tela com Crédito</h5>
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-3">Tela selecionada: <strong id="recarregarTelaNomeLabel" class="text-primary"></strong></p>
+
+                                <?php if (empty($creditosDisponiveis)): ?>
+                                    <div class="alert alert-info text-center py-4">
+                                        <i class="fas fa-ticket-alt fa-2x mb-2 text-info"></i>
+                                        <h6 class="font-weight-bold">Você ainda não possui créditos disponíveis</h6>
+                                        <p class="small text-muted mb-3">Adquira um plano de recarga (com opção de cupom de desconto) para liberar créditos e adicionar dias de uso à sua tela.</p>
+                                        <button type="button" class="btn btn-success font-weight-bold px-4" onclick="$('#recarregarTelaModal').modal('hide'); $('#comprarPlanoModal').modal('show');">
+                                            <i class="fas fa-shopping-cart mr-1"></i> COMPRAR PLANO AGORA
+                                        </button>
+                                    </div>
+                                <?php else: ?>
+                                    <form method="post" action="?<?= $baseParam ?>tab=telas">
+                                        <input type="hidden" name="id_tela" id="recarregar_id_tela" value="">
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Escolha o Crédito para Aplicar nesta Tela:</label>
+                                            <select name="id_credito" class="form-control form-control-lg" required>
+                                                <?php foreach ($creditosDisponiveis as $cr): ?>
+                                                    <option value="<?= (int)$cr['id'] ?>">
+                                                        ⚡ Plano <?= htmlspecialchars($cr['nome_plano']) ?> (+<?= (int)$cr['dias'] ?> dias de uso)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-4" style="gap: 8px;">
+                                            <button type="button" class="btn btn-light" data-dismiss="modal">Cancelar</button>
+                                            <button type="submit" name="recarregar_tela_credito" value="1" class="btn btn-success font-weight-bold px-4">
+                                                <i class="fas fa-check mr-1"></i> APLICAR CRÉDITO NA TELA
+                                            </button>
+                                        </div>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Comprar Plano / Crédito -->
+                <div class="modal fade" id="comprarPlanoModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title font-weight-bold"><i class="fas fa-shopping-cart mr-2"></i> Comprar Plano / Crédito</h5>
+                                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <?php if (empty($planosAtivos)): ?>
+                                    <div class="text-center text-muted py-4">Nenhum plano disponível no momento.</div>
+                                <?php else: ?>
+                                    <div id="planStep1">
+                                        <label class="font-weight-bold">Escolha o plano:</label>
+                                        <select id="buyPlanId" class="form-control form-control-lg mb-3" onchange="resetCoupon()">
+                                            <?php foreach ($planosAtivos as $pl): ?>
+                                                <option value="<?= (int)$pl['id'] ?>" data-price="<?= (float)$pl['valor'] ?>">
+                                                    <?= htmlspecialchars($pl['nome']) ?> — R$ <?= number_format((float)$pl['valor'], 2, ',', '.') ?> (<?= (int)$pl['dias'] ?> dias)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <label class="font-weight-bold">Cupom de desconto (opcional):</label>
+                                        <div class="input-group mb-2">
+                                            <input type="text" id="buyCoupon" class="form-control text-uppercase" placeholder="PROMO10">
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-outline-warning font-weight-bold" onclick="applyCoupon()">Aplicar</button>
+                                            </div>
+                                        </div>
+                                        <div id="couponFeedback" class="small mb-3"></div>
+                                        <button type="button" class="btn btn-success btn-lg btn-block font-weight-bold" id="btnBuyPlan" onclick="buyPlan()">
+                                            <i class="fas fa-qrcode mr-1"></i> GERAR PIX
+                                        </button>
+                                    </div>
+                                    <div id="planStep2" style="display:none;" class="text-center">
+                                        <h5 class="font-weight-bold" id="pixTitle"></h5>
+                                        <div id="pixQrImg" class="mb-2"></div>
+                                        <textarea id="pixCode" class="form-control mb-2" rows="3" readonly></textarea>
+                                        <button type="button" class="btn btn-primary btn-sm mb-2" onclick="document.getElementById('pixCode').select();document.execCommand('copy');showToastFeedback('PIX copiado!', false);">
+                                            <i class="far fa-copy mr-1"></i> Copiar PIX
+                                        </button>
+                                        <p class="small text-muted mb-0"><i class="fas fa-spinner fa-spin mr-1"></i> Aguardando pagamento... o crédito será liberado automaticamente após a confirmação.</p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1299,6 +1445,75 @@ document.querySelectorAll('.select-playlist').forEach(select => {
         }, 'json');
     });
 });
+
+// Planos, Cupom e Recarga de Tela por Crédito
+function openRecarregarTelaModal(idTela, nome) {
+    const inp = document.getElementById('recarregar_id_tela');
+    if (inp) inp.value = String(idTela);
+    const lbl = document.getElementById('recarregarTelaNomeLabel');
+    if (lbl) lbl.textContent = nome;
+    $('#recarregarTelaModal').modal('show');
+}
+
+function resetCoupon() {
+    const fb = document.getElementById('couponFeedback');
+    if (fb) fb.innerHTML = '';
+}
+
+function postAjax(data) {
+    const params = new URLSearchParams();
+    Object.keys(data).forEach(function(k) { params.append(k, data[k]); });
+    return fetch(window.location.pathname + '?<?= $baseParam ?>tab=telas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: params.toString()
+    }).then(function(r) { return r.json(); });
+}
+
+function applyCoupon() {
+    const fb = document.getElementById('couponFeedback');
+    postAjax({
+        ajax_action: 'validate_coupon',
+        plan_id: document.getElementById('buyPlanId').value,
+        coupon_code: document.getElementById('buyCoupon').value
+    }).then(function(res) {
+        if (res.success) {
+            fb.innerHTML = '<span class="text-success font-weight-bold"><i class="fas fa-check-circle"></i> Cupom ' + res.label + ' aplicado! Valor final: ' + res.final_formatted + '</span>';
+        } else {
+            fb.innerHTML = '<span class="text-danger">' + (res.msg || 'Cupom inválido.') + '</span>';
+        }
+    }).catch(function() { fb.innerHTML = '<span class="text-danger">Erro de conexão.</span>'; });
+}
+
+function buyPlan() {
+    const btn = document.getElementById('btnBuyPlan');
+    btn.disabled = true;
+    postAjax({
+        ajax_action: 'buy_plan',
+        plan_id: document.getElementById('buyPlanId').value,
+        coupon_code: document.getElementById('buyCoupon').value
+    }).then(function(res) {
+        btn.disabled = false;
+        if (!res.success) { showToastFeedback(res.msg || 'Erro ao gerar pedido.', true); return; }
+        if (res.free_activated) {
+            alert(res.msg);
+            window.location.reload();
+            return;
+        }
+        document.getElementById('planStep1').style.display = 'none';
+        document.getElementById('planStep2').style.display = 'block';
+        document.getElementById('pixTitle').textContent = res.plan_name + ' (' + res.days + ' dias) - ' + res.final_price;
+        document.getElementById('pixCode').value = res.pix_qr_code || 'PIX não configurado. Fale com o suporte.';
+        if (res.pix_qr_base64) {
+            document.getElementById('pixQrImg').innerHTML = '<img src="data:image/png;base64,' + res.pix_qr_base64 + '" style="max-width:220px;">';
+        }
+        const timer = setInterval(function() {
+            postAjax({ ajax_action: 'check_order_payment', order_id: res.order_id }).then(function(p) {
+                if (p.paid) { clearInterval(timer); alert('Pagamento confirmado! Crédito liberado.'); window.location.reload(); }
+            }).catch(function() {});
+        }, 6000);
+    }).catch(function() { btn.disabled = false; showToastFeedback('Erro de conexão.', true); });
+}
 
 function showToastFeedback(msg, isError) {
     let toast = document.getElementById('driverToastFeedback');

@@ -37,7 +37,8 @@ class Screen extends Model
                 'audio_mode' => "TEXT DEFAULT 'video'",
                 'rotation' => 'INTEGER DEFAULT 0',
                 'force_reload' => 'INTEGER DEFAULT 0',
-                'ultimo_ping' => 'TEXT'
+                'ultimo_ping' => 'TEXT',
+                'expire_date' => 'TEXT'
             ];
             foreach ($requiredCols as $cName => $cDef) {
                 if (!in_array($cName, $colNames)) {

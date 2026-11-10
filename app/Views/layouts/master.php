@@ -386,7 +386,7 @@
             <li>
                 <a href="/admin/faturamento" class="sidebar-link <?= ($currentRoute ?? '') === '/admin/faturamento' ? 'active' : '' ?>">
                     <i class="fa fa-wallet"></i>
-                    <span>Faturamento</span>
+                    <span>Planos e Faturamentos</span>
                 </a>
             </li>
             <li>

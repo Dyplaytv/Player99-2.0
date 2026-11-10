@@ -75,6 +75,7 @@ class ClientDashboardController extends Controller
             "ALTER TABLE telas ADD COLUMN id_playlist INTEGER DEFAULT 0",
             "ALTER TABLE telas ADD COLUMN id_radio INTEGER DEFAULT 0",
             "ALTER TABLE telas ADD COLUMN muted INTEGER DEFAULT 0",
+            "ALTER TABLE telas ADD COLUMN expire_date TEXT",
             "ALTER TABLE videos ADD COLUMN upload_date TEXT",
             "ALTER TABLE playlist_videos ADD COLUMN duration INTEGER DEFAULT 15",
             "ALTER TABLE ibo ADD COLUMN affiliateCode TEXT",
@@ -251,6 +252,259 @@ class ClientDashboardController extends Controller
                 } else {
                     echo json_encode(['success' => false, 'msg' => 'Playlist não encontrada.']);
                 }
+                exit;
+            }
+
+            if ($ajaxAction === 'validate_coupon') {
+                $planId = (int)$request->input('plan_id', 0);
+                $code = strtoupper(preg_replace('/\s+/', '', trim((string)$request->input('coupon_code', ''))));
+                $pdoFin = BillingController::getDb();
+                $stmtPl = $pdoFin->prepare("SELECT * FROM planos WHERE id = :id LIMIT 1");
+                $stmtPl->execute([':id' => $planId]);
+                $plan = $stmtPl->fetch();
+                if (!$plan) {
+                    echo json_encode(['success' => false, 'msg' => 'Selecione um plano válido primeiro.']);
+                    exit;
+                }
+                if ($code === '') {
+                    echo json_encode(['success' => false, 'msg' => 'Digite o código do cupom.']);
+                    exit;
+                }
+                $stmtCp = $pdoFin->prepare("SELECT * FROM cupons WHERE UPPER(codigo) = :c AND ativo = 1 LIMIT 1");
+                $stmtCp->execute([':c' => $code]);
+                $cp = $stmtCp->fetch();
+                if (!$cp) {
+                    echo json_encode(['success' => false, 'msg' => 'Cupom inválido ou não encontrado.']);
+                    exit;
+                }
+                if (!empty($cp['validade']) && $cp['validade'] < date('Y-m-d')) {
+                    echo json_encode(['success' => false, 'msg' => 'Este cupom já expirou.']);
+                    exit;
+                }
+                if ((int)$cp['max_usos'] > 0 && (int)$cp['usos'] >= (int)$cp['max_usos']) {
+                    echo json_encode(['success' => false, 'msg' => 'Este cupom atingiu o limite máximo de usos.']);
+                    exit;
+                }
+                $orig = (float)$plan['valor'];
+                $descVal = ($cp['tipo'] === 'percent')
+                    ? round($orig * ((float)$cp['desconto'] / 100.0), 2)
+                    : (float)$cp['desconto'];
+                if ($descVal > $orig) {
+                    $descVal = $orig;
+                }
+                $finalVal = max(0.0, round($orig - $descVal, 2));
+                $label = ($cp['tipo'] === 'percent')
+                    ? number_format((float)$cp['desconto'], 0) . '% OFF'
+                    : 'R$ ' . number_format((float)$cp['desconto'], 2, ',', '.') . ' OFF';
+
+                echo json_encode([
+                    'success' => true,
+                    'coupon' => $cp['codigo'],
+                    'label' => $label,
+                    'original_price' => $orig,
+                    'discount' => $descVal,
+                    'final_price' => $finalVal,
+                    'final_formatted' => 'R$ ' . number_format($finalVal, 2, ',', '.')
+                ]);
+                exit;
+            }
+
+            if ($ajaxAction === 'buy_plan') {
+                $planId = (int)$request->input('plan_id', 0);
+                $code = strtoupper(preg_replace('/\s+/', '', trim((string)$request->input('coupon_code', ''))));
+                $pdoFin = BillingController::getDb();
+                $stmtPl = $pdoFin->prepare("SELECT * FROM planos WHERE id = :id LIMIT 1");
+                $stmtPl->execute([':id' => $planId]);
+                $plan = $stmtPl->fetch();
+                if (!$plan) {
+                    echo json_encode(['success' => false, 'msg' => 'Plano não encontrado.']);
+                    exit;
+                }
+
+                $orig = (float)$plan['valor'];
+                $descVal = 0.0;
+                $appliedCoupon = '';
+
+                if ($code !== '') {
+                    $stmtCp = $pdoFin->prepare("SELECT * FROM cupons WHERE UPPER(codigo) = :c AND ativo = 1 LIMIT 1");
+                    $stmtCp->execute([':c' => $code]);
+                    $cp = $stmtCp->fetch();
+                    if ($cp && (empty($cp['validade']) || $cp['validade'] >= date('Y-m-d')) && ((int)$cp['max_usos'] === 0 || (int)$cp['usos'] < (int)$cp['max_usos'])) {
+                        $descVal = ($cp['tipo'] === 'percent')
+                            ? round($orig * ((float)$cp['desconto'] / 100.0), 2)
+                            : (float)$cp['desconto'];
+                        if ($descVal > $orig) $descVal = $orig;
+                        $appliedCoupon = $cp['codigo'];
+                        $pdoFin->prepare("UPDATE cupons SET usos = usos + 1 WHERE id = :id")->execute([':id' => $cp['id']]);
+                    }
+                }
+
+                $finalVal = max(0.0, round($orig - $descVal, 2));
+                $cliRow = Client::find($idCliente);
+                $cliName = $cliRow['title'] ?? ($cliRow['username'] ?? ('Cliente #' . $idCliente));
+
+                // Se o cupom deu 100% de desconto (ou plano gratuito), libera o crédito na hora!
+                if ($finalVal <= 0.0) {
+                    $pdoFin->prepare("INSERT INTO pedidos_planos (id_cliente, nome_cliente, id_plano, nome_plano, dias, valor_original, desconto, valor_final, cupom, status, paid_at)
+                        VALUES (:cid, :nc, :pid, :np, :d, :vo, :desc, 0, :cp, 'PAGO', datetime('now', 'localtime'))")->execute([
+                        ':cid' => $idCliente,
+                        ':nc'  => $cliName,
+                        ':pid' => (int)$plan['id'],
+                        ':np'  => $plan['nome'],
+                        ':d'   => (int)$plan['dias'],
+                        ':vo'  => $orig,
+                        ':desc'=> $descVal,
+                        ':cp'  => $appliedCoupon
+                    ]);
+                    $pdoFin->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
+                        VALUES (:cid, :pid, :np, :d, 0, :cp, 'DISPONIVEL')")->execute([
+                        ':cid' => $idCliente,
+                        ':pid' => (int)$plan['id'],
+                        ':np'  => $plan['nome'],
+                        ':d'   => (int)$plan['dias'],
+                        ':cp'  => $appliedCoupon
+                    ]);
+                    echo json_encode([
+                        'success' => true,
+                        'free_activated' => true,
+                        'msg' => "Cupom de 100% aplicado! 1 Crédito do plano {$plan['nome']} ({$plan['dias']} dias) foi liberado imediatamente."
+                    ]);
+                    exit;
+                }
+
+                // Verifica se há token Mercado Pago configurado para gerar PIX dinâmico
+                $mpToken = '';
+                try {
+                    $pdoUsers = Database::users();
+                    $stmtMp = $pdoUsers->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'mercadopago_access_token' LIMIT 1");
+                    $stmtMp->execute();
+                    $mpToken = trim((string)$stmtMp->fetchColumn());
+                } catch (\Throwable $e) {}
+
+                $mpPaymentId = '';
+                $pixQrCode = '';
+                $pixQrBase64 = '';
+
+                if ($mpToken !== '') {
+                    $payload = [
+                        'transaction_amount' => (float)$finalVal,
+                        'description' => 'Plano ' . $plan['nome'] . ' (' . $plan['dias'] . ' dias) - Player99',
+                        'payment_method_id' => 'pix',
+                        'payer' => [
+                            'email' => !empty($cliRow['email']) ? $cliRow['email'] : ('cliente' . $idCliente . '@player99.com.br'),
+                            'first_name' => $cliName
+                        ]
+                    ];
+                    $ch = curl_init('https://api.mercadopago.com/v1/payments');
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_POST => true,
+                        CURLOPT_POSTFIELDS => json_encode($payload),
+                        CURLOPT_HTTPHEADER => [
+                            'Authorization: Bearer ' . $mpToken,
+                            'Content-Type: application/json',
+                            'X-Idempotency-Key: p99_' . $idCliente . '_' . time() . '_' . mt_rand(100, 999)
+                        ],
+                        CURLOPT_TIMEOUT => 12,
+                        CURLOPT_SSL_VERIFYPEER => false
+                    ]);
+                    $mpResRaw = curl_exec($ch);
+                    curl_close($ch);
+                    $mpData = json_decode((string)$mpResRaw, true);
+                    if (!empty($mpData['id'])) {
+                        $mpPaymentId = (string)$mpData['id'];
+                        $pixQrCode = (string)($mpData['point_of_interaction']['transaction_data']['qr_code'] ?? '');
+                        $pixQrBase64 = (string)($mpData['point_of_interaction']['transaction_data']['qr_code_base64'] ?? '');
+                    }
+                }
+
+                $stmtFatAdm = $pdoFin->query("SELECT * FROM faturamento_admin WHERE id = 1");
+                $fatAdm = $stmtFatAdm->fetch() ?: [];
+                if ($pixQrCode === '' && !empty($fatAdm['chave_pix'])) {
+                    $pixQrCode = trim((string)$fatAdm['chave_pix']);
+                }
+
+                $stmtOrd = $pdoFin->prepare("INSERT INTO pedidos_planos (id_cliente, nome_cliente, id_plano, nome_plano, dias, valor_original, desconto, valor_final, cupom, mp_payment_id, pix_qr_code, pix_qr_base64, status)
+                    VALUES (:cid, :nc, :pid, :np, :d, :vo, :desc, :vf, :cp, :mpid, :qr, :qrb64, 'PENDENTE')");
+                $stmtOrd->execute([
+                    ':cid'   => $idCliente,
+                    ':nc'    => $cliName,
+                    ':pid'   => (int)$plan['id'],
+                    ':np'    => $plan['nome'],
+                    ':d'     => (int)$plan['dias'],
+                    ':vo'    => $orig,
+                    ':desc'  => $descVal,
+                    ':vf'    => $finalVal,
+                    ':cp'    => $appliedCoupon,
+                    ':mpid'  => $mpPaymentId,
+                    ':qr'    => $pixQrCode,
+                    ':qrb64' => $pixQrBase64
+                ]);
+                $orderId = (int)$pdoFin->lastInsertId();
+
+                echo json_encode([
+                    'success' => true,
+                    'free_activated' => false,
+                    'order_id' => $orderId,
+                    'plan_name' => $plan['nome'],
+                    'days' => (int)$plan['dias'],
+                    'final_price' => 'R$ ' . number_format($finalVal, 2, ',', '.'),
+                    'pix_qr_code' => $pixQrCode,
+                    'pix_qr_base64' => $pixQrBase64,
+                    'support_whats' => preg_replace('/\D/', '', (string)($fatAdm['whats'] ?? ''))
+                ]);
+                exit;
+            }
+
+            if ($ajaxAction === 'check_order_payment') {
+                $orderId = (int)$request->input('order_id', 0);
+                $pdoFin = BillingController::getDb();
+                $stmtOrd = $pdoFin->prepare("SELECT * FROM pedidos_planos WHERE id = :id AND id_cliente = :cid LIMIT 1");
+                $stmtOrd->execute([':id' => $orderId, ':cid' => $idCliente]);
+                $ord = $stmtOrd->fetch();
+                if (!$ord) {
+                    echo json_encode(['paid' => false]);
+                    exit;
+                }
+                if (($ord['status'] ?? '') === 'PAGO') {
+                    echo json_encode(['paid' => true]);
+                    exit;
+                }
+                if (!empty($ord['mp_payment_id'])) {
+                    try {
+                        $pdoUsers = Database::users();
+                        $stmtMp = $pdoUsers->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'mercadopago_access_token' LIMIT 1");
+                        $stmtMp->execute();
+                        $mpToken = trim((string)$stmtMp->fetchColumn());
+                        if ($mpToken !== '') {
+                            $ch = curl_init('https://api.mercadopago.com/v1/payments/' . urlencode($ord['mp_payment_id']));
+                            curl_setopt_array($ch, [
+                                CURLOPT_RETURNTRANSFER => true,
+                                CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $mpToken],
+                                CURLOPT_TIMEOUT => 8,
+                                CURLOPT_SSL_VERIFYPEER => false
+                            ]);
+                            $res = json_decode((string)curl_exec($ch), true);
+                            curl_close($ch);
+                            if (($res['status'] ?? '') === 'approved') {
+                                $pdoFin->prepare("UPDATE pedidos_planos SET status = 'PAGO', paid_at = datetime('now', 'localtime') WHERE id = :id")
+                                    ->execute([':id' => $orderId]);
+                                $pdoFin->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
+                                    VALUES (:cid, :pid, :np, :d, :vp, :cp, 'DISPONIVEL')")->execute([
+                                    ':cid' => $idCliente,
+                                    ':pid' => (int)$ord['id_plano'],
+                                    ':np'  => $ord['nome_plano'],
+                                    ':d'   => (int)$ord['dias'],
+                                    ':vp'  => (float)$ord['valor_final'],
+                                    ':cp'  => (string)$ord['cupom']
+                                ]);
+                                echo json_encode(['paid' => true]);
+                                exit;
+                            }
+                        }
+                    } catch (\Throwable $e) {}
+                }
+                echo json_encode(['paid' => false]);
                 exit;
             }
         }
@@ -553,6 +807,53 @@ class ClientDashboardController extends Controller
                 $msg = 'Tela removida com sucesso.';
             }
 
+            // Recarregar Tela usando Crédito de Plano Adquirido
+            if (isset($_POST['recarregar_tela_credito'])) {
+                $tab = 'telas';
+                $idTela = (int)$request->input('id_tela', 0);
+                $idCredito = (int)$request->input('id_credito', 0);
+
+                $stmtTela = $pdo->prepare("SELECT * FROM telas WHERE id = :id AND id_cliente = :cid LIMIT 1");
+                $stmtTela->execute([':id' => $idTela, ':cid' => $idCliente]);
+                $telaRow = $stmtTela->fetch();
+
+                $pdoFin = BillingController::getDb();
+                $stmtCred = $pdoFin->prepare("SELECT * FROM cliente_creditos WHERE id = :id AND id_cliente = :cid AND status = 'DISPONIVEL' LIMIT 1");
+                $stmtCred->execute([':id' => $idCredito, ':cid' => $idCliente]);
+                $credRow = $stmtCred->fetch();
+
+                if (!$telaRow) {
+                    $err = 'Tela não encontrada.';
+                } elseif (!$credRow) {
+                    $err = 'Crédito inválido ou já utilizado.';
+                } else {
+                    $diasAdd = max(1, (int)$credRow['dias']);
+                    $curExp = !empty($telaRow['expire_date']) ? $telaRow['expire_date'] : '';
+                    $baseDate = ($curExp !== '' && $curExp >= date('Y-m-d')) ? $curExp : date('Y-m-d');
+                    $newExp = date('Y-m-d', strtotime($baseDate . " +{$diasAdd} days"));
+
+                    $pdo->prepare("UPDATE telas SET expire_date = :exp, force_reload = 1 WHERE id = :id")
+                        ->execute([':exp' => $newExp, ':id' => $idTela]);
+
+                    // Também mantém o vencimento geral do motorista sincronizado se for maior
+                    if (empty($client['expire_date']) || $newExp > $client['expire_date']) {
+                        $pdo->prepare("UPDATE ibo SET expire_date = :exp, active = 1 WHERE id = :cid")
+                            ->execute([':exp' => $newExp, ':cid' => $idCliente]);
+                        $client['expire_date'] = $newExp;
+                    }
+
+                    $nomeTelaUsada = $telaRow['nome_tela'] ?: ($telaRow['title'] ?: ('Tela #' . $idTela));
+                    $pdoFin->prepare("UPDATE cliente_creditos SET status = 'USADO', id_tela_usada = :tid, nome_tela_usada = :nt, used_at = datetime('now', 'localtime') WHERE id = :cid")
+                        ->execute([
+                            ':tid' => $idTela,
+                            ':nt'  => $nomeTelaUsada,
+                            ':cid' => $idCredito
+                        ]);
+
+                    $msg = "Tela '{$nomeTelaUsada}' recarregada com sucesso (+{$diasAdd} dias)! Nova validade: " . date('d/m/Y', strtotime($newExp)) . ".";
+                }
+            }
+
             // Área do Afiliado: Atualizar Chave PIX
             if (isset($_POST['update_pix'])) {
                 $tab = 'afiliado';
@@ -762,6 +1063,31 @@ class ClientDashboardController extends Controller
             $customization['logo_path'] = $defaultLogo;
         }
 
+        // Planos Ativos, Créditos Disponíveis do Motorista e Histórico de Recargas
+        $planosAtivos = [];
+        $creditosDisponiveis = [];
+        $creditosUsados = [];
+        $pedidosCliente = [];
+        $faturamentoAdmin = [];
+        try {
+            $pdoFin = BillingController::getDb();
+            $planosAtivos = $pdoFin->query("SELECT * FROM planos WHERE ativo = 1 ORDER BY valor ASC, dias ASC")->fetchAll();
+
+            $stmtCrDisp = $pdoFin->prepare("SELECT * FROM cliente_creditos WHERE id_cliente = :cid AND status = 'DISPONIVEL' ORDER BY id ASC");
+            $stmtCrDisp->execute([':cid' => $idCliente]);
+            $creditosDisponiveis = $stmtCrDisp->fetchAll();
+
+            $stmtCrUsed = $pdoFin->prepare("SELECT * FROM cliente_creditos WHERE id_cliente = :cid AND status = 'USADO' ORDER BY used_at DESC LIMIT 20");
+            $stmtCrUsed->execute([':cid' => $idCliente]);
+            $creditosUsados = $stmtCrUsed->fetchAll();
+
+            $stmtPedCli = $pdoFin->prepare("SELECT * FROM pedidos_planos WHERE id_cliente = :cid ORDER BY id DESC LIMIT 15");
+            $stmtPedCli->execute([':cid' => $idCliente]);
+            $pedidosCliente = $stmtPedCli->fetchAll();
+
+            $faturamentoAdmin = $pdoFin->query("SELECT * FROM faturamento_admin WHERE id = 1")->fetch() ?: [];
+        } catch (\Throwable $e) {}
+
         $this->render('client/dashboard', [
             'client' => $client,
             'customization' => $customization,
@@ -779,6 +1105,11 @@ class ClientDashboardController extends Controller
             'faturas' => $faturas,
             'totalAcumulado' => $totalAcumulado,
             'totalPrevisto' => $totalPrevisto,
+            'planosAtivos' => $planosAtivos,
+            'creditosDisponiveis' => $creditosDisponiveis,
+            'creditosUsados' => $creditosUsados,
+            'pedidosCliente' => $pedidosCliente,
+            'faturamentoAdmin' => $faturamentoAdmin,
             'affiliateBalance' => $affiliateBalance,
             'affiliateReferrals' => $affiliateReferrals,
             'affiliateTransactions' => $affiliateTransactions,
