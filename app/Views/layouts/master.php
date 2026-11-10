@@ -340,6 +340,12 @@
                         <span>Portal do Motorista</span>
                     </a>
                 </li>
+                <li>
+                    <a href="/portal-franqueado" class="sidebar-link <?= ($currentRoute ?? '') === '/portal-franqueado' ? 'active' : '' ?>" style="color: #c084fc; border: 1px dashed rgba(192, 132, 252, 0.45); background: rgba(192, 132, 252, 0.06); margin-bottom: 6px;">
+                        <i class="fa fa-store" style="color: #c084fc;"></i>
+                        <span>Portal do Franqueado</span>
+                    </a>
+                </li>
             <?php endif; ?>
 
             <div class="nav-category">Principal</div>

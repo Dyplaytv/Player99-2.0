@@ -13,6 +13,7 @@ use App\Controllers\BillingController;
 use App\Controllers\AffiliateController;
 use App\Controllers\StoreController;
 use App\Controllers\ClientDashboardController;
+use App\Controllers\FranchiseController;
 use App\Controllers\EvolutionWebhookController;
 use App\Controllers\DealsController;
 use App\Controllers\EvolutionDealsWebhookController;
@@ -64,6 +65,14 @@ $router->post('/painel-cliente', [ClientDashboardController::class, 'index']);
 $router->get('/cliente_dashboard.php', [ClientDashboardController::class, 'index']);
 $router->post('/cliente_dashboard.php', [ClientDashboardController::class, 'index']);
 
+// Portal do Franqueado / Revendedor
+$router->get('/portal-franqueado', [FranchiseController::class, 'index']);
+$router->post('/portal-franqueado', [FranchiseController::class, 'index']);
+$router->get('/franqueado', [FranchiseController::class, 'index']);
+$router->post('/franqueado', [FranchiseController::class, 'index']);
+$router->get('/franqueado_dashboard.php', [FranchiseController::class, 'index']);
+$router->post('/franqueado_dashboard.php', [FranchiseController::class, 'index']);
+
 // Painel Administrativo / Dashboard
 $router->get('/admin/dashboard', [DashboardController::class, 'index']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
@@ -76,6 +85,7 @@ $router->post('/admin/telas/criar', [ScreenController::class, 'create']);
 $router->get('/admin/telas/{id}/midias', [ScreenController::class, 'media']);
 $router->post('/admin/telas/{id}/midias', [ScreenController::class, 'media']);
 $router->get('/admin/telas/{id}/deletar', [ScreenController::class, 'delete']);
+$router->post('/admin/telas/{id}/validade', [ScreenController::class, 'updateExpire']);
 $router->get('/all_users.php', [ScreenController::class, 'list']);
 $router->get('/users.php', [ScreenController::class, 'list']);
 $router->get('/users_create.php', [ScreenController::class, 'create']);

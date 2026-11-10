@@ -4,9 +4,12 @@
             <h4 class="fw-bold mb-1"><i class="fa fa-users text-cyan me-2"></i> Gestão de Usuários & Clientes</h4>
             <p class="text-muted mb-0">Gerencie todos os clientes, motoristas, prazos de vencimento, bloqueios e acessos administrativos.</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/portal-franqueado" class="btn btn-outline-light btn-sm" style="border-color: rgba(192,132,252,0.5); color:#c084fc;">
+                <i class="fa fa-store me-1"></i> Portal do Franqueado
+            </a>
             <a href="/admin/usuarios/criar" class="btn btn-cyan btn-sm">
-                <i class="fa fa-user-plus me-1"></i> Novo Administrador/Revenda
+                <i class="fa fa-user-plus me-1"></i> Novo Administrador/Franqueado
             </a>
             <a href="/admin/telas/criar" class="btn btn-outline-info btn-sm">
                 <i class="fa fa-plus me-1"></i> Cadastrar Cliente & Tela
@@ -69,6 +72,7 @@
                         <th class="text-center">Deletar</th>
                         <th class="text-center">Múltiplo</th>
                         <th class="text-center">Cobrar</th>
+                        <th class="text-center">Franqueado / Rev.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -163,6 +167,28 @@
                                     <span class="text-muted small">Sem WhatsApp</span>
                                 <?php endif; ?>
                             </td>
+
+                            <!-- FRANQUEADO / REVENDEDOR (PERFIL INTERMEDIÁRIO) -->
+                            <td class="text-center">
+                                <?php $isReseller = !empty($c['is_reseller']); ?>
+                                <?php if ($isReseller): ?>
+                                    <div class="d-inline-flex align-items-center gap-1">
+                                        <button type="button" class="btn btn-sm btn-primary py-1 px-2" onclick="toggleReseller(<?= (int)$c['id'] ?>, 0)" title="Remover perfil de franqueado/revendedor">
+                                            <i class="fa fa-store me-1"></i> Franqueado
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning py-1 px-2 font-monospace" onclick="promptCommission(<?= (int)$c['id'] ?>, '<?= (float)($c['commissionPercent'] ?? 20) ?>')" title="Comissão do franqueado">
+                                            <?= number_format((float)($c['commissionPercent'] ?? 20), 0) ?>%
+                                        </button>
+                                        <a href="/portal-franqueado?client_id=<?= (int)$c['id'] ?>" target="_blank" class="btn btn-sm btn-outline-info py-1 px-2" title="Abrir Portal do Franqueado">
+                                            <i class="fa fa-external-link-alt"></i>
+                                        </a>
+                                    </div>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="toggleReseller(<?= (int)$c['id'] ?>, 1)" title="Tornar franqueado/revendedor">
+                                        <i class="fa fa-store me-1"></i> Tornar
+                                    </button>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -171,9 +197,9 @@
     </div>
 
 <?php else: ?>
-    <!-- TABELA DE USUÁRIOS ADMINISTRATIVOS & REVENDA -->
+    <!-- TABELA DE USUÁRIOS ADMINISTRATIVOS & FRANQUEADOS/REVENDAS -->
     <div class="glass-card">
-        <h5 class="fw-bold text-white mb-3">Administradores & Revendedores</h5>
+        <h5 class="fw-bold text-white mb-3">Administradores &amp; Franqueados / Revendedores</h5>
         <div class="table-responsive">
             <table class="table-custom">
                 <thead>
@@ -207,8 +233,8 @@
                                         Administrador
                                     </span>
                                 <?php else: ?>
-                                    <span class="badge bg-secondary bg-opacity-25 text-muted border border-secondary border-opacity-50 px-2 py-1">
-                                        Revendedor
+                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50 px-2 py-1">
+                                        <i class="fa fa-store me-1"></i> Franqueado / Revendedor
                                     </span>
                                 <?php endif; ?>
                             </td>
@@ -234,6 +260,29 @@
     </div>
 <?php endif; ?>
 
+<!-- Modal Calendário para Alterar Vencimento -->
+<div class="modal fade" id="datePickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-dark text-white border border-secondary">
+            <div class="modal-header border-secondary">
+                <h6 class="modal-title fw-bold"><i class="fa fa-calendar-alt text-info me-2"></i> Alterar Validade</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="dpClientId" value="">
+                <label class="form-label small text-muted">Escolha a nova data no calendário:</label>
+                <input type="date" id="dpDateInput" class="form-control bg-black text-white border-secondary" style="color-scheme: dark;">
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-cyan fw-bold" onclick="saveClientExpireDate()">
+                    <i class="fa fa-check me-1"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Filtro instantâneo na tabela de clientes
 const searchInput = document.getElementById('filterClientsTable');
@@ -248,17 +297,35 @@ if (searchInput) {
 }
 
 function promptChangeDate(id, current) {
-    const newDate = prompt("Digite a nova data de vencimento (AAAA-MM-DD):", current);
-    if (newDate && newDate.trim() !== '') {
-        const formData = new FormData();
-        formData.append('action', 'update_date');
-        formData.append('id', id);
-        formData.append('new_date', newDate.trim());
-
-        fetch('/admin/usuarios', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(() => window.location.reload());
+    document.getElementById('dpClientId').value = String(id);
+    document.getElementById('dpDateInput').value = (current || '').slice(0, 10);
+    const modalEl = document.getElementById('datePickerModal');
+    if (window.bootstrap && bootstrap.Modal) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    } else {
+        const newDate = prompt("Digite a nova data de vencimento (AAAA-MM-DD):", current);
+        if (newDate && newDate.trim() !== '') {
+            submitClientExpireDate(id, newDate.trim());
+        }
     }
+}
+
+function saveClientExpireDate() {
+    const id = document.getElementById('dpClientId').value;
+    const val = document.getElementById('dpDateInput').value;
+    if (!val) { alert('Selecione uma data válida.'); return; }
+    submitClientExpireDate(id, val);
+}
+
+function submitClientExpireDate(id, newDate) {
+    const formData = new FormData();
+    formData.append('action', 'update_date');
+    formData.append('id', id);
+    formData.append('new_date', newDate);
+
+    fetch('/admin/usuarios', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(() => window.location.reload());
 }
 
 function toggleBlockClient(id, newState) {
@@ -281,6 +348,30 @@ function toggleBlockClient(id, newState) {
             .catch(err => {
                 alert('Erro na requisição. Tente novamente.');
             });
+    }
+}
+
+function toggleReseller(id, state) {
+    if (!confirm(state === 1 ? "Tornar este usuário um FRANQUEADO / REVENDEDOR?" : "Remover o perfil de franqueado/revendedor deste usuário?")) return;
+    const formData = new FormData();
+    formData.append('action', 'toggle_reseller');
+    formData.append('id', id);
+    formData.append('new_state', state);
+    fetch('/admin/usuarios', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(() => window.location.reload());
+}
+
+function promptCommission(id, current) {
+    const val = prompt("Comissão do franqueado/revendedor sobre as recargas dos motoristas (%):", current);
+    if (val !== null && val.trim() !== '') {
+        const formData = new FormData();
+        formData.append('action', 'update_commission');
+        formData.append('id', id);
+        formData.append('percent', parseFloat(val.trim().replace(',', '.')));
+        fetch('/admin/usuarios', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(() => window.location.reload());
     }
 }
 

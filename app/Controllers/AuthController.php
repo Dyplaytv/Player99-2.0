@@ -21,6 +21,8 @@ class AuthController extends Controller
         } elseif (Auth::check()) {
             if (Auth::isAdmin()) {
                 $this->redirect('/admin/dashboard');
+            } elseif (Auth::isFranchisee()) {
+                $this->redirect('/portal-franqueado');
             } else {
                 $this->redirect('/cliente_dashboard.php');
             }
@@ -115,25 +117,48 @@ class AuthController extends Controller
             }
 
             if ($isValid) {
-                $_SESSION["studiolivecodevu"] = true;
-                $_SESSION["id"] = (int)($user['id'] ?? 1);
-                $_SESSION["U"] = $user['username'];
-                $_SESSION["user_email"] = $user['email'] ?? '';
-                $_SESSION["is_admin"] = true;
-                $_SESSION["nivel"] = $user['nivel'] ?? '1';
-                $dircheck = substr($_SERVER["REQUEST_URI"] ?? '', 0, strrpos($_SERVER["REQUEST_URI"] ?? '', "/"));
-                $dircheck2 = substr($dircheck, 1);
-                $_SESSION[$user['username'] . $dircheck2] = true;
-                $_SESSION[$user['username']] = true;
+                $isTrueAdmin = Auth::isRoot($user)
+                    || ((string)($user['admin'] ?? '') === '1')
+                    || ((string)($user['nivel'] ?? '') === '1');
 
-                @file_put_contents(dirname(__DIR__, 2) . '/api/db/login_debug.log', date('[Y-m-d H:i:s] ') . "Login OK para {$user['username']}. SESSID: " . session_id() . "\n", FILE_APPEND);
+                if ($isTrueAdmin) {
+                    $_SESSION["studiolivecodevu"] = true;
+                    $_SESSION["id"] = (int)($user['id'] ?? 1);
+                    $_SESSION["U"] = $user['username'];
+                    $_SESSION["user_email"] = $user['email'] ?? '';
+                    $_SESSION["is_admin"] = true;
+                    $_SESSION["nivel"] = $user['nivel'] ?? '1';
+                    $dircheck = substr($_SERVER["REQUEST_URI"] ?? '', 0, strrpos($_SERVER["REQUEST_URI"] ?? '', "/"));
+                    $dircheck2 = substr($dircheck, 1);
+                    $_SESSION[$user['username'] . $dircheck2] = true;
+                    $_SESSION[$user['username']] = true;
 
-                $this->redirect('/admin/dashboard');
-                return;
+                    @file_put_contents(dirname(__DIR__, 2) . '/api/db/login_debug.log', date('[Y-m-d H:i:s] ') . "Login OK para {$user['username']}. SESSID: " . session_id() . "\n", FILE_APPEND);
+
+                    $this->redirect('/admin/dashboard');
+                    return;
+                }
+
+                // Usuário intermediário (Revendedor / Franqueado — nivel 2, sem acesso admin)
+                $resellerCli = Client::syncResellerClientFromUser($user);
+                if ($resellerCli) {
+                    if (isset($resellerCli['active']) && (int)$resellerCli['active'] === 0) {
+                        $this->redirect('/login?err=blocked');
+                    }
+                    $_SESSION["cliente_logado"] = true;
+                    $_SESSION["cliente_id"] = (int)$resellerCli['id'];
+                    $_SESSION["cliente_user"] = $resellerCli['username'];
+                    $_SESSION["cliente_email"] = $resellerCli['email'] ?? '';
+                    $_SESSION["is_franqueado"] = true;
+                    $_SESSION["franqueado_user_id"] = (int)($user['id'] ?? 0);
+
+                    $this->redirect('/portal-franqueado');
+                    return;
+                }
             }
         }
 
-        // 2. Tenta Área do Cliente (Motorista / Anunciante)
+        // 2. Tenta Área do Cliente (Motorista / Anunciante / Franqueado)
         $client = Client::findByLogin($login);
         if ($client) {
             // Verifica se está bloqueado pelo administrador
@@ -151,7 +176,13 @@ class AuthController extends Controller
                 $_SESSION["cliente_user"] = $client['username'];
                 $_SESSION["cliente_email"] = $client['email'] ?? '';
 
-                $this->redirect('/cliente_dashboard.php');
+                if (!empty($client['is_reseller'])) {
+                    $_SESSION["is_franqueado"] = true;
+                    $this->redirect('/portal-franqueado');
+                } else {
+                    unset($_SESSION["is_franqueado"]);
+                    $this->redirect('/cliente_dashboard.php');
+                }
             }
         }
 

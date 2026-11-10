@@ -139,6 +139,7 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
     <a href="?<?= $baseParam ?>tab=telas" class="<?= $tab === 'telas' ? 'active' : '' ?>"><i class="fas fa-desktop"></i>Telas</a>
     <a href="?<?= $baseParam ?>tab=afiliado" class="<?= $tab === 'afiliado' ? 'active' : '' ?>"><i class="fas fa-hand-holding-usd"></i>Afiliado</a>
             <a href="?<?= $baseParam ?>tab=financeiro" class="<?= $tab === 'financeiro' ? 'active' : '' ?>"><i class="fas fa-wallet"></i>Financeiro</a>
+    <?php if (!empty($isReseller)): ?><a href="/portal-franqueado<?= $isAdmin ? ('?client_id=' . (int)$selectedClientId) : '' ?>"><i class="fas fa-store"></i>Franqueado</a><?php endif; ?>
     <a href="?<?= $baseParam ?>tab=config" class="<?= $tab === 'config' ? 'active' : '' ?>"><i class="fas fa-cog"></i>Config</a>
 </nav>
 
@@ -170,6 +171,11 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             <a href="?<?= $baseParam ?>tab=financeiro" class="sidebar-link text-success <?= $tab === 'financeiro' ? 'active' : '' ?>">
                 <i class="fas fa-wallet"></i> Financeiro
             </a>
+            <?php if (!empty($isReseller)): ?>
+            <a href="/portal-franqueado<?= $isAdmin ? ('?client_id=' . (int)$selectedClientId) : '' ?>" class="sidebar-link text-info <?= $tab === 'revenda' ? 'active' : '' ?>">
+                <i class="fas fa-store"></i> Portal do Franqueado
+            </a>
+            <?php endif; ?>
             <a href="?<?= $baseParam ?>tab=config" class="sidebar-link <?= $tab === 'config' ? 'active' : '' ?>">
                 <i class="fas fa-cog"></i> Configurações
             </a>
@@ -1218,6 +1224,155 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($tab === 'revenda' && !empty($isReseller)): ?>
+                <div class="row mb-4">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #28a745 !important;">
+                            <div class="card-body text-center py-4">
+                                <small class="text-muted font-weight-bold text-uppercase">Saldo Disponível</small>
+                                <h2 class="font-weight-bold text-success mt-2 mb-0">R$ <?= number_format($affiliateBalance, 2, ',', '.') ?></h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #007bff !important;">
+                            <div class="card-body text-center py-4">
+                                <small class="text-muted font-weight-bold text-uppercase">Motoristas</small>
+                                <h2 class="font-weight-bold text-primary mt-2 mb-0"><?= count($resellerDrivers) ?></h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #17a2b8 !important;">
+                            <div class="card-body text-center py-4">
+                                <small class="text-muted font-weight-bold text-uppercase">Telas dos Motoristas</small>
+                                <h2 class="font-weight-bold text-info mt-2 mb-0"><?= (int)$resellerScreensTotal ?></h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #ffc107 !important;">
+                            <div class="card-body text-center py-4">
+                                <small class="text-muted font-weight-bold text-uppercase">Minha Comissão</small>
+                                <h2 class="font-weight-bold text-warning mt-2 mb-0"><?= number_format((float)($client['commissionPercent'] ?? 20), 0) ?>%</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="card">
+                            <div class="card-header"><div><i class="fas fa-user-plus text-success mr-2"></i> Criar Usuário Motorista</div></div>
+                            <div class="card-body">
+                                <form method="post" action="?<?= $baseParam ?>tab=revenda">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Nome do Motorista</label>
+                                        <input type="text" name="motorista_nome" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Usuário (login)</label>
+                                        <input type="text" name="motorista_usuario" class="form-control" autocomplete="off" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Senha</label>
+                                        <input type="text" name="motorista_senha" class="form-control" autocomplete="off" minlength="4" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">WhatsApp</label>
+                                        <input type="text" name="motorista_whatsapp" class="form-control" placeholder="5551999999999">
+                                    </div>
+                                    <button type="submit" name="criar_motorista" value="1" class="btn btn-success btn-block font-weight-bold">
+                                        <i class="fas fa-plus mr-1"></i> CRIAR MOTORISTA
+                                    </button>
+                                </form>
+                                <hr>
+                                <label class="font-weight-bold small text-uppercase text-muted">Meu link de indicação</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" value="<?= htmlspecialchars($affiliateLink ?? '') ?>" readonly id="resLinkInput">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('resLinkInput').value); showToastFeedback('Link copiado!', false);"><i class="fas fa-copy"></i></button>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Quem se cadastrar por este link fica abaixo de você.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="card">
+                            <div class="card-header"><div><i class="fas fa-users text-info mr-2"></i> Meus Motoristas (<?= count($resellerDrivers) ?>)</div></div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped mb-0">
+                                        <thead><tr><th>Motorista</th><th class="text-center">Telas</th><th>Status</th><th>Vencimento</th></tr></thead>
+                                        <tbody>
+                                            <?php if (empty($resellerDrivers)): ?>
+                                                <tr><td colspan="4" class="text-center py-4 text-muted">Nenhum motorista ainda. Crie um ao lado ou compartilhe seu link.</td></tr>
+                                            <?php else: foreach ($resellerDrivers as $rd):
+                                                $rdActive = ((int)($rd['active'] ?? 1) === 1) && (empty($rd['expire_date']) || $rd['expire_date'] >= date('Y-m-d'));
+                                            ?>
+                                                <tr>
+                                                    <td>
+                                                        <div class="font-weight-bold"><?= htmlspecialchars($rd['title'] ?: $rd['username']) ?></div>
+                                                        <small class="text-muted">@<?= htmlspecialchars($rd['username']) ?></small>
+                                                    </td>
+                                                    <td class="text-center"><span class="badge badge-info px-2 py-1"><?= (int)$rd['telas_count'] ?></span></td>
+                                                    <td><?= $rdActive ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-secondary">Inativo/Vencido</span>' ?></td>
+                                                    <td><?= !empty($rd['expire_date']) ? date('d/m/Y', strtotime($rd['expire_date'])) : '-' ?></td>
+                                                </tr>
+                                            <?php endforeach; endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="card">
+                            <div class="card-header"><div><i class="fas fa-money-bill-wave text-success mr-2"></i> Sacar Comissões</div></div>
+                            <div class="card-body text-center">
+                                <p class="text-muted">Você recebe <b><?= number_format((float)($client['commissionPercent'] ?? 20), 0) ?>%</b> de cada recarga dos seus motoristas. Cadastre a chave PIX na aba <a href="?<?= $baseParam ?>tab=afiliado">Afiliado</a>.</p>
+                                <form method="post" action="?<?= $baseParam ?>tab=revenda">
+                                    <input type="hidden" name="return_tab" value="revenda">
+                                    <button type="submit" name="withdraw" value="1" class="btn btn-success btn-lg font-weight-bold px-4" <?= $affiliateBalance <= 0 ? 'disabled' : '' ?>>
+                                        Sacar R$ <?= number_format($affiliateBalance, 2, ',', '.') ?>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card">
+                            <div class="card-header"><div><i class="fas fa-history text-success mr-2"></i> Extrato de Comissões &amp; Saques</div></div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height:280px;overflow-y:auto;">
+                                    <table class="table table-striped mb-0">
+                                        <thead><tr><th>Data</th><th>Descrição</th><th class="text-right">Valor</th></tr></thead>
+                                        <tbody>
+                                            <?php if (empty($affiliateTransactions)): ?>
+                                                <tr><td colspan="3" class="text-center py-4 text-muted">Nenhuma comissão registrada ainda.</td></tr>
+                                            <?php else: foreach ($affiliateTransactions as $tx): ?>
+                                                <tr>
+                                                    <td class="small text-muted"><?= !empty($tx['createdAt']) ? date('d/m/Y H:i', strtotime($tx['createdAt'])) : '-' ?></td>
+                                                    <td><?= htmlspecialchars($tx['description'] ?? '') ?></td>
+                                                    <td class="text-right font-weight-bold <?= ($tx['type'] ?? '') === 'COMMISSION' ? 'text-success' : 'text-danger' ?>">
+                                                        <?= ($tx['type'] ?? '') === 'COMMISSION' ? '+' : '-' ?> R$ <?= number_format((float)($tx['amount'] ?? 0), 2, ',', '.') ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; endif; ?>
                                         </tbody>
                                     </table>
                                 </div>

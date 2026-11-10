@@ -23,6 +23,11 @@ class Auth
         return !empty($_SESSION['cliente_logado']);
     }
 
+    public static function isFranchisee(): bool
+    {
+        return !empty($_SESSION['is_franqueado']);
+    }
+
     public static function user(): ?array
     {
         if (self::check()) {

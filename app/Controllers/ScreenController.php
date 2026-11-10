@@ -44,7 +44,7 @@ class ScreenController extends Controller
 
         $screens = [];
         try {
-            $stmt = $pdo->query("SELECT t.*, i.username as client_username, i.title as client_name, i.whatsapp as client_whatsapp, i.expire_date 
+            $stmt = $pdo->query("SELECT t.*, i.username as client_username, i.title as client_name, i.whatsapp as client_whatsapp, i.expire_date as client_expire_date
                                  FROM telas t 
                                  LEFT JOIN ibo i ON t.id_cliente = i.id 
                                  ORDER BY t.id DESC");
@@ -236,6 +236,34 @@ class ScreenController extends Controller
             'clientId' => $clientId,
             'msg' => $msg
         ], 'layouts/master');
+    }
+
+    public function updateExpire(Request $request, $id): void
+    {
+        // Somente administradores podem alterar a validade de uma tela
+        if (!Auth::check() || !Auth::isAdmin()) {
+            $this->json(['status' => 'forbidden'], 403);
+        }
+
+        Screen::ensureSchema();
+        $pdo = Database::clients();
+        $date = trim((string)$request->input('expire_date', ''));
+
+        if ($date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $this->json(['status' => 'error', 'message' => 'Data inválida'], 422);
+        }
+
+        $pdo->prepare("UPDATE telas SET expire_date = :d, force_reload = 1 WHERE id = :id")
+            ->execute([':d' => $date !== '' ? $date : null, ':id' => (int)$id]);
+
+        $screen = Screen::find((int)$id);
+        $locked = $screen ? $this->isScreenLocked($pdo, $screen) : false;
+
+        $this->json([
+            'status' => 'success',
+            'expire_date' => $date,
+            'locked' => $locked ? 1 : 0
+        ]);
     }
 
     public function delete(Request $request, $id): void

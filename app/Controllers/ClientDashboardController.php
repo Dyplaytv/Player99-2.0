@@ -83,6 +83,7 @@ class ClientDashboardController extends Controller
             "ALTER TABLE ibo ADD COLUMN pixKey TEXT",
             "ALTER TABLE ibo ADD COLUMN commissionPercent REAL DEFAULT 20.0",
             "ALTER TABLE ibo ADD COLUMN referredById INTEGER",
+            "ALTER TABLE ibo ADD COLUMN is_reseller INTEGER DEFAULT 0",
             "ALTER TABLE ibo ADD COLUMN max_videos INTEGER DEFAULT 10",
             "ALTER TABLE ibo ADD COLUMN max_video_size_mb INTEGER DEFAULT 50"
         ];
@@ -498,6 +499,7 @@ class ClientDashboardController extends Controller
                                     ':vp'  => (float)$ord['valor_final'],
                                     ':cp'  => (string)$ord['cupom']
                                 ]);
+                                Client::creditAffiliateCommission($idCliente, (float)$ord['valor_final'], 'Comissão sobre recarga: plano ' . $ord['nome_plano'] . ' (' . ($ord['nome_cliente'] ?: ('#' . $idCliente)) . ')');
                                 echo json_encode(['paid' => true]);
                                 exit;
                             }
@@ -854,6 +856,37 @@ class ClientDashboardController extends Controller
                 }
             }
 
+            // Revendedor: criar usuário motorista vinculado abaixo dele
+            if (isset($_POST['criar_motorista'])) {
+                $tab = 'revenda';
+                if (empty($client['is_reseller'])) {
+                    $err = 'Seu perfil não possui permissão de revendedor.';
+                } else {
+                    $mNome = trim((string)$request->input('motorista_nome', ''));
+                    $mUser = trim((string)$request->input('motorista_usuario', ''));
+                    $mPass = trim((string)$request->input('motorista_senha', ''));
+                    $mWhats = trim((string)$request->input('motorista_whatsapp', ''));
+                    if ($mNome === '' || $mUser === '' || strlen($mPass) < 4) {
+                        $err = 'Preencha nome, usuário e uma senha de pelo menos 4 caracteres.';
+                    } elseif (Client::findByLogin($mUser)) {
+                        $err = 'Este usuário já existe. Escolha outro.';
+                    } else {
+                        $mac = sprintf('%02X:%02X:%02X:%02X:%02X:%02X', mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
+                        $pdo->prepare("INSERT INTO ibo (mac_address, username, password, title, whatsapp, expire_date, active, referredById)
+                            VALUES (:mac, :u, :p, :t, :w, :exp, 1, :ref)")->execute([
+                            ':mac' => $mac,
+                            ':u'   => $mUser,
+                            ':p'   => Auth::hashPassword($mPass),
+                            ':t'   => $mNome,
+                            ':w'   => $mWhats,
+                            ':exp' => date('Y-m-d'),
+                            ':ref' => $idCliente
+                        ]);
+                        $msg = "Motorista '{$mNome}' criado! Usuário: {$mUser}. Ele precisa de uma recarga para liberar as telas.";
+                    }
+                }
+            }
+
             // Área do Afiliado: Atualizar Chave PIX
             if (isset($_POST['update_pix'])) {
                 $tab = 'afiliado';
@@ -863,15 +896,16 @@ class ClientDashboardController extends Controller
                 $msg = 'Chave PIX atualizada com sucesso!';
             }
 
-            // Área do Afiliado: Solicitar Saque
+            // Área do Afiliado / Revenda: Solicitar Saque
             if (isset($_POST['withdraw'])) {
-                $tab = 'afiliado';
+                $returnTab = trim((string)$request->input('return_tab', ''));
+                $tab = in_array($returnTab, ['afiliado', 'revenda'], true) ? $returnTab : ($tab === 'revenda' ? 'revenda' : 'afiliado');
                 $saldoAtual = $this->getAffiliateBalance($pdo, $idCliente);
                 if ($saldoAtual > 0) {
                     if (empty($client['pixKey'])) {
                         $err = 'Configure sua chave PIX antes de solicitar o saque.';
                     } else {
-                        $stmtSq = $pdo->prepare("INSERT INTO affiliate_transactions (userId, amount, type, description) VALUES (:id, :amt, 'WITHDRAW_PENDING', 'Saque Solicitado')");
+                        $stmtSq = $pdo->prepare("INSERT INTO affiliate_transactions (userId, amount, type, description, createdAt) VALUES (:id, :amt, 'WITHDRAW_PENDING', 'Saque Solicitado', datetime('now', 'localtime'))");
                         $stmtSq->execute([':id' => $idCliente, ':amt' => $saldoAtual]);
                         $msg = 'Saque de R$ ' . number_format($saldoAtual, 2, ',', '.') . ' solicitado com sucesso!';
                     }
@@ -1094,7 +1128,27 @@ class ClientDashboardController extends Controller
             $dealsScansCount = (int)$stmtDeals->fetchColumn();
         } catch (\Throwable $e) {}
 
+        // Painel do Revendedor: motoristas abaixo dele e total de telas
+        $isReseller = !empty($client['is_reseller']);
+        $resellerDrivers = [];
+        $resellerScreensTotal = 0;
+        if ($isReseller) {
+            try {
+                $stmtRd = $pdo->prepare("SELECT i.id, i.title, i.username, i.whatsapp, i.expire_date, i.active,
+                        (SELECT COUNT(*) FROM telas t WHERE t.id_cliente = i.id) AS telas_count
+                    FROM ibo i WHERE i.referredById = :id ORDER BY i.id DESC");
+                $stmtRd->execute([':id' => $idCliente]);
+                $resellerDrivers = $stmtRd->fetchAll();
+                foreach ($resellerDrivers as $rd) {
+                    $resellerScreensTotal += (int)$rd['telas_count'];
+                }
+            } catch (\Throwable $e) {}
+        }
+
         $this->render('client/dashboard', [
+            'isReseller' => $isReseller,
+            'resellerDrivers' => $resellerDrivers,
+            'resellerScreensTotal' => $resellerScreensTotal,
             'client' => $client,
             'customization' => $customization,
             'screens' => $screens,

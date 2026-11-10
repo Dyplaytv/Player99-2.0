@@ -42,6 +42,7 @@ class Client extends Model
                 'pixKey' => "ALTER TABLE ibo ADD COLUMN pixKey TEXT",
                 'commissionPercent' => "ALTER TABLE ibo ADD COLUMN commissionPercent REAL DEFAULT 20.0",
                 'referredById' => "ALTER TABLE ibo ADD COLUMN referredById INTEGER",
+                'is_reseller' => "ALTER TABLE ibo ADD COLUMN is_reseller INTEGER DEFAULT 0",
             ];
 
             foreach ($migrations as $col => $sql) {
@@ -187,5 +188,63 @@ class Client extends Model
         $stmt->execute();
         $res = $stmt->fetch();
         return $res ?: null;
+    }
+
+    /**
+     * Garante e retorna um registro na tabela ibo com is_reseller = 1 para usuários
+     * cadastrados como Revendedor/Franqueado (nivel = 2) na tabela users.
+     */
+    public static function syncResellerClientFromUser(array $user): ?array
+    {
+        self::ensureSchema();
+
+        $username = trim((string)($user['username'] ?? ''));
+        $email = strtolower(trim((string)($user['email'] ?? '')));
+        $name = trim((string)($user['name'] ?? $username));
+        if ($username === '' && $email === '') {
+            return null;
+        }
+
+        $pdo = self::getConnection();
+        $client = null;
+        if ($username !== '') {
+            $stmt = $pdo->prepare("SELECT * FROM ibo WHERE LOWER(username) = LOWER(:u) LIMIT 1");
+            $stmt->execute([':u' => $username]);
+            $client = $stmt->fetch() ?: null;
+        }
+        if (!$client && $email !== '') {
+            $stmt = $pdo->prepare("SELECT * FROM ibo WHERE LOWER(email) = LOWER(:e) LIMIT 1");
+            $stmt->execute([':e' => $email]);
+            $client = $stmt->fetch() ?: null;
+        }
+
+        if ($client) {
+            if (empty($client['is_reseller'])) {
+                $pdo->prepare("UPDATE ibo SET is_reseller = 1 WHERE id = :id")->execute([':id' => $client['id']]);
+                $client['is_reseller'] = 1;
+            }
+            if (empty($client['affiliateCode'])) {
+                $affCode = 'REF-' . strtoupper(substr(md5('p99_' . $client['id']), 0, 6));
+                $pdo->prepare("UPDATE ibo SET affiliateCode = :c WHERE id = :id")->execute([':c' => $affCode, ':id' => $client['id']]);
+                $client['affiliateCode'] = $affCode;
+            }
+            return $client;
+        }
+
+        $mac = sprintf('%02X:%02X:%02X:%02X:%02X:%02X', mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
+        $affCode = 'REF-' . strtoupper(substr(md5(uniqid('p99_frq_', true)), 0, 6));
+        $stmtIns = $pdo->prepare("INSERT INTO ibo (mac_address, username, password, email, title, expire_date, active, affiliateCode, affiliateClicks, commissionPercent, is_reseller)
+            VALUES (:mac, :u, :p, :e, :t, :exp, 1, :aff, 0, 20.0, 1)");
+        $stmtIns->execute([
+            ':mac' => $mac,
+            ':u'   => $username ?: $email,
+            ':p'   => (string)($user['password'] ?? ''),
+            ':e'   => $email,
+            ':t'   => $name ?: $username,
+            ':exp' => date('Y-m-d', strtotime('+365 days')),
+            ':aff' => $affCode
+        ]);
+
+        return self::find((int)$pdo->lastInsertId());
     }
 }

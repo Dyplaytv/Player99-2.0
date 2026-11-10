@@ -182,6 +182,7 @@ class BillingController extends Controller
                         ':vp'  => (float)$ord['valor_final'],
                         ':cp'  => (string)$ord['cupom']
                     ]);
+                    \App\Models\Client::creditAffiliateCommission((int)$ord['id_cliente'], (float)$ord['valor_final'], 'Comissão sobre recarga: plano ' . $ord['nome_plano'] . ' (' . ($ord['nome_cliente'] ?: ('#' . $ord['id_cliente'])) . ')');
                     $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Pagamento aprovado! O crédito de <b>{$ord['dias']} dias ({$ord['nome_plano']})</b> foi liberado para o motorista.</div>";
                 }
             }

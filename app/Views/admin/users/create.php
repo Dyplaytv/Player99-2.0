@@ -36,7 +36,7 @@
                     <div class="col-12 col-md-4">
                         <label class="form-label text-muted small fw-bold text-uppercase">Nível de Acesso</label>
                         <select name="nivel" class="form-select bg-dark text-white border-secondary">
-                            <option value="2">Revendedor / Parceiro</option>
+                            <option value="2">Franqueado / Revendedor (sem acesso admin)</option>
                             <option value="1">Administrador Geral</option>
                         </select>
                     </div>

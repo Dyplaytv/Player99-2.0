@@ -41,6 +41,7 @@
                         <th>Identificação / Carro</th>
                         <th>Motorista / Parceiro</th>
                         <th>Status</th>
+                        <th>Validade</th>
                         <th>Rotação</th>
                         <th>Modo de Áudio</th>
                         <th class="text-end">Ações</th>
@@ -87,6 +88,22 @@
                                 <?php endif; ?>
                             </td>
                             <td>
+                                <?php
+                                    $ownExp = trim((string)($tela['expire_date'] ?? ''));
+                                    $effExp = $ownExp !== '' ? $ownExp : trim((string)($tela['client_expire_date'] ?? ''));
+                                    $expired = ($effExp !== '' && substr($effExp, 0, 10) < date('Y-m-d'));
+                                ?>
+                                <div class="d-flex align-items-center gap-1" style="min-width: 190px;">
+                                    <input type="date" id="exp_<?= (int)$tela['id'] ?>" class="form-control form-control-sm bg-dark text-white border-secondary" value="<?= htmlspecialchars(substr($effExp, 0, 10)) ?>" style="color-scheme: dark; max-width: 140px;">
+                                    <button type="button" class="btn btn-sm btn-success py-1 px-2" title="Salvar validade (somente admin)" onclick="saveScreenExpire(<?= (int)$tela['id'] ?>, this)">
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                </div>
+                                <small class="<?= $expired ? 'text-danger' : 'text-success' ?>" id="expst_<?= (int)$tela['id'] ?>">
+                                    <?= $effExp === '' ? 'Sem vencimento' : ($expired ? 'Vencida - em bloqueio' : 'Ativa') ?>
+                                </small>
+                            </td>
+                            <td>
                                 <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
                                     <i class="fa fa-rotate me-1"></i> <?= (int)($tela['rotation'] ?? 0) ?>°
                                 </span>
@@ -116,3 +133,33 @@
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+const SERVER_TODAY = '<?= date('Y-m-d') ?>';
+function saveScreenExpire(id, btn) {
+    const input = document.getElementById('exp_' + id);
+    if (!input) return;
+    const fd = new FormData();
+    fd.append('expire_date', input.value);
+    const old = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    fetch('/admin/telas/' + id + '/validade', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerHTML = old;
+            if (res.status === 'success') {
+                const st = document.getElementById('expst_' + id);
+                if (st) {
+                    if (!input.value) { st.className = 'text-success'; st.textContent = 'Sem vencimento (salvo)'; }
+                    else if (res.locked || input.value < SERVER_TODAY) { st.className = 'text-danger'; st.textContent = 'Vencida - em bloqueio'; }
+                    else { st.className = 'text-success'; st.textContent = 'Ativa (salvo)'; }
+                }
+            } else {
+                alert(res.message || 'Erro ao salvar validade.');
+            }
+        })
+        .catch(() => { btn.disabled = false; btn.innerHTML = old; alert('Erro de conexão.'); });
+}
+</script>

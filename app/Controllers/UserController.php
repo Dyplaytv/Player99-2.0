@@ -50,6 +50,22 @@ class UserController extends Controller
                     echo json_encode(['status' => 'success', 'new_state' => $newState]);
                     return;
                 }
+            } elseif ($action === 'toggle_reseller') {
+                $cid = (int)$request->input('id');
+                $state = (int)$request->input('new_state') === 1 ? 1 : 0;
+                if ($cid > 0) {
+                    $pdoClients->prepare("UPDATE ibo SET is_reseller = :s WHERE id = :id")->execute([':s' => $state, ':id' => $cid]);
+                    echo json_encode(['status' => 'success']);
+                    return;
+                }
+            } elseif ($action === 'update_commission') {
+                $cid = (int)$request->input('id');
+                $percent = max(0, min(100, (float)$request->input('percent', 20)));
+                if ($cid > 0) {
+                    $pdoClients->prepare("UPDATE ibo SET commissionPercent = :p WHERE id = :id")->execute([':p' => $percent, ':id' => $cid]);
+                    echo json_encode(['status' => 'success']);
+                    return;
+                }
             } elseif ($action === 'update_multiplo') {
                 $cid = (int)$request->input('id');
                 $newMultiplo = (float)$request->input('new_multiplo', 1.0);
@@ -139,15 +155,25 @@ class UserController extends Controller
             $macAmount = $request->input('mac_amount', '10');
 
             if (!empty($username) && !empty($password)) {
+                $hashedPassword = Auth::hashPassword($password);
                 User::create([
                     'name' => $name,
                     'username' => $username,
                     'email' => $email,
-                    'password' => Auth::hashPassword($password),
+                    'password' => $hashedPassword,
                     'nivel' => $nivel,
                     'admin' => $nivel === '1' ? '1' : '0',
                     'mac_amount' => $macAmount
                 ]);
+
+                if ($nivel !== '1') {
+                    Client::syncResellerClientFromUser([
+                        'name' => $name,
+                        'username' => $username,
+                        'email' => $email,
+                        'password' => $hashedPassword
+                    ]);
+                }
 
                 $this->redirect('/admin/usuarios?tab=admins&msg=created');
             }
