@@ -252,12 +252,25 @@ function testService(serviceName) {
         });
 }
 
+function getEvolutionPayload() {
+    return {
+        url: document.getElementById('evolution_api_url').value.trim(),
+        key: document.getElementById('evolution_api_key').value.trim(),
+        instance: document.getElementById('evolution_instance_name').value.trim()
+    };
+}
+
 function checkEvolutionStatus() {
     const badge = document.getElementById('evoStatusBadge');
     badge.className = 'badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-3 py-2';
     badge.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Verificando conexão...';
 
-    fetch('/admin/configuracoes/evolution-status')
+    const payload = getEvolutionPayload();
+    fetch('/admin/configuracoes/evolution-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
         .then(res => res.json())
         .then(res => {
             const state = res.data?.instance?.state || res.data?.state || 'close';
@@ -287,7 +300,12 @@ function connectEvolution() {
     wrapper.classList.remove('d-none');
     holder.innerHTML = '<div class="text-info py-4"><i class="fa fa-spinner fa-spin fa-2x"></i><p class="mt-2 mb-0">Solicitando QR Code à Evolution...</p></div>';
 
-    fetch('/admin/configuracoes/evolution-connect')
+    const payload = getEvolutionPayload();
+    fetch('/admin/configuracoes/evolution-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
         .then(res => res.json())
         .then(res => {
             if (res.data?.base64 || res.data?.qrcode?.base64) {
@@ -296,7 +314,11 @@ function connectEvolution() {
                 timer.innerText = 'QR Code gerado! Aponte o WhatsApp para conectar.';
                 
                 const interval = setInterval(() => {
-                    fetch('/admin/configuracoes/evolution-status')
+                    fetch('/admin/configuracoes/evolution-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    })
                         .then(r => r.json())
                         .then(st => {
                             const state = st.data?.instance?.state || st.data?.state;

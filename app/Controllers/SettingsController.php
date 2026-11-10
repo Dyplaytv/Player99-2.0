@@ -35,11 +35,19 @@ class SettingsController extends Controller
         $msg = '';
 
         if ($request->isPost()) {
+            $evoUrl = trim($request->input('evolution_api_url', ''));
+            // Remove barras soltas no início e normaliza http://
+            $evoUrl = preg_replace('#^/+#', '', $evoUrl);
+            if (!empty($evoUrl) && !preg_match('#^https?://#i', $evoUrl)) {
+                $evoUrl = 'http://' . $evoUrl;
+            }
+            $evoUrl = preg_replace('#^(https?:)/+#i', '$1//', $evoUrl);
+
             $settingsToSave = [
                 'google_login_enabled' => $request->input('google_login_enabled') === '1' ? '1' : '0',
                 'google_client_id' => trim($request->input('google_client_id', '')),
                 'google_client_secret' => trim($request->input('google_client_secret', '')),
-                'evolution_api_url' => trim($request->input('evolution_api_url', '')),
+                'evolution_api_url' => $evoUrl,
                 'evolution_api_key' => trim($request->input('evolution_api_key', '')),
                 'evolution_instance_name' => trim($request->input('evolution_instance_name', 'player99')),
                 'ai_agent_enabled' => $request->input('ai_agent_enabled') === '1' ? '1' : '0',
@@ -120,14 +128,30 @@ class SettingsController extends Controller
             $settings[$row['setting_key']] = $row['setting_value'];
         }
 
-        $url = $settings['evolution_api_url'] ?? '';
-        $key = $settings['evolution_api_key'] ?? '';
-        $inst = $settings['evolution_instance_name'] ?? 'player99';
+        $rawBody = json_decode(file_get_contents('php://input'), true) ?? [];
+        $url = $request->input('url') ?: ($rawBody['url'] ?? ($settings['evolution_api_url'] ?? ''));
+        $key = $request->input('key') ?: ($rawBody['key'] ?? ($settings['evolution_api_key'] ?? ''));
+        $inst = $request->input('instance') ?: ($rawBody['instance'] ?? ($settings['evolution_instance_name'] ?? 'player99'));
+
+        // Normaliza a URL (remove barras soltas e garante http://)
+        $url = trim($url);
+        $url = preg_replace('#^/+#', '', $url);
+        if (!empty($url) && !preg_match('#^https?://#i', $url)) {
+            $url = 'http://' . $url;
+        }
+        $url = preg_replace('#^(https?:)/+#i', '$1//', $url);
 
         if (empty($url) || empty($key)) {
             echo json_encode(['success' => false, 'error' => 'Por favor, preencha a URL da Evolution API e a API Key antes de conectar.']);
             return;
         }
+
+        // Salva automaticamente no banco para nunca perder a configuração
+        $stmtSave = $pdo->prepare("INSERT INTO system_settings (setting_key, setting_value, updated_at) VALUES (:k, :v, datetime('now'))
+                                   ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = excluded.updated_at");
+        $stmtSave->execute([':k' => 'evolution_api_url', ':v' => $url]);
+        $stmtSave->execute([':k' => 'evolution_api_key', ':v' => $key]);
+        $stmtSave->execute([':k' => 'evolution_instance_name', ':v' => $inst]);
 
         $evo = new EvolutionService($url, $key, $inst);
 
@@ -160,9 +184,17 @@ class SettingsController extends Controller
             $settings[$row['setting_key']] = $row['setting_value'];
         }
 
-        $url = $settings['evolution_api_url'] ?? '';
-        $key = $settings['evolution_api_key'] ?? '';
-        $inst = $settings['evolution_instance_name'] ?? 'player99';
+        $rawBody = json_decode(file_get_contents('php://input'), true) ?? [];
+        $url = $request->input('url') ?: ($rawBody['url'] ?? ($settings['evolution_api_url'] ?? ''));
+        $key = $request->input('key') ?: ($rawBody['key'] ?? ($settings['evolution_api_key'] ?? ''));
+        $inst = $request->input('instance') ?: ($rawBody['instance'] ?? ($settings['evolution_instance_name'] ?? 'player99'));
+
+        $url = trim($url);
+        $url = preg_replace('#^/+#', '', $url);
+        if (!empty($url) && !preg_match('#^https?://#i', $url)) {
+            $url = 'http://' . $url;
+        }
+        $url = preg_replace('#^(https?:)/+#i', '$1//', $url);
 
         if (empty($url) || empty($key)) {
             echo json_encode(['success' => false, 'error' => 'Evolution não configurada']);
