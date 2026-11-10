@@ -1,14 +1,85 @@
+<style>
+    /* Estilos de Alto Contraste para Vitrine de Afiliados */
+    .deals-webhook-box {
+        background: #0d1424 !important;
+        border: 1px solid rgba(0, 242, 254, 0.35) !important;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .deals-webhook-title {
+        color: #ffffff !important;
+        font-weight: 700;
+        font-size: 14px;
+    }
+    .deals-webhook-url {
+        background: #050811 !important;
+        color: #00f2fe !important;
+        border: 1px solid rgba(0, 242, 254, 0.5) !important;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 13px;
+    }
+    .deals-webhook-desc {
+        color: #cbd5e1 !important;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    .table-dark thead th {
+        color: #f8fafc !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #334155 !important;
+        text-transform: uppercase;
+    }
+    .deals-input {
+        background-color: #060913 !important;
+        color: #ffffff !important;
+        border: 1px solid #334155 !important;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    .deals-input:focus {
+        border-color: #00f2fe !important;
+        background-color: #0f172a !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 8px rgba(0, 242, 254, 0.35) !important;
+    }
+    .deals-input::placeholder {
+        color: #94a3b8 !important;
+        opacity: 0.9 !important;
+        font-weight: 400;
+    }
+    .deals-addon {
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border: 1px solid #334155 !important;
+        font-weight: 700;
+    }
+    .deals-label {
+        color: #e2e8f0 !important;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+    .deals-subtext {
+        color: #94a3b8 !important;
+        font-size: 13px;
+    }
+</style>
+
 <div class="glass-card">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h4 class="fw-bold mb-1"><i class="fa fa-tags text-warning me-2"></i> Vitrine de Afiliados E-commerce (DOOH)</h4>
-            <p class="text-muted mb-0">Gerencie suas tags de afiliados, captação automática via WhatsApp e ofertas exibidas nos tablets dos veículos.</p>
+            <h4 class="fw-bold mb-1 text-white"><i class="fa fa-tags text-warning me-2"></i> Vitrine de Afiliados E-commerce (DOOH)</h4>
+            <p class="deals-subtext mb-0">Gerencie suas tags de afiliados, captação automática via WhatsApp e ofertas exibidas nos tablets dos veículos.</p>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-outline-info" onclick="checkLinksHealth()">
                 <i class="fa fa-stethoscope me-1"></i> Verificar Links Quebrados
             </button>
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAddDeal">
+            <button type="button" class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#modalAddDeal">
                 <i class="fa fa-plus-circle me-1"></i> Adicionar Oferta Manual
             </button>
         </div>
@@ -63,28 +134,27 @@
             <form method="POST">
                 <input type="hidden" name="action" value="save_settings">
 
-                <div class="alert alert-dark border-secondary border-opacity-25 p-3 mb-4">
+                <div class="deals-webhook-box p-3 mb-4">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div>
-                            <i class="fab fa-whatsapp text-success me-2"></i>
-                            <span class="text-muted small">Webhook de Captação da Evolution API:</span>
-                            <code class="text-info ms-2 user-select-all" id="dealsWebhookUrl"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '75.119.156.103') ?>/api/evolution/deals-webhook</code>
+                            <span class="deals-webhook-title me-1">
+                                <i class="fab fa-whatsapp text-success me-1"></i> Webhook de Captação da Evolution API:
+                            </span>
+                            <code class="deals-webhook-url ms-1 user-select-all" id="dealsWebhookUrl"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '75.119.156.103') ?>/api/evolution/deals-webhook</code>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('dealsWebhookUrl').innerText); alert('URL copiada!');">
-                            <i class="fa fa-copy me-1"></i> Copiar
+                        <button type="button" class="btn btn-sm btn-outline-info fw-bold" onclick="navigator.clipboard.writeText(document.getElementById('dealsWebhookUrl').innerText); alert('URL copiada!');">
+                            <i class="fa fa-copy me-1"></i> Copiar URL
                         </button>
                     </div>
-                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
-                        <small class="text-muted">
-                            Cadastre essa URL na instância dedicada da Evolution API no evento <code>MESSAGES_UPSERT</code> para capturar ofertas de grupos de promoções automaticamente.
-                        </small>
+                    <div class="mt-2 pt-2 border-top border-secondary border-opacity-30 deals-webhook-desc">
+                        Cadastre essa URL na sua instância dedicada da Evolution API no evento <code style="color: #ffaa00; background: #1e293b; padding: 2px 6px; border-radius: 4px;">MESSAGES_UPSERT</code> para capturar ofertas de grupos de promoções automaticamente.
                     </div>
                 </div>
 
                 <div class="table-responsive mb-3">
                     <table class="table table-dark table-hover align-middle mb-0">
                         <thead>
-                            <tr class="text-muted small">
+                            <tr>
                                 <th style="width: 220px;">PLATAFORMA</th>
                                 <th>SUA TAG / CÓDIGO DE AFILIADO</th>
                                 <th style="width: 200px;">REPASSE AO MOTORISTA (%)</th>
@@ -94,7 +164,7 @@
                         <tbody>
                             <?php foreach ($platforms as $p): ?>
                                 <tr>
-                                    <td class="fw-bold">
+                                    <td class="fw-bold text-white">
                                         <?php if ($p['platform_key'] === 'mercadolivre'): ?>
                                             <i class="fa fa-handshake text-warning me-2"></i> Mercado Livre
                                         <?php elseif ($p['platform_key'] === 'shopee'): ?>
@@ -110,12 +180,12 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <input type="text" name="tags[<?= $p['platform_key'] ?>]" class="form-control form-control-sm bg-black text-white border-secondary" value="<?= htmlspecialchars($p['affiliate_tag']) ?>" placeholder="Ex: <?= $p['platform_key'] === 'amazon' ? 'player99-20' : ($p['platform_key'] === 'mercadolivre' ? 'matt=SEU_ID' : 'SEU_CODIGO') ?>">
+                                        <input type="text" name="tags[<?= $p['platform_key'] ?>]" class="form-control form-control-sm deals-input" value="<?= htmlspecialchars($p['affiliate_tag']) ?>" placeholder="Ex: <?= $p['platform_key'] === 'amazon' ? 'player99-20' : ($p['platform_key'] === 'mercadolivre' ? 'matt=SEU_ID' : 'SEU_CODIGO') ?>">
                                     </td>
                                     <td>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" step="0.1" min="0" max="100" name="splits[<?= $p['platform_key'] ?>]" class="form-control bg-black text-white border-secondary text-end" value="<?= htmlspecialchars($p['driver_split_percent']) ?>">
-                                            <span class="input-group-text bg-dark text-muted border-secondary">%</span>
+                                            <input type="number" step="0.1" min="0" max="100" name="splits[<?= $p['platform_key'] ?>]" class="form-control deals-input text-end" value="<?= htmlspecialchars($p['driver_split_percent']) ?>">
+                                            <span class="input-group-text deals-addon">%</span>
                                         </div>
                                     </td>
                                     <td class="text-center">
@@ -131,11 +201,11 @@
 
                 <div class="row g-3 align-items-center">
                     <div class="col-12 col-md-6">
-                        <label class="form-label text-muted small fw-bold">FILTRO POR JID DO GRUPO (OPCIONAL)</label>
-                        <input type="text" name="group_jid" class="form-control form-control-sm bg-black text-white border-secondary" value="<?= htmlspecialchars($platforms[0]['group_jid'] ?? '') ?>" placeholder="Ex: 1203630283921@g.us (Deixe em branco para aceitar qualquer grupo)">
+                        <label class="form-label deals-label">FILTRO POR JID DO GRUPO (OPCIONAL)</label>
+                        <input type="text" name="group_jid" class="form-control form-control-sm deals-input" value="<?= htmlspecialchars($platforms[0]['group_jid'] ?? '') ?>" placeholder="Ex: 1203630283921@g.us (Deixe em branco para aceitar qualquer grupo)">
                     </div>
                     <div class="col-12 col-md-6 text-md-end mt-md-4">
-                        <button type="submit" class="btn btn-cyan px-4">
+                        <button type="submit" class="btn btn-cyan px-4 fw-bold">
                             <i class="fa fa-save me-1"></i> Salvar Configurações de Afiliados
                         </button>
                     </div>
@@ -150,10 +220,10 @@
             <h6 class="mb-0 fw-bold text-info"><i class="fa fa-vial me-2"></i> Testador de Substituição de Tag ao Vivo</h6>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-2">Cole qualquer link de promoção (Mercado Livre, Shopee, Amazon, etc.) para ver como o Player99 troca a tag do vendedor pela sua:</p>
+            <p class="deals-subtext mb-2">Cole qualquer link de promoção (Mercado Livre, Shopee, Amazon, etc.) para ver como o Player99 troca a tag do vendedor pela sua:</p>
             <div class="input-group mb-3">
-                <input type="url" id="testUrlInput" class="form-control bg-black text-white border-secondary" placeholder="Cole aqui: https://shope.ee/... ou https://amzn.to/... ou https://mercadolivre.com/sec/...">
-                <button type="button" class="btn btn-outline-info" onclick="runLiveTest()">
+                <input type="url" id="testUrlInput" class="form-control deals-input" placeholder="Cole aqui: https://shope.ee/... ou https://amzn.to/... ou https://mercadolivre.com/sec/...">
+                <button type="button" class="btn btn-outline-info fw-bold" onclick="runLiveTest()">
                     <i class="fa fa-magic me-1"></i> Converter Link
                 </button>
             </div>
@@ -275,31 +345,31 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">LINK DO PRODUTO (URL ORIGINAL) *</label>
-                        <input type="url" name="product_url" required class="form-control bg-black text-white border-secondary" placeholder="https://shope.ee/... ou https://mercadolivre.com/...">
-                        <small class="text-muted" style="font-size: 11px;">O sistema trocará a tag do vendedor pela sua automaticamente.</small>
+                        <label class="form-label deals-label">LINK DO PRODUTO (URL ORIGINAL) *</label>
+                        <input type="url" name="product_url" required class="form-control deals-input" placeholder="https://shope.ee/... ou https://mercadolivre.com/...">
+                        <small class="deals-subtext" style="font-size: 11px;">O sistema trocará a tag do vendedor pela sua automaticamente.</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">TÍTULO DA OFERTA</label>
-                        <input type="text" name="title" class="form-control bg-black text-white border-secondary" placeholder="Ex: Fone Bluetooth Sem Fio TWS">
+                        <label class="form-label deals-label">TÍTULO DA OFERTA</label>
+                        <input type="text" name="title" class="form-control deals-input" placeholder="Ex: Fone Bluetooth Sem Fio TWS">
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-6">
-                            <label class="form-label text-muted small fw-bold">PREÇO DE (R$)</label>
-                            <input type="text" name="price_old" class="form-control bg-black text-white border-secondary" placeholder="Ex: 199,90">
+                            <label class="form-label deals-label">PREÇO DE (R$)</label>
+                            <input type="text" name="price_old" class="form-control deals-input" placeholder="Ex: 199,90">
                         </div>
                         <div class="col-6">
-                            <label class="form-label text-muted small fw-bold">PREÇO POR (R$)</label>
-                            <input type="text" name="price_new" class="form-control bg-black text-white border-secondary" placeholder="Ex: 89,90">
+                            <label class="form-label deals-label">PREÇO POR (R$)</label>
+                            <input type="text" name="price_new" class="form-control deals-input" placeholder="Ex: 89,90">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">URL DA IMAGEM DO PRODUTO</label>
-                        <input type="url" name="image_url" class="form-control bg-black text-white border-secondary" placeholder="https://... imagem.jpg">
+                        <label class="form-label deals-label">URL DA IMAGEM DO PRODUTO</label>
+                        <input type="url" name="image_url" class="form-control deals-input" placeholder="https://... imagem.jpg">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small fw-bold">CATEGORIA</label>
-                        <select name="category" class="form-select bg-black text-white border-secondary">
+                        <label class="form-label deals-label">CATEGORIA</label>
+                        <select name="category" class="form-select deals-input">
                             <option value="Eletrônicos">Eletrônicos</option>
                             <option value="Automotivo">Automotivo</option>
                             <option value="Beleza & Cuidados">Beleza & Cuidados</option>
