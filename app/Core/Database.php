@@ -67,4 +67,9 @@ class Database
     {
         return self::connection('radios');
     }
+
+    public static function deals(): PDO
+    {
+        return self::connection('deals');
+    }
 }

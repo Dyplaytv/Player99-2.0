@@ -389,6 +389,7 @@ class ScreenController extends Controller
         } catch (\Throwable $e) {}
 
         $radioInfo = $this->resolveRadioInfo($pdo, $screen);
+        $deals = \App\Models\Deal::getActiveDeals(10);
 
         $locked = $this->isScreenLocked($pdo, $screen);
         if ($locked) {
@@ -401,7 +402,8 @@ class ScreenController extends Controller
             'videos' => $videos,
             'codigo' => $codigo,
             'radioInfo' => $radioInfo,
-            'locked' => $locked
+            'locked' => $locked,
+            'deals' => $deals
         ], null);
     }
 

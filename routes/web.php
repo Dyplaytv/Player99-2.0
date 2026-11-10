@@ -14,6 +14,8 @@ use App\Controllers\AffiliateController;
 use App\Controllers\StoreController;
 use App\Controllers\ClientDashboardController;
 use App\Controllers\EvolutionWebhookController;
+use App\Controllers\DealsController;
+use App\Controllers\EvolutionDealsWebhookController;
 
 /** @var Router $router */
 
@@ -162,3 +164,19 @@ $router->get('/admin/loja', [StoreController::class, 'index']);
 $router->post('/admin/loja', [StoreController::class, 'index']);
 $router->get('/admin_loja.php', [StoreController::class, 'index']);
 $router->post('/admin_loja.php', [StoreController::class, 'index']);
+
+// Vitrine de Afiliados E-commerce (DOOH) & Achadinhos
+$router->get('/admin/achadinhos', [DealsController::class, 'index']);
+$router->post('/admin/achadinhos', [DealsController::class, 'index']);
+$router->get('/admin/achadinhos/test-convert', [DealsController::class, 'testConvert']);
+$router->post('/admin/achadinhos/test-convert', [DealsController::class, 'testConvert']);
+$router->get('/admin/achadinhos/check-health', [DealsController::class, 'checkLinksHealth']);
+$router->get('/api/deals/active', [DealsController::class, 'apiActiveDeals']);
+
+// Redirecionamento e Rastreio de QR Code do Passageiro
+$router->get('/o/{id}', [DealsController::class, 'redirectDeal']);
+$router->get('/promo/{id}', [DealsController::class, 'redirectDeal']);
+
+// Webhook de Captação Automática de Ofertas via WhatsApp (Evolution API)
+$router->post('/api/evolution/deals-webhook', [EvolutionDealsWebhookController::class, 'handle']);
+$router->get('/api/evolution/deals-webhook', [EvolutionDealsWebhookController::class, 'handle']);

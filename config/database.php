@@ -21,5 +21,9 @@ return [
             'driver' => 'sqlite',
             'database' => $dbDir . '/studiolivecode_snoop.db',
         ],
+        'deals' => [
+            'driver' => 'sqlite',
+            'database' => $dbDir . '/studiolivecode_deals.db',
+        ],
     ]
 ];

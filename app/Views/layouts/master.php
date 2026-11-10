@@ -401,6 +401,12 @@
                     <span>Minha Loja</span>
                 </a>
             </li>
+            <li>
+                <a href="/admin/achadinhos" class="sidebar-link <?= ($currentRoute ?? '') === '/admin/achadinhos' ? 'active' : '' ?>">
+                    <i class="fa fa-tags text-warning"></i>
+                    <span>Achadinhos & E-commerce</span>
+                </a>
+            </li>
 
             <div class="nav-category">Conta</div>
             <li>

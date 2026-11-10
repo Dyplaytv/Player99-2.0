@@ -160,6 +160,104 @@ $radioName = $radioInfo['radio_name'] ?? '';
             box-shadow: 0 4px 20px rgba(0, 243, 255, 0.35);
             pointer-events: auto;
         }
+
+        /* Banner Flutuante de Achadinhos / Ofertas E-commerce */
+        #dealBanner {
+            display: none;
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 26, 0.94);
+            border: 2px solid #ffaa00;
+            border-radius: 50px;
+            padding: 6px 18px 6px 10px;
+            color: #fff;
+            z-index: 3000;
+            box-shadow: 0 8px 30px rgba(255, 170, 0, 0.4);
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            pointer-events: auto;
+            animation: pulseBanner 2.5s infinite;
+        }
+        @keyframes pulseBanner {
+            0%, 100% { box-shadow: 0 8px 30px rgba(255, 170, 0, 0.35); transform: translateX(-50%) scale(1); }
+            50% { box-shadow: 0 10px 40px rgba(255, 170, 0, 0.7); transform: translateX(-50%) scale(1.02); }
+        }
+        #dealBanner img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #ffaa00;
+            display: block;
+        }
+        .deal-btn-touch {
+            background: linear-gradient(135deg, #ffaa00, #ff4500);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* Modal Tela Cheia com QR Code Ampliado e Timer */
+        #dealModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 16, 0.96);
+            z-index: 9000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+            text-align: center;
+            pointer-events: auto;
+        }
+        .deal-modal-card {
+            background: #101422;
+            border: 2px solid #00f3ff;
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 243, 255, 0.3);
+            position: relative;
+        }
+        .deal-timer-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 16px;
+            overflow: hidden;
+        }
+        .deal-timer-bar {
+            height: 100%;
+            width: 100%;
+            background: #00f3ff;
+            transition: width 1s linear;
+        }
+        .deal-close-btn {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="rot-<?= $rotation ?>">
@@ -203,12 +301,56 @@ $radioName = $radioInfo['radio_name'] ?? '';
             <?php endforeach; ?>
         <?php endif; ?>
 
+        <!-- Banner Flutuante de Oferta / Achadinho -->
+        <div id="dealBanner" onclick="openDealModal()">
+            <img id="dealBannerImg" src="" alt="Produto">
+            <div style="text-align: left; line-height: 1.2;">
+                <div style="font-size: 11px; color: #ffaa00; font-weight: 700; text-transform: uppercase;">
+                    🔥 Achadinho no Carro <span id="dealBannerDiscount" style="background:#ff3333; color:#fff; padding:1px 5px; border-radius:4px; font-size:10px; margin-left:4px;"></span>
+                </div>
+                <div id="dealBannerTitle" style="font-size: 13px; font-weight: 700; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                <div id="dealBannerPrice" style="font-size: 12px; color: #00ffaa; font-weight: 800;"></div>
+            </div>
+            <div class="deal-btn-touch">Toque para Comprar</div>
+        </div>
+
         <div class="telemetry-badge">
             Player99 • Cod: <?= htmlspecialchars($codigo) ?>
             <?php if ($audioMode === 'radio' && !empty($radioName)): ?>
                 • 📻 <span id="badgeRadioName"><?= htmlspecialchars($radioName) ?></span>
             <?php endif; ?>
             • <span id="pingStatus">Online</span>
+        </div>
+    </div>
+
+    <!-- Modal Interativo do Passageiro com QR Code Ampliado -->
+    <div id="dealModal">
+        <div class="deal-modal-card">
+            <button type="button" class="deal-close-btn" onclick="closeDealModal()">&times;</button>
+            <div style="font-size: 12px; color: #ffaa00; font-weight: 800; text-transform: uppercase; margin-bottom: 6px;">
+                🔥 Oferta Especial Para Passageiros
+            </div>
+            <h3 id="dealModalTitle" style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px; line-height: 1.3;"></h3>
+            
+            <div style="background: #fff; padding: 12px; border-radius: 16px; display: inline-block; margin-bottom: 12px;">
+                <img id="dealModalQrCode" src="" style="width: 180px; height: 180px; display: block;" alt="QR Code">
+            </div>
+
+            <div style="margin-bottom: 8px;">
+                <span id="dealModalOldPrice" style="text-decoration: line-through; color: #888; font-size: 13px; margin-right: 8px;"></span>
+                <span id="dealModalPrice" style="color: #00ffaa; font-weight: 800; font-size: 22px;"></span>
+            </div>
+
+            <p style="font-size: 12px; color: #a0aec0; margin-bottom: 4px;">
+                📱 Aponte a câmera do celular para comprar com desconto direto na loja oficial!
+            </p>
+
+            <div class="deal-timer-bar-wrap">
+                <div id="dealTimerBar" class="deal-timer-bar"></div>
+            </div>
+            <div style="font-size: 11px; color: #718096; margin-top: 6px;">
+                Voltando à programação em <span id="dealCountdown">15</span>s...
+            </div>
         </div>
     </div>
 
@@ -330,6 +472,10 @@ $radioName = $radioInfo['radio_name'] ?? '';
         function playNext() {
             if (mediaItems.length === 0) return;
 
+            // Reseta trava de toques e exibe a próxima oferta de e-commerce
+            dealTouchCount = 0;
+            showNextDealBanner();
+
             mediaItems.forEach(el => {
                 el.classList.remove('active');
                 if (el.tagName === 'VIDEO') {
@@ -343,6 +489,117 @@ $radioName = $radioInfo['radio_name'] ?? '';
             current.classList.add('active');
             startCurrentItem(current);
         }
+
+        // ==========================================
+        // MÓDULO DE ACHADINHOS & OFERTAS E-COMMERCE
+        // ==========================================
+        const dealsList = <?= json_encode($deals ?? []) ?>;
+        const screenId = <?= (int)($screen['id'] ?? 0) ?>;
+        let currentDealIndex = 0;
+        let dealCountdownInterval = null;
+        let dealTouchCount = 0;
+        const MAX_DEAL_TOUCHES = 2; // Trava de segurança anti-abuso
+
+        function showNextDealBanner() {
+            if (!dealsList || dealsList.length === 0) return;
+            const deal = dealsList[currentDealIndex];
+            currentDealIndex = (currentDealIndex + 1) % dealsList.length;
+
+            const banner = document.getElementById('dealBanner');
+            const img = document.getElementById('dealBannerImg');
+            const title = document.getElementById('dealBannerTitle');
+            const price = document.getElementById('dealBannerPrice');
+            const disc = document.getElementById('dealBannerDiscount');
+
+            if (deal.image_url) {
+                img.src = deal.image_url;
+                img.style.display = 'block';
+            } else {
+                img.style.display = 'none';
+            }
+
+            title.innerText = deal.title || 'Oferta Imperdível';
+            price.innerText = (deal.price_new > 0) ? ('R$ ' + parseFloat(deal.price_new).toFixed(2).replace('.', ',')) : 'Aproveite o Desconto';
+            
+            if (deal.discount_pct > 0) {
+                disc.innerText = '-' + deal.discount_pct + '%';
+                disc.style.display = 'inline-block';
+            } else {
+                disc.style.display = 'none';
+            }
+
+            banner.setAttribute('data-deal-id', deal.id);
+            banner.style.display = 'flex';
+        }
+
+        function openDealModal() {
+            if (dealTouchCount >= MAX_DEAL_TOUCHES) return;
+            dealTouchCount++;
+
+            const banner = document.getElementById('dealBanner');
+            const dealId = parseInt(banner.getAttribute('data-deal-id') || '0', 10);
+            const deal = dealsList.find(d => d.id == dealId) || dealsList[0];
+            if (!deal) return;
+
+            // Pausa mídia e timer atual
+            const activeVid = document.querySelector('video.media-item.active');
+            if (activeVid) activeVid.pause();
+            if (slideTimer) clearTimeout(slideTimer);
+
+            // Popula dados no modal
+            document.getElementById('dealModalTitle').innerText = deal.title || '';
+            document.getElementById('dealModalPrice').innerText = (deal.price_new > 0) ? ('R$ ' + parseFloat(deal.price_new).toFixed(2).replace('.', ',')) : '';
+            if (deal.price_old > deal.price_new && deal.price_old > 0) {
+                const oldEl = document.getElementById('dealModalOldPrice');
+                oldEl.innerText = 'De R$ ' + parseFloat(deal.price_old).toFixed(2).replace('.', ',');
+                oldEl.style.display = 'inline';
+            } else {
+                document.getElementById('dealModalOldPrice').style.display = 'none';
+            }
+
+            // Gera QR Code via API pública sem dependências pesadas
+            const targetUrl = window.location.origin + '/o/' + deal.id + '?carro=' + screenId;
+            const qrApi = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=4&data=' + encodeURIComponent(targetUrl);
+            document.getElementById('dealModalQrCode').src = qrApi;
+
+            // Exibe modal e esconde banner
+            const modal = document.getElementById('dealModal');
+            modal.style.display = 'flex';
+            banner.style.display = 'none';
+
+            // Cronômetro regressivo de 15 segundos
+            let secondsLeft = 15;
+            const countdownEl = document.getElementById('dealCountdown');
+            const timerBar = document.getElementById('dealTimerBar');
+            countdownEl.innerText = secondsLeft;
+            timerBar.style.width = '100%';
+
+            if (dealCountdownInterval) clearInterval(dealCountdownInterval);
+            dealCountdownInterval = setInterval(() => {
+                secondsLeft--;
+                countdownEl.innerText = secondsLeft;
+                timerBar.style.width = ((secondsLeft / 15) * 100) + '%';
+                if (secondsLeft <= 0) {
+                    closeDealModal();
+                }
+            }, 1000);
+        }
+
+        function closeDealModal() {
+            if (dealCountdownInterval) clearInterval(dealCountdownInterval);
+            document.getElementById('dealModal').style.display = 'none';
+
+            // Retoma a reprodução comercial
+            const activeItem = mediaItems[currentIndex];
+            if (activeItem) {
+                startCurrentItem(activeItem);
+            } else {
+                playNext();
+            }
+        }
+
+        // Inicia primeira oferta após carregar
+        showNextDealBanner();
 
         // Inicia reprodução de vídeo/imagem e rádio
         syncAudioState();

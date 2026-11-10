@@ -1069,6 +1069,7 @@ class ClientDashboardController extends Controller
         $creditosUsados = [];
         $pedidosCliente = [];
         $faturamentoAdmin = [];
+        $dealsScansCount = 0;
         try {
             $pdoFin = BillingController::getDb();
             $planosAtivos = $pdoFin->query("SELECT * FROM planos WHERE ativo = 1 ORDER BY valor ASC, dias ASC")->fetchAll();
@@ -1086,6 +1087,11 @@ class ClientDashboardController extends Controller
             $pedidosCliente = $stmtPedCli->fetchAll();
 
             $faturamentoAdmin = $pdoFin->query("SELECT * FROM faturamento_admin WHERE id = 1")->fetch() ?: [];
+
+            \App\Models\Deal::ensureSchema();
+            $stmtDeals = \App\Core\Database::deals()->prepare("SELECT COUNT(*) FROM deal_clicks WHERE driver_user_id = :id");
+            $stmtDeals->execute([':id' => $idCliente]);
+            $dealsScansCount = (int)$stmtDeals->fetchColumn();
         } catch (\Throwable $e) {}
 
         $this->render('client/dashboard', [
@@ -1113,6 +1119,7 @@ class ClientDashboardController extends Controller
             'affiliateBalance' => $affiliateBalance,
             'affiliateReferrals' => $affiliateReferrals,
             'affiliateTransactions' => $affiliateTransactions,
+            'dealsScansCount' => $dealsScansCount,
             'currentVideoCount' => $currentVideoCount,
             'maxVideosAllowed' => $maxVideosAllowed,
             'maxVideoSizeMb' => $maxVideoSizeMb,

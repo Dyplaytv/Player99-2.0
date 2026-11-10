@@ -1051,10 +1051,10 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #007bff !important;">
+                        <div class="card mb-0 border-0 shadow-sm" style="border-bottom: 4px solid #ff7700 !important;">
                             <div class="card-body text-center py-4">
-                                <small class="text-muted font-weight-bold text-uppercase">Cliques no Link</small>
-                                <h2 class="font-weight-bold text-primary mt-2 mb-0"><?= (int)($client['affiliateClicks'] ?? 0) ?></h2>
+                                <small class="text-muted font-weight-bold text-uppercase">Leads no Carro (QR Code)</small>
+                                <h2 class="font-weight-bold mt-2 mb-0" style="color: #ff7700;"><?= (int)($dealsScansCount ?? 0) ?></h2>
                             </div>
                         </div>
                     </div>
