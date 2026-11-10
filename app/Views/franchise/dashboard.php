@@ -1025,8 +1025,12 @@ function openDriverScreens(driverId, driverName) {
         let html = '<div class="table-responsive"><table class="table table-dark table-striped align-middle mb-0"><thead><tr><th>Código</th><th>Identificação</th><th>Status</th><th>Validade</th></tr></thead><tbody>';
         list.forEach(s => {
             const online = parseInt(s.is_online || 0, 10) === 1;
-            const exp = (s.expire_date || '').slice(0, 10);
-            const expLabel = exp ? (exp < DRIVER_TODAY ? '<span class="badge bg-danger">Vencida (' + exp.split('-').reverse().join('/') + ')</span>' : '<span class="badge bg-success">' + exp.split('-').reverse().join('/') + '</span>') : '<span class="text-muted small">Segue conta</span>';
+            const rawExp = String(s.expire_date || '');
+            const expDate = rawExp.slice(0, 10);
+            const expTime = rawExp.length > 10 ? (' ' + rawExp.slice(11, 16)) : '';
+            const expired = parseInt(s.is_expired || 0, 10) === 1 || (expDate !== '' && rawExp.length <= 10 && expDate < DRIVER_TODAY);
+            const fmt = expDate ? (expDate.split('-').reverse().join('/') + expTime) : '';
+            const expLabel = expDate ? (expired ? '<span class="badge bg-danger">Vencida (' + fmt + ')</span>' : '<span class="badge bg-success">' + fmt + '</span>') : '<span class="text-muted small">Segue conta</span>';
             html += '<tr>'
                 + '<td><code class="text-info">' + escHtml(s.player_code) + '</code></td>'
                 + '<td>' + escHtml(s.nome_tela || s.title || ('Tela #' + s.id)) + '</td>'

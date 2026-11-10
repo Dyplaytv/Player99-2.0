@@ -515,7 +515,7 @@ class ClientDashboardController extends Controller
             'id' => $idCliente,
             'title' => 'Motorista / Parceiro',
             'username' => $_SESSION['cliente_user'] ?? 'motorista',
-            'expire_date' => date('Y-m-d', strtotime('+30 days')),
+            'expire_date' => Screen::defaultTrialExpireAt(),
             'max_videos' => 10,
             'max_video_size_mb' => 50,
             'commissionPercent' => 20,
@@ -780,6 +780,8 @@ class ClientDashboardController extends Controller
                 if ($stmtChk->fetch()) {
                     $err = 'Erro: Este código de player já está em uso.';
                 } else {
+                    $trialHours = Screen::getNewScreenTrialHours();
+                    $trialExpire = Screen::defaultTrialExpireAt($trialHours);
                     Screen::create([
                         'id_cliente' => $idCliente,
                         'player_code' => $code,
@@ -787,9 +789,14 @@ class ClientDashboardController extends Controller
                         'nome_tela' => $nomeTela,
                         'rotation' => $rotation,
                         'audio_mode' => 'video',
+                        'expire_date' => $trialExpire,
                         'ultimo_ping' => date('Y-m-d H:i:s')
                     ]);
-                    $msg = "Nova tela ({$code}) vinculada com sucesso!";
+                    if ($trialHours > 0) {
+                        $msg = "Nova tela ({$code}) vinculada! Válida por {$trialHours} hora(s) até " . date('d/m/Y H:i', strtotime($trialExpire)) . ".";
+                    } else {
+                        $msg = "Nova tela ({$code}) vinculada! Faça uma recarga para liberar a transmissão.";
+                    }
                 }
             }
 
@@ -830,8 +837,8 @@ class ClientDashboardController extends Controller
                     $err = 'Crédito inválido ou já utilizado.';
                 } else {
                     $diasAdd = max(1, (int)$credRow['dias']);
-                    $curExp = !empty($telaRow['expire_date']) ? $telaRow['expire_date'] : '';
-                    $baseDate = ($curExp !== '' && $curExp >= date('Y-m-d')) ? $curExp : date('Y-m-d');
+                    $curExp = !empty($telaRow['expire_date']) ? (string)$telaRow['expire_date'] : '';
+                    $baseDate = ($curExp !== '' && !Screen::isExpiredValue($curExp)) ? substr($curExp, 0, 10) : date('Y-m-d');
                     $newExp = date('Y-m-d', strtotime($baseDate . " +{$diasAdd} days"));
 
                     $pdo->prepare("UPDATE telas SET expire_date = :exp, force_reload = 1 WHERE id = :id")

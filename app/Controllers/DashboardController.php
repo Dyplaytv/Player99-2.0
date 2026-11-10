@@ -178,7 +178,7 @@ class DashboardController extends Controller
                 if ($exp === '') {
                     $exp = trim((string)($sh['client_expire_date'] ?? ''));
                 }
-                $blocked = ((int)$sh['client_active'] === 0) || ($exp !== '' && substr($exp, 0, 10) < $today);
+                $blocked = ((int)$sh['client_active'] === 0) || Screen::isExpiredValue($exp);
                 if ($blocked) {
                     $fin['telas_vencidas']++;
                 } else {

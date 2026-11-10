@@ -91,7 +91,8 @@
                                 <?php
                                     $ownExp = trim((string)($tela['expire_date'] ?? ''));
                                     $effExp = $ownExp !== '' ? $ownExp : trim((string)($tela['client_expire_date'] ?? ''));
-                                    $expired = ($effExp !== '' && substr($effExp, 0, 10) < date('Y-m-d'));
+                                    $expired = \App\Models\Screen::isExpiredValue($effExp);
+                                    $hasTime = strlen($effExp) > 10;
                                 ?>
                                 <div class="d-flex align-items-center gap-1" style="min-width: 190px;">
                                     <input type="date" id="exp_<?= (int)$tela['id'] ?>" class="form-control form-control-sm bg-dark text-white border-secondary" value="<?= htmlspecialchars(substr($effExp, 0, 10)) ?>" style="color-scheme: dark; max-width: 140px;">
@@ -100,7 +101,13 @@
                                     </button>
                                 </div>
                                 <small class="<?= $expired ? 'text-danger' : 'text-success' ?>" id="expst_<?= (int)$tela['id'] ?>">
-                                    <?= $effExp === '' ? 'Sem vencimento' : ($expired ? 'Vencida - em bloqueio' : 'Ativa') ?>
+                                    <?php if ($effExp === ''): ?>
+                                        Sem vencimento
+                                    <?php elseif ($expired): ?>
+                                        Vencida<?= $hasTime ? ' (' . date('d/m H:i', strtotime($effExp)) . ')' : '' ?> - em bloqueio
+                                    <?php else: ?>
+                                        <?= $hasTime ? 'Ativa até ' . date('d/m H:i', strtotime($effExp)) : 'Ativa' ?>
+                                    <?php endif; ?>
                                 </small>
                             </td>
                             <td>

@@ -733,9 +733,21 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                                 $btnTitle = 'Rádio Web';
                                             }
 
-                                            $telaExpire = !empty($tela['expire_date']) ? $tela['expire_date'] : ($client['expire_date'] ?? '');
-                                            $isExpired = ($telaExpire !== '' && $telaExpire < date('Y-m-d'));
-                                            $daysRemaining = ($telaExpire !== '') ? (int)ceil((strtotime($telaExpire) - strtotime(date('Y-m-d'))) / 86400) : 0;
+                                            $telaExpire = !empty($tela['expire_date']) ? (string)$tela['expire_date'] : (string)($client['expire_date'] ?? '');
+                                            $isExpired = \App\Models\Screen::isExpiredValue($telaExpire);
+                                            $hasTime = strlen(trim($telaExpire)) > 10;
+                                            $remainBadge = '';
+                                            if ($telaExpire !== '' && !$isExpired) {
+                                                if ($hasTime) {
+                                                    $diffSec = max(0, strtotime($telaExpire) - time());
+                                                    $diffHours = (int)floor($diffSec / 3600);
+                                                    $diffDays = (int)floor($diffHours / 24);
+                                                    $remainBadge = $diffHours < 48 ? ($diffHours > 0 ? "{$diffHours}h" : max(1, (int)ceil($diffSec / 60)) . 'min') : "{$diffDays}d";
+                                                } else {
+                                                    $daysRemaining = (int)ceil((strtotime(substr($telaExpire, 0, 10)) - strtotime(date('Y-m-d'))) / 86400);
+                                                    $remainBadge = "{$daysRemaining}d";
+                                                }
+                                            }
                                             $safeTelaName = htmlspecialchars($tela['nome_tela'] ?: $tela['title'] ?: ('Tela #' . $tela['id']), ENT_QUOTES);
                                         ?>
                                             <tr>
@@ -791,12 +803,12 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                                     <?php if ($telaExpire === ''): ?>
                                                         <span class="badge badge-secondary px-2 py-1">Sem vencimento</span>
                                                     <?php elseif ($isExpired): ?>
-                                                        <span class="badge badge-danger px-2 py-1" title="Venceu em <?= date('d/m/Y', strtotime($telaExpire)) ?>">
-                                                            Vencida (<?= date('d/m/Y', strtotime($telaExpire)) ?>)
+                                                        <span class="badge badge-danger px-2 py-1" title="Venceu em <?= date($hasTime ? 'd/m/Y H:i' : 'd/m/Y', strtotime($telaExpire)) ?>">
+                                                            Vencida (<?= date($hasTime ? 'd/m/Y H:i' : 'd/m/Y', strtotime($telaExpire)) ?>)
                                                         </span>
                                                     <?php else: ?>
-                                                        <span class="badge badge-success px-2 py-1" title="Vence em <?= date('d/m/Y', strtotime($telaExpire)) ?>">
-                                                            <?= date('d/m/Y', strtotime($telaExpire)) ?> (<?= $daysRemaining ?>d)
+                                                        <span class="badge badge-success px-2 py-1" title="Vence em <?= date($hasTime ? 'd/m/Y H:i' : 'd/m/Y', strtotime($telaExpire)) ?>">
+                                                            <?= date($hasTime ? 'd/m/Y H:i' : 'd/m/Y', strtotime($telaExpire)) ?> (<?= $remainBadge ?>)
                                                         </span>
                                                     <?php endif; ?>
                                                 </td>

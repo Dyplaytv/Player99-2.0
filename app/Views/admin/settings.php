@@ -14,6 +14,56 @@
     <?= $msg ?? '' ?>
 
     <form method="POST" id="settingsForm">
+        <!-- 0. Duração Inicial de Teste para Novas Telas -->
+        <?php $trialHoursVal = (int)($settings['new_screen_trial_hours'] ?? 24); ?>
+        <div class="card bg-dark border-info border-opacity-25 mb-4">
+            <div class="card-header bg-dark border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 class="mb-0 fw-bold" style="color: #34e2e4;">
+                    <i class="fa fa-hourglass-half me-2"></i> Tempo Inicial das Novas Telas (Período de Teste)
+                </h6>
+                <span id="trialSaveBadge" class="small text-info" style="display:none;"></span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Define por quantas <b>horas</b> uma nova tela cadastrada ou vinculada fica ativa antes de expirar e entrar na <b>Tela de Bloqueio</b> caso não seja renovada. Padrão: <b>24 horas</b>.
+                </p>
+
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-md-5">
+                        <label class="form-label text-muted small fw-bold">DURAÇÃO EM HORAS (DIMINUIR OU AUMENTAR)</label>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary fw-bold" onclick="adjustTrialHours(-1)" title="Diminuir 1 hora">
+                                <i class="fa fa-minus"></i>
+                            </button>
+                            <input type="number" name="new_screen_trial_hours" id="new_screen_trial_hours" class="form-control bg-dark text-white border-secondary text-center fw-bold fs-5" min="0" value="<?= $trialHoursVal ?>" oninput="updateTrialPreview()">
+                            <span class="input-group-text bg-dark text-muted border-secondary">horas</span>
+                            <button type="button" class="btn btn-outline-secondary fw-bold" onclick="adjustTrialHours(1)" title="Aumentar 1 hora">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                            <button type="button" class="btn btn-cyan fw-bold px-3" onclick="saveTrialPeriodNow()">
+                                <i class="fa fa-save me-1"></i> Salvar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-7">
+                        <label class="form-label text-muted small fw-bold d-block">ATALHOS RÁPIDOS</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="setTrialHours(0)">0h (Já bloqueada)</button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="setTrialHours(6)">6h</button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="setTrialHours(12)">12h</button>
+                            <button type="button" class="btn btn-sm btn-outline-info fw-bold" onclick="setTrialHours(24)">24h (Padrão)</button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="setTrialHours(48)">48h (2 dias)</button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="setTrialHours(72)">72h (3 dias)</button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="setTrialHours(168)">168h (7 dias)</button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="setTrialHours(720)">720h (30 dias)</button>
+                        </div>
+                        <small id="trialHoursPreview" class="text-info d-block mt-2"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 1. WhatsApp Evolution API & QR Code -->
         <div class="card bg-dark border-secondary border-opacity-25 mb-4">
             <div class="card-header bg-dark border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -570,7 +620,67 @@ function testWelcomeWhatsApp() {
         });
 }
 
+function adjustTrialHours(delta) {
+    const inp = document.getElementById('new_screen_trial_hours');
+    if (!inp) return;
+    const next = Math.max(0, (parseInt(inp.value || '0', 10) || 0) + delta);
+    inp.value = String(next);
+    updateTrialPreview();
+}
+
+function setTrialHours(val) {
+    const inp = document.getElementById('new_screen_trial_hours');
+    if (!inp) return;
+    inp.value = String(Math.max(0, parseInt(val, 10) || 0));
+    updateTrialPreview();
+}
+
+function updateTrialPreview() {
+    const inp = document.getElementById('new_screen_trial_hours');
+    const prev = document.getElementById('trialHoursPreview');
+    if (!inp || !prev) return;
+    const h = Math.max(0, parseInt(inp.value || '0', 10) || 0);
+    if (h === 0) {
+        prev.className = 'text-warning d-block mt-2';
+        prev.innerHTML = '<i class="fa fa-lock me-1"></i> Novas telas serão criadas <b>já bloqueadas</b> até realizarem uma recarga.';
+    } else {
+        const d = (h / 24);
+        const daysLabel = h >= 24 ? (' (' + (Number.isInteger(d) ? d : d.toFixed(1)) + ' dia' + (d > 1 ? 's' : '') + ')') : '';
+        prev.className = 'text-info d-block mt-2';
+        prev.innerHTML = '<i class="fa fa-clock me-1"></i> Novas telas ficarão ativas por <b>' + h + ' hora(s)' + daysLabel + '</b> e vencerão automaticamente se não houver renovação.';
+    }
+}
+
+function saveTrialPeriodNow() {
+    const form = document.getElementById('settingsForm');
+    const badge = document.getElementById('trialSaveBadge');
+    if (!form) return;
+    if (badge) {
+        badge.style.display = 'inline';
+        badge.className = 'small text-warning';
+        badge.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Salvando período...';
+    }
+    const fd = new FormData(form);
+    fd.append('ajax', '1');
+    fetch('/admin/configuracoes', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if (badge) {
+                badge.className = res.ok ? 'small text-success fw-bold' : 'small text-danger';
+                badge.innerHTML = res.ok ? '<i class="fa fa-check-circle me-1"></i> Período salvo com sucesso!' : '<i class="fa fa-times-circle me-1"></i> Erro ao salvar';
+                setTimeout(() => { badge.style.display = 'none'; }, 4000);
+            }
+        })
+        .catch(() => {
+            if (badge) {
+                badge.className = 'small text-danger';
+                badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> Erro de conexão';
+            }
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    updateTrialPreview();
     if (document.getElementById('evolution_api_url').value.trim() !== '') {
         checkEvolutionStatus();
     }

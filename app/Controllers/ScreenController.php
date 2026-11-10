@@ -73,13 +73,23 @@ class ScreenController extends Controller
 
         $pdo = Database::clients();
         $error = '';
+        $trialHours = Screen::getNewScreenTrialHours();
+        $defaultExpireAt = Screen::defaultTrialExpireAt($trialHours);
+        $defaultExpireDate = substr($defaultExpireAt, 0, 10);
 
         if ($request->isPost()) {
             $title = trim($request->input('title', ''));
             $username = trim($request->input('username', ''));
             $password = trim($request->input('password', '123456'));
             $whatsapp = trim($request->input('whatsapp', ''));
-            $expireDate = trim($request->input('expire_date', date('Y-m-d', strtotime('+30 days'))));
+            $postedExpire = trim((string)$request->input('expire_date', ''));
+            $postedDefaultDate = trim((string)$request->input('default_expire_date', ''));
+            $postedDefaultFull = trim((string)$request->input('default_expire_full', ''));
+            if ($postedExpire === '' || ($postedDefaultDate !== '' && $postedExpire === $postedDefaultDate && $postedDefaultFull !== '')) {
+                $expireDate = $postedDefaultFull !== '' ? $postedDefaultFull : $defaultExpireAt;
+            } else {
+                $expireDate = $postedExpire;
+            }
             $playerCode = strtoupper(trim($request->input('player_code', '')));
             $rotation = (int)$request->input('rotation', 0);
             $audioMode = trim($request->input('audio_mode', 'video'));
@@ -110,14 +120,15 @@ class ScreenController extends Controller
                     $clientId = (int)$pdo->lastInsertId();
 
                     // 2. Cria a tela vinculada
-                    $stmtTela = $pdo->prepare("INSERT INTO telas (id_cliente, nome_tela, title, player_code, rotation, audio_mode) VALUES (:cid, :nt, :t, :code, :rot, :aud)");
+                    $stmtTela = $pdo->prepare("INSERT INTO telas (id_cliente, nome_tela, title, player_code, rotation, audio_mode, expire_date) VALUES (:cid, :nt, :t, :code, :rot, :aud, :exp)");
                     $stmtTela->execute([
                         ':cid' => $clientId,
                         ':nt' => $title,
                         ':t' => $title,
                         ':code' => $playerCode,
                         ':rot' => $rotation,
-                        ':aud' => $audioMode
+                        ':aud' => $audioMode,
+                        ':exp' => $expireDate
                     ]);
 
                     \App\Services\WhatsAppWelcomeService::sendOnRegistration($title, $username, $whatsapp);
@@ -138,6 +149,9 @@ class ScreenController extends Controller
             'currentRoute' => '/admin/telas',
             'currentUser' => Auth::user(),
             'suggestedCode' => $suggestedCode,
+            'trialHours' => $trialHours,
+            'defaultExpireAt' => $defaultExpireAt,
+            'defaultExpireDate' => $defaultExpireDate,
             'error' => $error
         ], 'layouts/master');
     }
@@ -347,7 +361,7 @@ class ScreenController extends Controller
             if ($exp === '' && $cli) {
                 $exp = trim((string)($cli['expire_date'] ?? ''));
             }
-            return ($exp !== '' && substr($exp, 0, 10) < $today);
+            return Screen::isExpiredValue($exp);
         } catch (\Throwable $e) {
             return false;
         }

@@ -287,7 +287,7 @@ class FranchiseController extends Controller
                 $totalScreens += (int)$d['telas_count'];
                 $onlineScreens += (int)$d['telas_online'];
 
-                $isActive = ((int)($d['active'] ?? 1) === 1) && (empty($d['expire_date']) || substr((string)$d['expire_date'], 0, 10) >= $today);
+                $isActive = ((int)($d['active'] ?? 1) === 1) && !Screen::isExpiredValue($d['expire_date'] ?? '');
                 if ($isActive) {
                     $activeDrivers++;
                 }
@@ -303,6 +303,7 @@ class FranchiseController extends Controller
                 $stmtSc->execute($driverIds);
                 foreach ($stmtSc->fetchAll() as $sc) {
                     $cid = (int)$sc['id_cliente'];
+                    $sc['is_expired'] = Screen::isExpiredValue($sc['expire_date'] ?? '') ? 1 : 0;
                     $driverScreens[$cid][] = $sc;
                 }
             }

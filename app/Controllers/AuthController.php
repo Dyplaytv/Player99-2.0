@@ -7,6 +7,7 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Models\User;
 use App\Models\Client;
+use App\Models\Screen;
 
 class AuthController extends Controller
 {
@@ -251,7 +252,7 @@ class AuthController extends Controller
             } catch (\Throwable $e) {}
         }
 
-        $vence = date('Y-m-d', strtotime('+30 DAYS'));
+        $vence = Screen::defaultTrialExpireAt();
         $macAddress = sprintf('%02X:%02X:%02X:%02X:%02X:%02X', mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255), mt_rand(0, 255));
         $deviceKey = substr(md5((string)mt_rand()), 0, 6);
         $newAffiliateCode = 'REF-' . strtoupper(substr(md5(uniqid('p99_', true)), 0, 6));

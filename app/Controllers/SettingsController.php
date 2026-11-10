@@ -79,6 +79,7 @@ class SettingsController extends Controller
                 'evolution_instance_name' => trim((string)$request->input('evolution_instance_name', 'player99')) ?: 'player99',
                 'welcome_whatsapp_enabled' => $request->input('welcome_whatsapp_enabled') === '1' ? '1' : '0',
                 'welcome_whatsapp_message' => trim((string)$request->input('welcome_whatsapp_message', '')),
+                'new_screen_trial_hours' => (string)max(0, (int)$request->input('new_screen_trial_hours', 24)),
                 'ai_agent_enabled' => $request->input('ai_agent_enabled') === '1' ? '1' : '0',
                 'ai_provider' => trim((string)$request->input('ai_provider', 'openai')),
                 'ai_human_delay' => (string)(int)$request->input('ai_human_delay', 3),
@@ -131,6 +132,9 @@ class SettingsController extends Controller
 
         if (!isset($savedSettings['welcome_whatsapp_enabled'])) {
             $savedSettings['welcome_whatsapp_enabled'] = '1';
+        }
+        if (!isset($savedSettings['new_screen_trial_hours']) || trim((string)$savedSettings['new_screen_trial_hours']) === '') {
+            $savedSettings['new_screen_trial_hours'] = '24';
         }
         if (empty($savedSettings['welcome_whatsapp_message'])) {
             $savedSettings['welcome_whatsapp_message'] = WhatsAppWelcomeService::DEFAULT_TEMPLATE;

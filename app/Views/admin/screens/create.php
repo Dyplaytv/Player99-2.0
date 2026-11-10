@@ -66,8 +66,10 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label text-muted small fw-bold">Validade / Vencimento</label>
-                        <input type="date" name="expire_date" class="form-control bg-dark text-white border-secondary" value="<?= date('Y-m-d', strtotime('+30 days')) ?>">
+                        <label class="form-label text-muted small fw-bold">Validade / Vencimento (Padrão: <?= (int)($trialHours ?? 24) ?>h)</label>
+                        <input type="hidden" name="default_expire_date" value="<?= htmlspecialchars($defaultExpireDate ?? date('Y-m-d', strtotime('+1 day'))) ?>">
+                        <input type="hidden" name="default_expire_full" value="<?= htmlspecialchars($defaultExpireAt ?? date('Y-m-d H:i:s', strtotime('+24 hours'))) ?>">
+                        <input type="date" name="expire_date" class="form-control bg-dark text-white border-secondary" value="<?= htmlspecialchars($defaultExpireDate ?? date('Y-m-d', strtotime('+1 day'))) ?>" style="color-scheme: dark;">
                     </div>
                 </div>
 

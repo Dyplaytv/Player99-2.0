@@ -87,4 +87,51 @@ class Screen extends Model
         $stmt->bindValue(':id', $id);
         return $stmt->execute();
     }
+
+    /**
+     * Retorna a quantidade de horas de validade inicial para novas telas (padrão: 24h).
+     */
+    public static function getNewScreenTrialHours(): int
+    {
+        try {
+            $pdoUsers = \App\Core\Database::users();
+            $stmt = $pdoUsers->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'new_screen_trial_hours' LIMIT 1");
+            $stmt->execute();
+            $val = $stmt->fetchColumn();
+            if ($val !== false && $val !== null && trim((string)$val) !== '') {
+                return max(0, (int)$val);
+            }
+        } catch (\Throwable $e) {}
+        return 24;
+    }
+
+    /**
+     * Calcula a data/hora de expiração padrão para uma nova tela conforme configuração global.
+     */
+    public static function defaultTrialExpireAt(?int $hours = null, ?int $baseTs = null): string
+    {
+        $h = $hours !== null ? max(0, $hours) : self::getNewScreenTrialHours();
+        $now = $baseTs ?? time();
+        if ($h === 0) {
+            return date('Y-m-d H:i:s', $now - 60);
+        }
+        return date('Y-m-d H:i:s', $now + ($h * 3600));
+    }
+
+    /**
+     * Verifica se uma data/hora de validade (YYYY-MM-DD ou YYYY-MM-DD HH:MM:SS) está vencida.
+     */
+    public static function isExpiredValue(?string $exp, ?int $nowTs = null): bool
+    {
+        $exp = trim((string)$exp);
+        if ($exp === '') {
+            return false;
+        }
+        $now = $nowTs ?? time();
+        if (strlen($exp) > 10) {
+            $ts = strtotime($exp);
+            return $ts !== false && $ts <= $now;
+        }
+        return substr($exp, 0, 10) < date('Y-m-d', $now);
+    }
 }
