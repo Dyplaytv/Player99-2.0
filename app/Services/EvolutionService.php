@@ -10,9 +10,14 @@ class EvolutionService
     public function __construct(string $baseUrl, string $apiKey, string $instance)
     {
         $baseUrl = trim($baseUrl);
+        // Remove barras extras no início acidentais (ex: //127.0.0.1)
+        $baseUrl = preg_replace('#^/+#', '', $baseUrl);
         if (!empty($baseUrl) && !preg_match('#^https?://#i', $baseUrl)) {
             $baseUrl = 'http://' . $baseUrl;
         }
+        // Garante exatamente duas barras após o protocolo (corrige http://// -> http://)
+        $baseUrl = preg_replace('#^(https?:)/+#i', '$1//', $baseUrl);
+
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->apiKey = trim($apiKey);
         $this->instance = trim($instance);
