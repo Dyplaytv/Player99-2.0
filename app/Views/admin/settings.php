@@ -13,7 +13,7 @@
 
     <?= $msg ?? '' ?>
 
-    <form method="POST">
+    <form method="POST" id="settingsForm">
         <!-- 1. WhatsApp Evolution API & QR Code -->
         <div class="card bg-dark border-secondary border-opacity-25 mb-4">
             <div class="card-header bg-dark border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -48,7 +48,7 @@
                 <div class="row g-3">
                     <div class="col-12 col-md-4">
                         <label class="form-label text-muted small fw-bold">URL DA EVOLUTION API</label>
-                        <input type="text" name="evolution_api_url" id="evolution_api_url" class="form-control bg-dark text-white border-secondary" value="<?= htmlspecialchars($settings['evolution_api_url'] ?? '') ?>" placeholder="https://api.seudominio.com">
+                        <input type="text" name="evolution_api_url" id="evolution_api_url" class="form-control bg-dark text-white border-secondary" value="<?= htmlspecialchars($settings['evolution_api_url'] ?? '') ?>" placeholder="http://172.17.0.1:8095">
                     </div>
                     <div class="col-12 col-md-5">
                         <label class="form-label text-muted small fw-bold">API KEY GLOBAL</label>
@@ -60,11 +60,12 @@
                     </div>
                 </div>
 
-                <div class="mt-3 p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                <div class="mt-3 p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <small class="text-muted">
                         <i class="fa fa-info-circle text-info me-1"></i> <b>URL do Webhook do Agente I.A.:</b>
-                        <code class="text-info ms-1"><?= (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? '75.119.156.103') ?>/api/evolution/webhook</code>
+                        <code class="text-info ms-1"><?= htmlspecialchars($webhookUrl ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . ($_SERVER['HTTP_HOST'] ?? 'teste.player99.com.br') . "/api/evolution/webhook")) ?></code>
                     </small>
+                    <small class="text-success"><i class="fa fa-bolt me-1"></i> Webhook + Verificação Ativa Automática habilitados</small>
                 </div>
             </div>
         </div>
@@ -73,9 +74,12 @@
         <div class="card bg-dark border-secondary border-opacity-25 mb-4">
             <div class="card-header bg-dark border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h6 class="mb-0 fw-bold text-warning"><i class="fa fa-robot me-2"></i> Agente de Inteligência Artificial & Provedores de IA</h6>
-                <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" name="ai_agent_enabled" value="1" id="aiAgentEnabled" <?= ($settings['ai_agent_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-                    <label class="form-check-label text-white fw-bold small" for="aiAgentEnabled">Ativar Agente no WhatsApp</label>
+                <div class="d-flex align-items-center gap-3">
+                    <span id="autoSaveBadge" class="small text-info" style="display:none;"></span>
+                    <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" name="ai_agent_enabled" value="1" id="aiAgentEnabled" <?= ($settings['ai_agent_enabled'] ?? '0') === '1' ? 'checked' : '' ?> onchange="autoSaveAiSettings(false)">
+                        <label class="form-check-label text-white fw-bold small" for="aiAgentEnabled">Ativar Agente no WhatsApp</label>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -87,16 +91,16 @@
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-md-6">
                         <label class="form-label text-muted small fw-bold">MOTOR DE I.A. PRINCIPAL</label>
-                        <select name="ai_provider" class="form-select bg-dark text-white border-secondary">
-                            <option value="gemini" <?= ($settings['ai_provider'] ?? '') === 'gemini' ? 'selected' : '' ?>>Google Gemini 1.5 Flash (Recomendado - Rápido & Econômico)</option>
-                            <option value="openai" <?= ($settings['ai_provider'] ?? '') === 'openai' ? 'selected' : '' ?>>OpenAI ChatGPT (GPT-4o-mini)</option>
+                        <select name="ai_provider" id="ai_provider" class="form-select bg-dark text-white border-secondary" onchange="autoSaveAiSettings(false)">
+                            <option value="gemini" <?= ($settings['ai_provider'] ?? '') === 'gemini' ? 'selected' : '' ?>>Google Gemini Flash (Rápido & Econômico)</option>
+                            <option value="openai" <?= ($settings['ai_provider'] ?? 'openai') === 'openai' ? 'selected' : '' ?>>OpenAI ChatGPT (GPT-4o-mini)</option>
                         </select>
                     </div>
 
                     <div class="col-12 col-md-6">
                         <label class="form-label text-muted small fw-bold">DELAY DE DIGITAÇÃO HUMANA</label>
                         <div class="input-group">
-                            <input type="number" name="ai_human_delay" class="form-control bg-dark text-white border-secondary" value="<?= htmlspecialchars($settings['ai_human_delay'] ?? '3') ?>" min="1" max="10">
+                            <input type="number" name="ai_human_delay" id="ai_human_delay" class="form-control bg-dark text-white border-secondary" value="<?= htmlspecialchars($settings['ai_human_delay'] ?? '3') ?>" min="1" max="10" onchange="autoSaveAiSettings(false)">
                             <span class="input-group-text bg-dark text-muted border-secondary">segundos</span>
                         </div>
                         <small class="text-muted" style="font-size: 11px;">Simula presença "digitando..." no WhatsApp para parecer um atendimento natural.</small>
@@ -152,7 +156,40 @@
                         <span>PROMPT DE TREINAMENTO DO AGENTE (PERSONA & DIRETRIZES DO ATENDIMENTO)</span>
                         <span class="text-info fw-normal" style="font-size: 12px;"><i class="fa fa-sparkles me-1"></i> Treinamento customizado</span>
                     </label>
-                    <textarea name="ai_system_prompt" rows="8" class="form-control bg-dark text-white border-secondary font-monospace" style="font-size: 13px; line-height: 1.5;"><?= htmlspecialchars($settings['ai_system_prompt'] ?? '') ?></textarea>
+                    <textarea name="ai_system_prompt" id="ai_system_prompt" rows="8" class="form-control bg-dark text-white border-secondary font-monospace" style="font-size: 13px; line-height: 1.5;"><?= htmlspecialchars($settings['ai_system_prompt'] ?? '') ?></textarea>
+                </div>
+
+                <!-- Botões de Ação Rápida do Agente + Simulador e Monitor -->
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between p-3 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 mb-3">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-cyan" onclick="autoSaveAiSettings(true)">
+                            <i class="fa fa-save me-1"></i> Salvar & Sincronizar Agente Agora
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="simulateAiReply()">
+                            <i class="fa fa-comment-dots me-1"></i> Simular Resposta da I.A.
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="pollWhatsAppNow(true)">
+                            <i class="fab fa-whatsapp me-1"></i> Verificar Mensagens Recebidas Agora
+                        </button>
+                    </div>
+                    <small class="text-muted" id="pollStatusLabel"><i class="fa fa-sync fa-spin me-1"></i> Monitorando WhatsApp automaticamente...</small>
+                </div>
+
+                <!-- Resultado da Simulação -->
+                <div id="aiSimulationBox" class="p-3 rounded-3 bg-black border border-warning border-opacity-50 mb-3" style="display:none;">
+                    <div class="small text-warning fw-bold mb-1"><i class="fa fa-robot me-1"></i> Resposta Gerada pelo Agente I.A.:</div>
+                    <div id="aiSimulationText" class="text-white small" style="white-space: pre-wrap;"></div>
+                </div>
+
+                <!-- Monitor de Mensagens Processadas -->
+                <div class="p-3 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-info"><i class="fa fa-history me-1"></i> Últimas Mensagens Recebidas e Respondidas pelo Agente</span>
+                        <span class="badge bg-dark border border-secondary text-muted" style="font-size:11px;">Atualização em tempo real</span>
+                    </div>
+                    <div id="aiRecentLogs" class="small text-muted">
+                        Carregando histórico de atendimentos...
+                    </div>
                 </div>
             </div>
         </div>
@@ -221,13 +258,48 @@
 </div>
 
 <script>
-// Testador genérico de APIs com visualização de Latência e Status
+function autoSaveAiSettings(showAlert) {
+    const form = document.getElementById('settingsForm');
+    if (!form) return;
+    const badge = document.getElementById('autoSaveBadge');
+    if (badge) {
+        badge.style.display = 'inline';
+        badge.className = 'small text-warning';
+        badge.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Salvando e sincronizando...';
+    }
+
+    const fd = new FormData(form);
+    fd.append('ajax', '1');
+
+    fetch('/admin/configuracoes', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (badge && res.ok) {
+            badge.className = 'small text-success fw-bold';
+            badge.innerHTML = '<i class="fa fa-check-circle me-1"></i> Salvo & Sincronizado!';
+            setTimeout(() => { badge.style.display = 'none'; }, 4000);
+        }
+        if (showAlert && res.ok) {
+            pollWhatsAppNow(true);
+        }
+    })
+    .catch(() => {
+        if (badge) {
+            badge.className = 'small text-danger';
+            badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> Erro ao salvar';
+        }
+    });
+}
+
 function testService(serviceName) {
     const badge = document.getElementById('badge_' + serviceName);
     if (!badge) return;
 
     badge.className = 'small text-warning py-1';
-    badge.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Testando comunicação com o servidor da API...';
+    badge.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Testando comunicação e saldo da API...';
 
     let val = '';
     if (serviceName === 'gemini') val = document.getElementById('gemini_api_key').value;
@@ -241,15 +313,97 @@ function testService(serviceName) {
             if (res.ok) {
                 badge.className = 'small text-success py-1 fw-bold';
                 badge.innerHTML = '<i class="fa fa-check-circle me-1"></i> ' + res.msg;
+                autoSaveAiSettings(false);
             } else {
                 badge.className = 'small text-danger py-1 text-break';
                 badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> ' + res.msg;
             }
         })
-        .catch(err => {
+        .catch(() => {
             badge.className = 'small text-danger py-1';
             badge.innerHTML = '<i class="fa fa-times me-1"></i> Erro na requisição';
         });
+}
+
+function simulateAiReply() {
+    const box = document.getElementById('aiSimulationBox');
+    const txt = document.getElementById('aiSimulationText');
+    if (!box || !txt) return;
+
+    box.style.display = 'block';
+    txt.innerHTML = '<span class="text-warning"><i class="fa fa-spinner fa-spin me-1"></i> Gerando resposta de teste com o motor selecionado...</span>';
+
+    const fd = new FormData();
+    fd.append('api', 'ai_simulation');
+    fd.append('provider', document.getElementById('ai_provider').value);
+    fd.append('openai_key', document.getElementById('openai_api_key').value);
+    fd.append('gemini_key', document.getElementById('gemini_api_key').value);
+    fd.append('prompt', document.getElementById('ai_system_prompt').value);
+    fd.append('question', 'Olá! Sou motorista de aplicativo e quero saber como funciona para colocar a tela da Player99 no meu carro.');
+
+    fetch('/admin/configuracoes/test-api', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.ok) {
+            txt.className = 'text-success small fw-bold';
+            txt.innerText = res.msg;
+        } else {
+            txt.className = 'text-danger small fw-bold';
+            txt.innerText = 'Erro ao gerar resposta: ' + res.msg;
+        }
+    })
+    .catch(() => {
+        txt.className = 'text-danger small';
+        txt.innerText = 'Falha na comunicação com o servidor.';
+    });
+}
+
+function pollWhatsAppNow(force) {
+    const lbl = document.getElementById('pollStatusLabel');
+    if (lbl && force) {
+        lbl.innerHTML = '<i class="fa fa-spinner fa-spin text-info me-1"></i> Consultando mensagens na Evolution API...';
+    }
+
+    fetch('/api/evolution/poll' + (force ? '?force=1' : ''))
+        .then(r => r.json())
+        .then(data => {
+            if (lbl) {
+                lbl.innerHTML = '<i class="fa fa-check-circle text-success me-1"></i> Verificado às ' + new Date().toLocaleTimeString();
+            }
+            const container = document.getElementById('aiRecentLogs');
+            if (!container) return;
+
+            const logs = data.recent_logs || [];
+            if (logs.length === 0) {
+                container.innerHTML = '<span class="text-muted">Nenhuma mensagem recebida ainda após ativação do Agente. Envie um "Olá" de outro WhatsApp para testar!</span>';
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-dark table-sm table-bordered mb-0" style="font-size:12px;">';
+            html += '<thead><tr><th>Horário</th><th>Contato</th><th>Mensagem Recebida</th><th>Resposta da I.A. / Status</th></tr></thead><tbody>';
+            logs.forEach(row => {
+                let statusBadge = '';
+                if (row.status === 'replied') {
+                    statusBadge = '<span class="badge bg-success me-1">Respondido</span> ' + (row.ai_reply || '');
+                } else if (row.status === 'processing') {
+                    statusBadge = '<span class="badge bg-warning text-dark">Processando...</span>';
+                } else {
+                    statusBadge = '<span class="badge bg-danger me-1">Erro (' + (row.status || '') + ')</span> ' + (row.error_msg || '');
+                }
+                html += '<tr>';
+                html += '<td class="text-nowrap text-muted">' + (row.created_at || '') + '</td>';
+                html += '<td class="text-info">' + (row.remote_jid || '').replace('@s.whatsapp.net', '') + '</td>';
+                html += '<td>' + (row.user_text || '') + '</td>';
+                html += '<td>' + statusBadge + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        })
+        .catch(() => {});
 }
 
 function getEvolutionPayload() {
@@ -286,7 +440,7 @@ function checkEvolutionStatus() {
                 badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> Desconectado (' + state + ') - Clique em Gerar QR Code';
             }
         })
-        .catch(err => {
+        .catch(() => {
             badge.className = 'badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-3 py-2';
             badge.innerHTML = '<i class="fa fa-exclamation-triangle me-1"></i> Erro ao consultar servidor Evolution';
         });
@@ -296,7 +450,7 @@ function connectEvolution() {
     const wrapper = document.getElementById('qrCodeWrapper');
     const holder = document.getElementById('qrCodeImgHolder');
     const timer = document.getElementById('qrCodeTimer');
-    
+
     wrapper.classList.remove('d-none');
     holder.innerHTML = '<div class="text-info py-4"><i class="fa fa-spinner fa-spin fa-2x"></i><p class="mt-2 mb-0">Solicitando QR Code à Evolution...</p></div>';
 
@@ -312,7 +466,7 @@ function connectEvolution() {
                 const b64 = res.data.base64 || res.data.qrcode.base64;
                 holder.innerHTML = '<img src="' + b64 + '" style="max-width: 260px; border-radius: 8px; border: 4px solid #fff;" alt="QR Code">';
                 timer.innerText = 'QR Code gerado! Aponte o WhatsApp para conectar.';
-                
+
                 const interval = setInterval(() => {
                     fetch('/admin/configuracoes/evolution-status', {
                         method: 'POST',
@@ -336,7 +490,7 @@ function connectEvolution() {
                 holder.innerHTML = '<div class="alert alert-danger m-0">' + (res.error || 'Não foi possível gerar o QR Code. Verifique a URL e a API Key.') + '</div>';
             }
         })
-        .catch(err => {
+        .catch(() => {
             holder.innerHTML = '<div class="alert alert-danger m-0">Falha na conexão com a Evolution API.</div>';
         });
 }
@@ -356,5 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('evolution_api_url').value.trim() !== '') {
         checkEvolutionStatus();
     }
+    pollWhatsAppNow(false);
+    setInterval(() => pollWhatsAppNow(false), 6000);
 });
 </script>

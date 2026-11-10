@@ -115,9 +115,13 @@ $router->get('/admin/configuracoes/evolution-logout', [SettingsController::class
 $router->get('/configuracoes_root.php', [SettingsController::class, 'index']);
 $router->post('/configuracoes_root.php', [SettingsController::class, 'index']);
 
-// Webhook Receptor Evolution API (WhatsApp Leads & Atendimento I.A.)
+// Webhook Receptor Evolution API (WhatsApp Leads & Atendimento I.A.) + Poller Ativo
 $router->post('/api/evolution/webhook', [EvolutionWebhookController::class, 'handle']);
 $router->get('/api/evolution/webhook', [EvolutionWebhookController::class, 'handle']);
+$router->post('/api/evolution/webhook/{event}', [EvolutionWebhookController::class, 'handle']);
+$router->get('/api/evolution/webhook/{event}', [EvolutionWebhookController::class, 'handle']);
+$router->get('/api/evolution/poll', [EvolutionWebhookController::class, 'poll']);
+$router->post('/api/evolution/poll', [EvolutionWebhookController::class, 'poll']);
 
 // Web Rádios (Nativo MVC)
 $router->get('/admin/radios', [RadioController::class, 'index']);

@@ -441,5 +441,10 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        setInterval(function() {
+            fetch('/api/evolution/poll').catch(function() {});
+        }, 8000);
+    </script>
 </body>
 </html>

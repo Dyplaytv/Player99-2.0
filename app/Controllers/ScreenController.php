@@ -364,6 +364,16 @@ class ScreenController extends Controller
             Screen::updatePing((int)$screen['id']);
             $pdo = Database::clients();
             $radioInfo = $this->resolveRadioInfo($pdo, $screen);
+
+            register_shutdown_function(function () {
+                try {
+                    if (function_exists('fastcgi_finish_request')) {
+                        @fastcgi_finish_request();
+                    }
+                    \App\Controllers\EvolutionWebhookController::pollUnreadMessages(false);
+                } catch (\Throwable $e) {}
+            });
+
             $this->json([
                 'status' => 'ok',
                 'active' => 1,

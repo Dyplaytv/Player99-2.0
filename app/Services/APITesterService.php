@@ -70,32 +70,48 @@ class APITesterService
     }
 
     /**
-     * Testa OpenAI ChatGPT API
+     * Testa OpenAI ChatGPT API (valida autenticação + saldo/quota real com geração de chat)
      */
     public static function testOpenAI(string $apiKey): array
     {
+        $apiKey = trim($apiKey);
         if (empty($apiKey)) {
             return ['ok' => false, 'msg' => 'API Key vazia'];
         }
 
-        $ch = curl_init('https://api.openai.com/v1/models');
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $apiKey]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+            'model' => 'gpt-4o-mini',
+            'messages' => [
+                ['role' => 'user', 'content' => 'Responda apenas OK']
+            ],
+            'max_tokens' => 5
+        ]));
 
         $start = microtime(true);
         $res = curl_exec($ch);
         $latency = round((microtime(true) - $start) * 1000);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($httpCode === 200) {
-            return ['ok' => true, 'msg' => "Autenticado com sucesso - {$latency}ms"];
+            return ['ok' => true, 'msg' => "Autenticado e Respondendo (GPT-4o-mini) - {$latency}ms"];
         }
 
-        $data = json_decode($res, true);
+        $data = json_decode((string)$res, true);
+        $errCode = $data['error']['code'] ?? '';
         $errMsg = $data['error']['message'] ?? "Erro HTTP {$httpCode}";
+        if ($errCode === 'insufficient_quota') {
+            return ['ok' => false, 'msg' => "Chave válida, porém a conta OpenAI está sem saldo/créditos (insufficient_quota). Adicione créditos na OpenAI."];
+        }
         return ['ok' => false, 'msg' => $errMsg];
     }
 

@@ -6,19 +6,33 @@ use App\Core\Request;
 use App\Core\Auth;
 use App\Core\Database;
 use App\Services\EvolutionService;
+use App\Services\AIService;
 
 class SettingsController extends Controller
 {
-    public function index(Request $request): void
+    public static function buildWebhookUrl(): string
     {
-        if (!Auth::check() || !Auth::isRoot()) {
-            http_response_code(403);
-            die("Acesso Restrito: Apenas usuários Root podem acessar as configurações gerais do sistema.");
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+            || (($_SERVER['SERVER_PORT'] ?? '') == 443);
+        $scheme = $isHttps ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'teste.player99.com.br';
+        return $scheme . '://' . $host . '/api/evolution/webhook';
+    }
+
+    private function normalizeEvoUrl(string $evoUrl): string
+    {
+        $evoUrl = trim($evoUrl);
+        $evoUrl = preg_replace('#^/+#', '', $evoUrl);
+        if (!empty($evoUrl) && !preg_match('#^https?://#i', $evoUrl)) {
+            $evoUrl = 'http://' . $evoUrl;
         }
+        $evoUrl = preg_replace('#^(https?:)/+#i', '$1//', $evoUrl);
+        return rtrim($evoUrl, '/');
+    }
 
-        $pdo = Database::users();
-
-        // Garante tabela system_settings com schema seguro
+    private function ensureSettingsTable(\PDO $pdo): void
+    {
         $cols = $pdo->query("PRAGMA table_info(system_settings)")->fetchAll();
         $colNames = array_column($cols, 'name');
 
@@ -31,57 +45,87 @@ class SettingsController extends Controller
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
         }
+    }
+
+    private function upsertSetting(\PDO $pdo, string $key, string $value): void
+    {
+        $stmt = $pdo->prepare("INSERT INTO system_settings (setting_key, setting_value, updated_at) VALUES (:k, :v, datetime('now'))
+                               ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = excluded.updated_at");
+        $stmt->execute([':k' => $key, ':v' => $value]);
+    }
+
+    public function index(Request $request): void
+    {
+        if (!Auth::check() || !Auth::isRoot()) {
+            http_response_code(403);
+            die("Acesso Restrito: Apenas usuários Root podem acessar as configurações gerais do sistema.");
+        }
+
+        $pdo = Database::users();
+        $this->ensureSettingsTable($pdo);
 
         $msg = '';
 
         if ($request->isPost()) {
-            $evoUrl = trim($request->input('evolution_api_url', ''));
-            // Remove barras soltas no início e normaliza http://
-            $evoUrl = preg_replace('#^/+#', '', $evoUrl);
-            if (!empty($evoUrl) && !preg_match('#^https?://#i', $evoUrl)) {
-                $evoUrl = 'http://' . $evoUrl;
-            }
-            $evoUrl = preg_replace('#^(https?:)/+#i', '$1//', $evoUrl);
+            $evoUrl = $this->normalizeEvoUrl((string)$request->input('evolution_api_url', ''));
 
             $settingsToSave = [
                 'google_login_enabled' => $request->input('google_login_enabled') === '1' ? '1' : '0',
-                'google_client_id' => trim($request->input('google_client_id', '')),
-                'google_client_secret' => trim($request->input('google_client_secret', '')),
+                'google_client_id' => trim((string)$request->input('google_client_id', '')),
+                'google_client_secret' => trim((string)$request->input('google_client_secret', '')),
                 'evolution_api_url' => $evoUrl,
-                'evolution_api_key' => trim($request->input('evolution_api_key', '')),
-                'evolution_instance_name' => trim($request->input('evolution_instance_name', 'player99')),
+                'evolution_api_key' => trim((string)$request->input('evolution_api_key', '')),
+                'evolution_instance_name' => trim((string)$request->input('evolution_instance_name', 'player99')) ?: 'player99',
                 'ai_agent_enabled' => $request->input('ai_agent_enabled') === '1' ? '1' : '0',
-                'ai_provider' => trim($request->input('ai_provider', 'gemini')),
-                'ai_human_delay' => (int)$request->input('ai_human_delay', 3),
-                'ai_system_prompt' => trim($request->input('ai_system_prompt', '')),
-                'gemini_api_key' => trim($request->input('gemini_api_key', '')),
-                'openai_api_key' => trim($request->input('openai_api_key', '')),
-                'anthropic_api_key' => trim($request->input('anthropic_api_key', '')),
-                'tmdb_api_key' => trim($request->input('tmdb_api_key', '')),
-                'openweather_api_key' => trim($request->input('openweather_api_key', '')),
-                'mercadopago_access_token' => trim($request->input('mercadopago_access_token', ''))
+                'ai_provider' => trim((string)$request->input('ai_provider', 'openai')),
+                'ai_human_delay' => (string)(int)$request->input('ai_human_delay', 3),
+                'ai_system_prompt' => trim((string)$request->input('ai_system_prompt', '')),
+                'gemini_api_key' => trim((string)$request->input('gemini_api_key', '')),
+                'openai_api_key' => trim((string)$request->input('openai_api_key', '')),
+                'anthropic_api_key' => trim((string)$request->input('anthropic_api_key', '')),
+                'tmdb_api_key' => trim((string)$request->input('tmdb_api_key', '')),
+                'openweather_api_key' => trim((string)$request->input('openweather_api_key', '')),
+                'mercadopago_access_token' => trim((string)$request->input('mercadopago_access_token', ''))
             ];
 
-            $stmt = $pdo->prepare("INSERT INTO system_settings (setting_key, setting_value, updated_at) VALUES (:k, :v, datetime('now'))
-                                   ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = excluded.updated_at");
-
             foreach ($settingsToSave as $k => $v) {
-                $stmt->bindValue(':k', $k);
-                $stmt->bindValue(':v', (string)$v);
-                $stmt->execute();
+                $this->upsertSetting($pdo, $k, (string)$v);
             }
 
-            $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Configurações e Treinamento do Agente de I.A. salvos com sucesso!</div>";
+            $webhookSynced = false;
+            if (!empty($settingsToSave['evolution_api_url']) && !empty($settingsToSave['evolution_api_key'])) {
+                try {
+                    $evo = new EvolutionService(
+                        $settingsToSave['evolution_api_url'],
+                        $settingsToSave['evolution_api_key'],
+                        $settingsToSave['evolution_instance_name']
+                    );
+                    $whRes = $evo->setWebhook(self::buildWebhookUrl());
+                    $webhookSynced = !empty($whRes['success']);
+                } catch (\Throwable $e) {}
+            }
+
+            if ($request->input('ajax') === '1') {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'ok' => true,
+                    'webhook_synced' => $webhookSynced,
+                    'ai_agent_enabled' => $settingsToSave['ai_agent_enabled'],
+                    'ai_provider' => $settingsToSave['ai_provider'],
+                    'msg' => 'Configurações salvas e Agente I.A. sincronizado com sucesso!'
+                ]);
+                return;
+            }
+
+            $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Configurações, Webhook Evolution e Treinamento do Agente de I.A. salvos e sincronizados com sucesso!</div>";
         }
 
-        // Carrega configurações existentes
         $stmtAll = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
         $savedSettings = [];
         while ($row = $stmtAll->fetch()) {
             $savedSettings[$row['setting_key']] = $row['setting_value'];
         }
 
-        // Prompt Padrão de Treinamento se estiver vazio
         if (empty($savedSettings['ai_system_prompt'])) {
             $savedSettings['ai_system_prompt'] = "Você é a assistente virtual e consultora oficial da Player99 (plataforma inovadora de DOOH - Digital Out-Of-Home, mídia indoor em telas de carros de aplicativo como Uber e 99).\n\n"
                 . "SEU OBJETIVO:\n"
@@ -105,13 +149,11 @@ class SettingsController extends Controller
             'currentRoute' => '/admin/configuracoes',
             'currentUser' => Auth::user(),
             'settings' => $savedSettings,
+            'webhookUrl' => self::buildWebhookUrl(),
             'msg' => $msg
         ], 'layouts/master');
     }
 
-    /**
-     * Endpoint AJAX para Gerar QR Code ou Conectar à Evolution API
-     */
     public function evolutionConnect(Request $request): void
     {
         if (!Auth::check() || !Auth::isRoot()) {
@@ -119,55 +161,45 @@ class SettingsController extends Controller
             return;
         }
 
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
 
         $pdo = Database::users();
+        $this->ensureSettingsTable($pdo);
         $stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
         $settings = [];
         while ($row = $stmt->fetch()) {
             $settings[$row['setting_key']] = $row['setting_value'];
         }
 
-        $rawBody = json_decode(file_get_contents('php://input'), true) ?? [];
+        $rawBody = json_decode((string)file_get_contents('php://input'), true) ?? [];
         $url = $request->input('url') ?: ($rawBody['url'] ?? ($settings['evolution_api_url'] ?? ''));
         $key = $request->input('key') ?: ($rawBody['key'] ?? ($settings['evolution_api_key'] ?? ''));
-        $inst = $request->input('instance') ?: ($rawBody['instance'] ?? ($settings['evolution_instance_name'] ?? 'player99'));
+        $inst = $request->input('instance') ?: ($request->input('inst') ?: ($rawBody['instance'] ?? ($settings['evolution_instance_name'] ?? 'player99')));
 
-        // Normaliza a URL (remove barras soltas e garante http://)
-        $url = trim($url);
-        $url = preg_replace('#^/+#', '', $url);
-        if (!empty($url) && !preg_match('#^https?://#i', $url)) {
-            $url = 'http://' . $url;
-        }
-        $url = preg_replace('#^(https?:)/+#i', '$1//', $url);
+        $url = $this->normalizeEvoUrl((string)$url);
+        $key = trim((string)$key);
+        $inst = trim((string)$inst) ?: 'player99';
 
         if (empty($url) || empty($key)) {
             echo json_encode(['success' => false, 'error' => 'Por favor, preencha a URL da Evolution API e a API Key antes de conectar.']);
             return;
         }
 
-        // Salva automaticamente no banco para nunca perder a configuração
-        $stmtSave = $pdo->prepare("INSERT INTO system_settings (setting_key, setting_value, updated_at) VALUES (:k, :v, datetime('now'))
-                                   ON CONFLICT(setting_key) DO UPDATE SET setting_value = excluded.setting_value, updated_at = excluded.updated_at");
-        $stmtSave->execute([':k' => 'evolution_api_url', ':v' => $url]);
-        $stmtSave->execute([':k' => 'evolution_api_key', ':v' => $key]);
-        $stmtSave->execute([':k' => 'evolution_instance_name', ':v' => $inst]);
+        $this->upsertSetting($pdo, 'evolution_api_url', $url);
+        $this->upsertSetting($pdo, 'evolution_api_key', $key);
+        $this->upsertSetting($pdo, 'evolution_instance_name', $inst);
 
         $evo = new EvolutionService($url, $key, $inst);
 
-        // 1. Cria a instância se necessário, já configurando o webhook
-        $webhookUrl = 'https://' . ($_SERVER['HTTP_HOST'] ?? '') . '/api/evolution/webhook';
+        $webhookUrl = self::buildWebhookUrl();
         $evo->createInstance($webhookUrl);
+        $evo->setWebhook($webhookUrl);
 
-        // 2. Solicita conexão e captura QR Code
         $res = $evo->connect();
 
         echo json_encode($res);
     }
 
-    /**
-     * Endpoint AJAX para verificar status da conexão
-     */
     public function evolutionStatus(Request $request): void
     {
         if (!Auth::check() || !Auth::isRoot()) {
@@ -175,41 +207,45 @@ class SettingsController extends Controller
             return;
         }
 
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
 
         $pdo = Database::users();
+        $this->ensureSettingsTable($pdo);
         $stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
         $settings = [];
         while ($row = $stmt->fetch()) {
             $settings[$row['setting_key']] = $row['setting_value'];
         }
 
-        $rawBody = json_decode(file_get_contents('php://input'), true) ?? [];
+        $rawBody = json_decode((string)file_get_contents('php://input'), true) ?? [];
         $url = $request->input('url') ?: ($rawBody['url'] ?? ($settings['evolution_api_url'] ?? ''));
         $key = $request->input('key') ?: ($rawBody['key'] ?? ($settings['evolution_api_key'] ?? ''));
-        $inst = $request->input('instance') ?: ($rawBody['instance'] ?? ($settings['evolution_instance_name'] ?? 'player99'));
+        $inst = $request->input('instance') ?: ($request->input('inst') ?: ($rawBody['instance'] ?? ($settings['evolution_instance_name'] ?? 'player99')));
 
-        $url = trim($url);
-        $url = preg_replace('#^/+#', '', $url);
-        if (!empty($url) && !preg_match('#^https?://#i', $url)) {
-            $url = 'http://' . $url;
-        }
-        $url = preg_replace('#^(https?:)/+#i', '$1//', $url);
+        $url = $this->normalizeEvoUrl((string)$url);
+        $key = trim((string)$key);
+        $inst = trim((string)$inst) ?: 'player99';
 
         if (empty($url) || empty($key)) {
             echo json_encode(['success' => false, 'error' => 'Evolution não configurada']);
             return;
         }
 
+        $this->upsertSetting($pdo, 'evolution_api_url', $url);
+        $this->upsertSetting($pdo, 'evolution_api_key', $key);
+        $this->upsertSetting($pdo, 'evolution_instance_name', $inst);
+
         $evo = new EvolutionService($url, $key, $inst);
         $res = $evo->getConnectionState();
+
+        $state = $res['data']['instance']['state'] ?? $res['data']['state'] ?? '';
+        if ($state === 'open') {
+            $evo->setWebhook(self::buildWebhookUrl());
+        }
 
         echo json_encode($res);
     }
 
-    /**
-     * Endpoint AJAX para Desconectar WhatsApp
-     */
     public function evolutionLogout(Request $request): void
     {
         if (!Auth::check() || !Auth::isRoot()) {
@@ -217,7 +253,7 @@ class SettingsController extends Controller
             return;
         }
 
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
 
         $pdo = Database::users();
         $stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
@@ -236,9 +272,6 @@ class SettingsController extends Controller
         echo json_encode($res);
     }
 
-    /**
-     * Endpoint AJAX genérico para Teste de Conexão com qualquer API externa
-     */
     public function testApi(Request $request): void
     {
         if (!Auth::check() || !Auth::isRoot()) {
@@ -246,13 +279,13 @@ class SettingsController extends Controller
             return;
         }
 
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
 
         $api = $request->input('api', '');
-        $val = trim($request->input('val', ''));
+        $val = trim((string)$request->input('val', ''));
 
-        // Busca dados salvos para fallback
         $pdo = Database::users();
+        $this->ensureSettingsTable($pdo);
         $stmt = $pdo->query("SELECT setting_key, setting_value FROM system_settings");
         $saved = [];
         while ($row = $stmt->fetch()) {
@@ -262,29 +295,63 @@ class SettingsController extends Controller
         switch ($api) {
             case 'evolution':
                 $url = $val ?: ($saved['evolution_api_url'] ?? '');
-                $key = trim($request->input('key', '')) ?: ($saved['evolution_api_key'] ?? '');
-                $inst = trim($request->input('inst', '')) ?: ($saved['evolution_instance_name'] ?? 'player99');
+                $key = trim((string)$request->input('key', '')) ?: ($saved['evolution_api_key'] ?? '');
+                $inst = trim((string)$request->input('inst', '')) ?: ($saved['evolution_instance_name'] ?? 'player99');
                 $result = \App\Services\APITesterService::testEvolution($url, $key, $inst);
                 break;
 
             case 'gemini':
                 $key = $val ?: ($saved['gemini_api_key'] ?? '');
                 $result = \App\Services\APITesterService::testGemini($key);
+                if (!empty($result['ok']) && $key !== '') {
+                    $this->upsertSetting($pdo, 'gemini_api_key', $key);
+                }
                 break;
 
             case 'openai':
                 $key = $val ?: ($saved['openai_api_key'] ?? '');
                 $result = \App\Services\APITesterService::testOpenAI($key);
+                if (!empty($result['ok']) && $key !== '') {
+                    $this->upsertSetting($pdo, 'openai_api_key', $key);
+                }
+                break;
+
+            case 'ai_simulation':
+                $testPrompt = trim((string)$request->input('prompt', '')) ?: ($saved['ai_system_prompt'] ?? '');
+                $provider = trim((string)$request->input('provider', '')) ?: ($saved['ai_provider'] ?? 'openai');
+                $openAiKey = trim((string)$request->input('openai_key', '')) ?: ($saved['openai_api_key'] ?? '');
+                $geminiKey = trim((string)$request->input('gemini_key', '')) ?: ($saved['gemini_api_key'] ?? '');
+                $sampleQuestion = trim((string)$request->input('question', 'Olá! Vi sobre a Player99 e gostaria de saber como funciona.'));
+
+                $simSettings = [
+                    'ai_provider' => $provider,
+                    'ai_system_prompt' => $testPrompt,
+                    'openai_api_key' => $openAiKey,
+                    'gemini_api_key' => $geminiKey
+                ];
+
+                $reply = AIService::reply($simSettings, [], $sampleQuestion);
+                if ($reply !== null) {
+                    $result = ['ok' => true, 'msg' => $reply];
+                } else {
+                    $result = ['ok' => false, 'msg' => AIService::$lastError ?: 'Falha ao gerar resposta da IA.'];
+                }
                 break;
 
             case 'mercadopago':
                 $token = $val ?: ($saved['mercadopago_access_token'] ?? '');
                 $result = \App\Services\APITesterService::testMercadoPago($token);
+                if (!empty($result['ok']) && $token !== '') {
+                    $this->upsertSetting($pdo, 'mercadopago_access_token', $token);
+                }
                 break;
 
             case 'weather':
                 $key = $val ?: ($saved['openweather_api_key'] ?? '');
                 $result = \App\Services\APITesterService::testWeather($key);
+                if (!empty($result['ok']) && $key !== '') {
+                    $this->upsertSetting($pdo, 'openweather_api_key', $key);
+                }
                 break;
 
             default:
