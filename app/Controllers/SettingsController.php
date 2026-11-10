@@ -7,6 +7,7 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Services\EvolutionService;
 use App\Services\AIService;
+use App\Services\WhatsAppWelcomeService;
 
 class SettingsController extends Controller
 {
@@ -76,6 +77,8 @@ class SettingsController extends Controller
                 'evolution_api_url' => $evoUrl,
                 'evolution_api_key' => trim((string)$request->input('evolution_api_key', '')),
                 'evolution_instance_name' => trim((string)$request->input('evolution_instance_name', 'player99')) ?: 'player99',
+                'welcome_whatsapp_enabled' => $request->input('welcome_whatsapp_enabled') === '1' ? '1' : '0',
+                'welcome_whatsapp_message' => trim((string)$request->input('welcome_whatsapp_message', '')),
                 'ai_agent_enabled' => $request->input('ai_agent_enabled') === '1' ? '1' : '0',
                 'ai_provider' => trim((string)$request->input('ai_provider', 'openai')),
                 'ai_human_delay' => (string)(int)$request->input('ai_human_delay', 3),
@@ -124,6 +127,13 @@ class SettingsController extends Controller
         $savedSettings = [];
         while ($row = $stmtAll->fetch()) {
             $savedSettings[$row['setting_key']] = $row['setting_value'];
+        }
+
+        if (!isset($savedSettings['welcome_whatsapp_enabled'])) {
+            $savedSettings['welcome_whatsapp_enabled'] = '1';
+        }
+        if (empty($savedSettings['welcome_whatsapp_message'])) {
+            $savedSettings['welcome_whatsapp_message'] = WhatsAppWelcomeService::DEFAULT_TEMPLATE;
         }
 
         if (empty($savedSettings['ai_system_prompt'])) {
@@ -351,6 +361,33 @@ class SettingsController extends Controller
                 $result = \App\Services\APITesterService::testWeather($key);
                 if (!empty($result['ok']) && $key !== '') {
                     $this->upsertSetting($pdo, 'openweather_api_key', $key);
+                }
+                break;
+
+            case 'welcome_whatsapp':
+                $phoneRaw = trim((string)$request->input('phone', ''));
+                $phone = WhatsAppWelcomeService::formatBrazilPhone($phoneRaw);
+                if ($phone === null) {
+                    $result = ['ok' => false, 'msg' => 'Informe um número com DDD válido (ex: 11999998888).'];
+                    break;
+                }
+                $evoUrl = $this->normalizeEvoUrl((string)($request->input('url') ?: ($saved['evolution_api_url'] ?? '')));
+                $evoKey = trim((string)($request->input('key') ?: ($saved['evolution_api_key'] ?? '')));
+                $evoInst = trim((string)($request->input('inst') ?: ($saved['evolution_instance_name'] ?? 'player99'))) ?: 'player99';
+                $tpl = trim((string)$request->input('template', '')) ?: ($saved['welcome_whatsapp_message'] ?? '');
+
+                if ($evoUrl === '' || $evoKey === '') {
+                    $result = ['ok' => false, 'msg' => 'Configure a URL e API Key da Evolution API acima primeiro.'];
+                    break;
+                }
+
+                $previewMsg = WhatsAppWelcomeService::buildMessage('Cliente Teste', 'clienteteste', $tpl);
+                $evo = new EvolutionService($evoUrl, $evoKey, $evoInst);
+                $sendRes = $evo->sendText($phone, $previewMsg, '', 8);
+                if (!empty($sendRes['success'])) {
+                    $result = ['ok' => true, 'msg' => "Mensagem de boas-vindas enviada com sucesso para {$phone}!"];
+                } else {
+                    $result = ['ok' => false, 'msg' => 'Falha ao enviar (' . ($sendRes['error'] ?? ('HTTP ' . ($sendRes['http_code'] ?? 0))) . '). Verifique se o WhatsApp está conectado.'];
                 }
                 break;
 

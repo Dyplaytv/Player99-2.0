@@ -213,7 +213,7 @@ class EvolutionService
         return $res;
     }
 
-    public function sendText(string $number, string $text, string $altJid = ''): array
+    public function sendText(string $number, string $text, string $altJid = '', int $timeout = 15): array
     {
         $target = self::normalizeRecipient($number, $altJid);
 
@@ -223,9 +223,14 @@ class EvolutionService
             'text' => $text,
             'delay' => 1000,
             'linkPreview' => false
-        ]);
+        ], $timeout);
 
         if ($res['success']) {
+            return $res;
+        }
+
+        // Em falha de conexão (cURL timeout/unreachable), aborta imediatamente sem multiplicar atrasos
+        if (!empty($res['error']) && (int)($res['http_code'] ?? 0) === 0) {
             return $res;
         }
 
@@ -240,7 +245,7 @@ class EvolutionService
             'textMessage' => [
                 'text' => $text
             ]
-        ]);
+        ], $timeout);
 
         if ($resV1['success']) {
             return $resV1;
@@ -252,7 +257,7 @@ class EvolutionService
                 'number' => $target . '@s.whatsapp.net',
                 'text' => $text,
                 'textMessage' => ['text' => $text]
-            ]);
+            ], $timeout);
         }
 
         return $res;

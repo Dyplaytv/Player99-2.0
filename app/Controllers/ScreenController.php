@@ -120,6 +120,8 @@ class ScreenController extends Controller
                         ':aud' => $audioMode
                     ]);
 
+                    \App\Services\WhatsAppWelcomeService::sendOnRegistration($title, $username, $whatsapp);
+
                     $this->redirect('/admin/telas?msg=created');
                     return;
                 } catch (\Throwable $e) {

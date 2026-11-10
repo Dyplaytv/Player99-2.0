@@ -882,6 +882,7 @@ class ClientDashboardController extends Controller
                             ':exp' => date('Y-m-d'),
                             ':ref' => $idCliente
                         ]);
+                        \App\Services\WhatsAppWelcomeService::sendOnRegistration($mNome, $mUser, $mWhats);
                         $msg = "Motorista '{$mNome}' criado! Usuário: {$mUser}. Ele precisa de uma recarga para liberar as telas.";
                     }
                 }

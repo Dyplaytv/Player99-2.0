@@ -285,6 +285,8 @@ class AuthController extends Controller
             return;
         }
 
+        \App\Services\WhatsAppWelcomeService::sendOnRegistration($title, $username, $whatsapp);
+
         $this->redirect('/login?cadastrado=1');
     }
 

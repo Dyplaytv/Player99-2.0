@@ -202,7 +202,11 @@ class FranchiseController extends Controller
                     'senha' => $mPass,
                     'whatsapp' => $mWhats
                 ];
+                $welcomeRes = \App\Services\WhatsAppWelcomeService::sendOnRegistration($mNome, $mUser, $mWhats);
                 $msg = "Motorista <b>" . htmlspecialchars($mNome) . "</b> criado e vinculado à sua rede!";
+                if (!empty($welcomeRes['sent'])) {
+                    $msg .= " Mensagem de boas-vindas enviada via WhatsApp.";
+                }
             }
             return [$tab, $msg, $err, $createdDriver];
         }

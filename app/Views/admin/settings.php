@@ -67,6 +67,32 @@
                     </small>
                     <small class="text-success"><i class="fa fa-bolt me-1"></i> Webhook + Verificação Ativa Automática habilitados</small>
                 </div>
+
+                <!-- Mensagem Automática de Boas-Vindas no Cadastro -->
+                <div class="mt-3 p-3 rounded-3 bg-black bg-opacity-30 border border-success border-opacity-25">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="mb-0 fw-bold text-success small text-uppercase">
+                            <i class="fa fa-hand-sparkles me-1"></i> Boas-Vindas Automática no WhatsApp (Novo Cadastro)
+                        </h6>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" name="welcome_whatsapp_enabled" value="1" id="welcomeWhatsappEnabled" <?= ($settings['welcome_whatsapp_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                            <label class="form-check-label text-white fw-bold small" for="welcomeWhatsappEnabled">Enviar automaticamente ao cadastrar</label>
+                        </div>
+                    </div>
+                    <textarea name="welcome_whatsapp_message" id="welcome_whatsapp_message" rows="6" class="form-control bg-dark text-white border-secondary font-monospace mb-2" style="font-size: 12.5px; line-height: 1.5;"><?= htmlspecialchars($settings['welcome_whatsapp_message'] ?? '') ?></textarea>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <small class="text-muted">
+                            Variáveis disponíveis: <code class="text-info">{nome}</code>, <code class="text-info">{usuario}</code>, <code class="text-info">{portal_url}</code>
+                        </small>
+                        <div class="input-group input-group-sm" style="max-width: 340px;">
+                            <input type="text" id="testWelcomePhone" class="form-control bg-dark text-white border-secondary" placeholder="WhatsApp p/ teste (ex: 11999998888)">
+                            <button type="button" class="btn btn-outline-success fw-bold" onclick="testWelcomeWhatsApp()">
+                                <i class="fab fa-whatsapp me-1"></i> Testar Envio
+                            </button>
+                        </div>
+                    </div>
+                    <div id="badge_welcome_whatsapp" class="small mt-2"></div>
+                </div>
             </div>
         </div>
 
@@ -503,6 +529,44 @@ function disconnectEvolution() {
         .then(() => {
             alert('Instância desconectada.');
             checkEvolutionStatus();
+        });
+}
+
+function testWelcomeWhatsApp() {
+    const phone = (document.getElementById('testWelcomePhone')?.value || '').trim();
+    const badge = document.getElementById('badge_welcome_whatsapp');
+    if (!badge) return;
+    if (!phone) {
+        badge.className = 'small mt-2 text-danger';
+        badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> Digite um número de WhatsApp com DDD para testar.';
+        return;
+    }
+
+    badge.className = 'small mt-2 text-warning';
+    badge.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Enviando mensagem de boas-vindas de teste...';
+
+    const fd = new FormData();
+    fd.append('api', 'welcome_whatsapp');
+    fd.append('phone', phone);
+    fd.append('url', document.getElementById('evolution_api_url').value.trim());
+    fd.append('key', document.getElementById('evolution_api_key').value.trim());
+    fd.append('inst', document.getElementById('evolution_instance_name').value.trim());
+    fd.append('template', document.getElementById('welcome_whatsapp_message').value);
+
+    fetch('/admin/configuracoes/test-api', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if (res.ok) {
+                badge.className = 'small mt-2 text-success fw-bold';
+                badge.innerHTML = '<i class="fa fa-check-circle me-1"></i> ' + res.msg;
+            } else {
+                badge.className = 'small mt-2 text-danger';
+                badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> ' + (res.msg || 'Erro no envio.');
+            }
+        })
+        .catch(() => {
+            badge.className = 'small mt-2 text-danger';
+            badge.innerHTML = '<i class="fa fa-times-circle me-1"></i> Erro de comunicação com o servidor.';
         });
 }
 
