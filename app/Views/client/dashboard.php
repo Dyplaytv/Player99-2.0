@@ -138,6 +138,7 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
     <a href="?<?= $baseParam ?>tab=lista" class="<?= $tab === 'lista' ? 'active' : '' ?>"><i class="fas fa-list-ul"></i>Playlist</a>
     <a href="?<?= $baseParam ?>tab=telas" class="<?= $tab === 'telas' ? 'active' : '' ?>"><i class="fas fa-desktop"></i>Telas</a>
     <a href="?<?= $baseParam ?>tab=afiliado" class="<?= $tab === 'afiliado' ? 'active' : '' ?>"><i class="fas fa-hand-holding-usd"></i>Afiliado</a>
+            <a href="?<?= $baseParam ?>tab=financeiro" class="<?= $tab === 'financeiro' ? 'active' : '' ?>"><i class="fas fa-wallet"></i>Financeiro</a>
     <a href="?<?= $baseParam ?>tab=config" class="<?= $tab === 'config' ? 'active' : '' ?>"><i class="fas fa-cog"></i>Config</a>
 </nav>
 
@@ -165,6 +166,9 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             </a>
             <a href="?<?= $baseParam ?>tab=afiliado" class="sidebar-link text-warning <?= $tab === 'afiliado' ? 'active' : '' ?>">
                 <i class="fas fa-hand-holding-usd"></i> Área do Afiliado
+            </a>
+            <a href="?<?= $baseParam ?>tab=financeiro" class="sidebar-link text-success <?= $tab === 'financeiro' ? 'active' : '' ?>">
+                <i class="fas fa-wallet"></i> Financeiro
             </a>
             <a href="?<?= $baseParam ?>tab=config" class="sidebar-link <?= $tab === 'config' ? 'active' : '' ?>">
                 <i class="fas fa-cog"></i> Configurações
@@ -1223,6 +1227,101 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                 </div>
             <?php endif; ?>
 
+            <?php if ($tab === 'financeiro'): ?>
+                <div class="card mb-4 border-0 shadow-sm" style="border-left: 5px solid #22c55e !important;">
+                    <div class="card-body d-flex justify-content-between align-items-center flex-wrap" style="gap:12px;">
+                        <div>
+                            <h5 class="font-weight-bold mb-1"><i class="fas fa-bolt text-success mr-2"></i> Meus Créditos: <span class="badge badge-success"><?= count($creditosDisponiveis ?? []) ?></span></h5>
+                            <small class="text-muted">Cada crédito recarrega uma tela pelo tempo do plano. Use na aba <b>Telas (Player)</b> com o botão ⚡ Recarregar.</small>
+                        </div>
+                        <a href="?<?= $baseParam ?>tab=telas" class="btn btn-warning font-weight-bold"><i class="fas fa-bolt mr-1"></i> Recarregar uma Tela</a>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header"><div><i class="fas fa-tags text-success mr-2"></i> Planos de Recarga — Link de Pagamento</div></div>
+                    <div class="card-body">
+                        <?php if (empty($planosAtivos)): ?>
+                            <div class="text-center text-muted py-3">Nenhum plano disponível no momento.</div>
+                        <?php else: ?>
+                            <div class="row">
+                                <?php foreach ($planosAtivos as $pl): ?>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="border rounded p-3 h-100 text-center">
+                                            <h5 class="font-weight-bold mb-1"><?= htmlspecialchars($pl['nome']) ?></h5>
+                                            <h3 class="text-success font-weight-bold mb-1">R$ <?= number_format((float)$pl['valor'], 2, ',', '.') ?></h3>
+                                            <p class="text-muted mb-3"><?= (int)$pl['dias'] ?> dias de uso por tela</p>
+                                            <a href="?<?= $baseParam ?>tab=telas&buy_plan=<?= (int)$pl['id'] ?>" class="btn btn-success btn-block font-weight-bold">
+                                                <i class="fas fa-qrcode mr-1"></i> PAGAR / RECARREGAR
+                                            </a>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header"><div><i class="fas fa-receipt text-info mr-2"></i> Meus Pedidos de Recarga</div></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0">
+                                <thead><tr><th>Data</th><th>Plano</th><th>Valor</th><th>Status</th><th>PIX</th></tr></thead>
+                                <tbody>
+                                    <?php if (empty($pedidosCliente)): ?>
+                                        <tr><td colspan="5" class="text-center py-4 text-muted">Nenhum pedido ainda.</td></tr>
+                                    <?php else: foreach ($pedidosCliente as $ped): ?>
+                                        <tr>
+                                            <td class="small"><?= !empty($ped['created_at']) ? date('d/m/Y H:i', strtotime($ped['created_at'])) : '-' ?></td>
+                                            <td class="font-weight-bold"><?= htmlspecialchars($ped['nome_plano']) ?> (<?= (int)$ped['dias'] ?>d)</td>
+                                            <td>R$ <?= number_format((float)$ped['valor_final'], 2, ',', '.') ?></td>
+                                            <td>
+                                                <?php if (($ped['status'] ?? '') === 'PAGO'): ?>
+                                                    <span class="badge badge-success">PAGO</span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-warning">PENDENTE</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (($ped['status'] ?? '') !== 'PAGO' && !empty($ped['pix_qr_code'])): ?>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="navigator.clipboard.writeText(<?= htmlspecialchars(json_encode($ped['pix_qr_code']), ENT_QUOTES) ?>); showToastFeedback('PIX copiado!', false);">
+                                                        <i class="far fa-copy mr-1"></i> Copiar PIX
+                                                    </button>
+                                                <?php else: ?>-<?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><div><i class="fas fa-history text-secondary mr-2"></i> Créditos Já Utilizados</div></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0">
+                                <thead><tr><th>Plano</th><th>Dias</th><th>Tela</th><th>Usado em</th></tr></thead>
+                                <tbody>
+                                    <?php if (empty($creditosUsados)): ?>
+                                        <tr><td colspan="4" class="text-center py-4 text-muted">Nenhum crédito utilizado ainda.</td></tr>
+                                    <?php else: foreach ($creditosUsados as $cu): ?>
+                                        <tr>
+                                            <td class="font-weight-bold"><?= htmlspecialchars($cu['nome_plano']) ?></td>
+                                            <td>+<?= (int)$cu['dias'] ?></td>
+                                            <td><?= htmlspecialchars($cu['nome_tela_usada'] ?? '') ?></td>
+                                            <td class="small"><?= !empty($cu['used_at']) ? date('d/m/Y H:i', strtotime($cu['used_at'])) : '-' ?></td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- ========================================================= -->
             <!-- 5. MODO CONFIGURAÇÕES (PERFIL, FINANCEIRO E FRANQUIA)     -->
             <!-- ========================================================= -->
@@ -1454,6 +1553,20 @@ function openRecarregarTelaModal(idTela, nome) {
     if (lbl) lbl.textContent = nome;
     $('#recarregarTelaModal').modal('show');
 }
+
+// Abre o modal de pagamento automaticamente quando vier de um link ?buy_plan=ID
+(function() {
+    const bp = new URLSearchParams(window.location.search).get('buy_plan');
+    if (bp && window.jQuery) {
+        $(function() {
+            const sel = document.getElementById('buyPlanId');
+            if (sel) {
+                sel.value = bp;
+                $('#comprarPlanoModal').modal('show');
+            }
+        });
+    }
+})();
 
 function resetCoupon() {
     const fb = document.getElementById('couponFeedback');

@@ -295,6 +295,53 @@ class ScreenController extends Controller
         ];
     }
 
+    /**
+     * Tela vencida/bloqueada: vencimento da própria tela (recarga por crédito) tem prioridade;
+     * sem vencimento próprio, vale o vencimento do motorista. Motorista inativo (bloqueado) também trava.
+     */
+    private function isScreenLocked(\PDO $pdo, array $screen): bool
+    {
+        $today = date('Y-m-d');
+        try {
+            $cid = (int)($screen['id_cliente'] ?? 0);
+            $cli = null;
+            if ($cid > 0) {
+                $st = $pdo->prepare("SELECT active, expire_date FROM ibo WHERE id = :id LIMIT 1");
+                $st->execute([':id' => $cid]);
+                $cli = $st->fetch() ?: null;
+            }
+            if ($cli && isset($cli['active']) && (int)$cli['active'] === 0) {
+                return true;
+            }
+            $exp = trim((string)($screen['expire_date'] ?? ''));
+            if ($exp === '' && $cli) {
+                $exp = trim((string)($cli['expire_date'] ?? ''));
+            }
+            return ($exp !== '' && substr($exp, 0, 10) < $today);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function getLockMedia(): array
+    {
+        $items = [];
+        try {
+            $dbPath = dirname(__DIR__, 2) . '/api/db/studiolivecode_bloqueio.db';
+            if (is_file($dbPath)) {
+                $pdoL = new \PDO("sqlite:{$dbPath}", null, null, [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
+                ]);
+                foreach ($pdoL->query("SELECT * FROM bloqueio ORDER BY id ASC")->fetchAll() as $row) {
+                    $path = '/' . ltrim((string)$row['caminho'], '/');
+                    $items[] = ['id' => 0, 'title' => $row['title'] ?? 'Bloqueio', 'filename' => $path, 'duration' => 15];
+                }
+            }
+        } catch (\Throwable $e) {}
+        return $items;
+    }
+
     public function player(Request $request, string $codigo = ''): void
     {
         if ($codigo === '') {
@@ -343,11 +390,18 @@ class ScreenController extends Controller
 
         $radioInfo = $this->resolveRadioInfo($pdo, $screen);
 
+        $locked = $this->isScreenLocked($pdo, $screen);
+        if ($locked) {
+            $videos = $this->getLockMedia();
+            $radioInfo = ['audio_mode' => 'video', 'id_radio' => 0, 'radio_url' => '', 'radio_name' => ''];
+        }
+
         $this->render('player/index', [
             'screen' => $screen,
             'videos' => $videos,
             'codigo' => $codigo,
-            'radioInfo' => $radioInfo
+            'radioInfo' => $radioInfo,
+            'locked' => $locked
         ], null);
     }
 
@@ -364,6 +418,10 @@ class ScreenController extends Controller
             Screen::updatePing((int)$screen['id']);
             $pdo = Database::clients();
             $radioInfo = $this->resolveRadioInfo($pdo, $screen);
+            $locked = $this->isScreenLocked($pdo, $screen);
+            if ($locked) {
+                $radioInfo = ['audio_mode' => 'video', 'id_radio' => 0, 'radio_url' => '', 'radio_name' => ''];
+            }
 
             register_shutdown_function(function () {
                 try {
@@ -376,7 +434,8 @@ class ScreenController extends Controller
 
             $this->json([
                 'status' => 'ok',
-                'active' => 1,
+                'active' => $locked ? 0 : 1,
+                'locked' => $locked ? 1 : 0,
                 'force_reload' => $forceReload,
                 'rotation' => (int)($screen['rotation'] ?? 0),
                 'audio_mode' => $radioInfo['audio_mode'],

@@ -171,9 +171,15 @@ $radioName = $radioInfo['radio_name'] ?? '';
 
         <?php if (empty($videos)): ?>
             <div class="no-media">
+                <?php if (!empty($locked)): ?>
+                <h2>Tela Bloqueada</h2>
+                <p>Tela: <b><?= htmlspecialchars($codigo) ?></b></p>
+                <p>Plano vencido. Renove pelo Portal do Motorista para voltar a exibir a programação.</p>
+                <?php else: ?>
                 <h2>Player99 em Operação</h2>
                 <p>Tela Conectada: <b><?= htmlspecialchars($codigo) ?></b></p>
                 <p>Nenhuma mídia vinculada no momento. Envie vídeos ou imagens pelo painel.</p>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <?php foreach ($videos as $idx => $v):
@@ -182,7 +188,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
                 $isWidget = (strpos($fn, '/widgets/') === 0);
                 $ext = strtolower(pathinfo($fn, PATHINFO_EXTENSION));
                 $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
-                $mediaUrl = $isWidget ? $fn : ('/uploads/clientes/' . $screen['id_cliente'] . '/' . $fn);
+                $mediaUrl = ($isWidget || strpos($fn, '/') === 0) ? $fn : ('/uploads/clientes/' . $screen['id_cliente'] . '/' . $fn);
             ?>
                 <?php if ($isWidget):
                     $sep = (strpos($mediaUrl, '?') !== false) ? '&' : '?';
@@ -210,6 +216,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
 
     <script>
         const codigo = <?= json_encode($codigo) ?>;
+        const pageLocked = <?= !empty($locked) ? 'true' : 'false' ?>;
         let currentRotation = <?= $rotation ?>;
         let currentAudioMode = <?= json_encode($audioMode) ?>;
         let currentRadioUrl = <?= json_encode($radioUrl) ?>;
@@ -350,6 +357,10 @@ $radioName = $radioInfo['radio_name'] ?? '';
                 .then(data => {
                     document.getElementById('pingStatus').innerText = 'Online ' + new Date().toLocaleTimeString();
                     if (data.force_reload == 1) {
+                        window.location.reload();
+                        return;
+                    }
+                    if (data.locked !== undefined && (data.locked == 1) !== pageLocked) {
                         window.location.reload();
                         return;
                     }
