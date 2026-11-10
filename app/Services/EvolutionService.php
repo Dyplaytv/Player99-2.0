@@ -9,8 +9,12 @@ class EvolutionService
 
     public function __construct(string $baseUrl, string $apiKey, string $instance)
     {
+        $baseUrl = trim($baseUrl);
+        if (!empty($baseUrl) && !preg_match('#^https?://#i', $baseUrl)) {
+            $baseUrl = 'http://' . $baseUrl;
+        }
         $this->baseUrl = rtrim($baseUrl, '/');
-        $this->apiKey = $apiKey;
+        $this->apiKey = trim($apiKey);
         $this->instance = trim($instance);
     }
 
