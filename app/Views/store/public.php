@@ -203,7 +203,7 @@
     </div>
 
     <footer>
-        <p style="margin: 0; font-weight: 500;">Player 99 2.3</p>
+        <p style="margin: 0; font-weight: 500;">player99 2.4</p>
     </footer>
 
 </body>
