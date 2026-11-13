@@ -25,7 +25,7 @@ class AuthController extends Controller
             } elseif (Auth::isFranchisee()) {
                 $this->redirect('/portal-franqueado');
             } else {
-                $this->redirect('/cliente_dashboard.php');
+                $this->redirect('/painel-cliente');
             }
         }
 
@@ -182,7 +182,7 @@ class AuthController extends Controller
                     $this->redirect('/portal-franqueado');
                 } else {
                     unset($_SESSION["is_franqueado"]);
-                    $this->redirect('/cliente_dashboard.php');
+                    $this->redirect('/painel-cliente');
                 }
             }
         }
