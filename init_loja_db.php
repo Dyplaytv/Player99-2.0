@@ -21,6 +21,8 @@ try {
         imagem TEXT,
         parceiro_id INTEGER NOT NULL DEFAULT 0,
         ativo INTEGER DEFAULT 1,
+        observacoes_pos_compra TEXT DEFAULT '',
+        whatsapp_vendedor TEXT DEFAULT '',
         data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -30,11 +32,28 @@ try {
         produto_id INTEGER NOT NULL,
         cliente_email TEXT,
         cliente_nome TEXT,
+        cliente_whatsapp TEXT DEFAULT '',
+        numero_venda TEXT DEFAULT '',
         status_pagamento TEXT DEFAULT 'pendente',
         mp_payment_id TEXT,
         voucher TEXT,
+        whatsapp_notificado INTEGER DEFAULT 0,
         data_pedido DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Migrações seguras para bancos já existentes
+    $alterQueries = [
+        "ALTER TABLE produtos ADD COLUMN observacoes_pos_compra TEXT DEFAULT ''",
+        "ALTER TABLE produtos ADD COLUMN whatsapp_vendedor TEXT DEFAULT ''",
+        "ALTER TABLE pedidos ADD COLUMN cliente_whatsapp TEXT DEFAULT ''",
+        "ALTER TABLE pedidos ADD COLUMN numero_venda TEXT DEFAULT ''",
+        "ALTER TABLE pedidos ADD COLUMN whatsapp_notificado INTEGER DEFAULT 0"
+    ];
+    foreach ($alterQueries as $aq) {
+        try {
+            @$db->exec($aq);
+        } catch (\Throwable $e) {}
+    }
     
 } catch (\Throwable $e) {
     error_log("Erro ao iniciar DB loja: " . $e->getMessage());

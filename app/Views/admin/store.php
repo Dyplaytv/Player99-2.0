@@ -29,9 +29,20 @@
                     <input type="file" name="imagem" class="form-control bg-dark text-white border-secondary" accept="image/*">
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-3">
                     <label class="form-label text-muted small fw-bold">Descrição Completa</label>
                     <textarea name="descricao" rows="3" class="form-control bg-dark text-white border-secondary" placeholder="Detalhes técnicos, compatibilidade veicular, etc."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-bold">WhatsApp do Vendedor (aviso de venda)</label>
+                    <input type="tel" name="whatsapp_vendedor" class="form-control bg-dark text-white border-secondary" placeholder="Ex: 11999999999 (com DDD)">
+                    <small class="text-muted">Você receberá uma mensagem no WhatsApp sempre que este produto for vendido.</small>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-bold">Observações ao cliente após a compra</label>
+                    <textarea name="observacoes_pos_compra" rows="3" class="form-control bg-dark text-white border-secondary" placeholder="Ex: Instruções de ativação, link de acesso ou prazo de entrega enviados ao cliente após o pagamento."></textarea>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
@@ -102,6 +113,8 @@
                                                 data-titulo="<?= htmlspecialchars($p['titulo'], ENT_QUOTES, 'UTF-8') ?>"
                                                 data-preco="<?= number_format((float)$p['preco'], 2, '.', '') ?>"
                                                 data-descricao="<?= htmlspecialchars($p['descricao'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-observacoes="<?= htmlspecialchars($p['observacoes_pos_compra'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-whatsapp-vendedor="<?= htmlspecialchars($p['whatsapp_vendedor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                 data-imagem="<?= htmlspecialchars($p['imagem'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                                 <i class="fa fa-edit"></i>
                                             </button>
@@ -160,9 +173,19 @@
                         <input type="file" name="imagem" class="form-control bg-dark text-white border-secondary" accept="image/*">
                     </div>
 
-                    <div class="mb-2">
+                    <div class="mb-3">
                         <label class="form-label text-muted small fw-bold">Descrição Completa</label>
-                        <textarea name="descricao" id="edit_prod_descricao" rows="4" class="form-control bg-dark text-white border-secondary"></textarea>
+                        <textarea name="descricao" id="edit_prod_descricao" rows="3" class="form-control bg-dark text-white border-secondary"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">WhatsApp do Vendedor (aviso de venda)</label>
+                        <input type="tel" name="whatsapp_vendedor" id="edit_prod_whatsapp_vendedor" class="form-control bg-dark text-white border-secondary" placeholder="Ex: 11999999999 (com DDD)">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label text-muted small fw-bold">Observações ao cliente após a compra</label>
+                        <textarea name="observacoes_pos_compra" id="edit_prod_observacoes" rows="3" class="form-control bg-dark text-white border-secondary" placeholder="Instruções ou observações enviadas ao cliente após a compra."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary border-opacity-25">
@@ -182,6 +205,8 @@ function openEditProductModal(btn) {
     document.getElementById('edit_prod_titulo').value = btn.getAttribute('data-titulo') || '';
     document.getElementById('edit_prod_preco').value = btn.getAttribute('data-preco') || '0.00';
     document.getElementById('edit_prod_descricao').value = btn.getAttribute('data-descricao') || '';
+    document.getElementById('edit_prod_observacoes').value = btn.getAttribute('data-observacoes') || '';
+    document.getElementById('edit_prod_whatsapp_vendedor').value = btn.getAttribute('data-whatsapp-vendedor') || '';
 
     const imgName = btn.getAttribute('data-imagem') || '';
     const imgWrap = document.getElementById('edit_prod_img_wrap');
