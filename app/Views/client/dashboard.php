@@ -924,23 +924,74 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                     <div class="text-center text-muted py-4">Nenhum plano disponível no momento.</div>
                                 <?php else: ?>
                                     <div id="planStep1">
-                                        <label class="font-weight-bold">Escolha o plano:</label>
-                                        <select id="buyPlanId" class="form-control form-control-lg mb-3" onchange="resetCoupon()">
-                                            <?php foreach ($planosAtivos as $pl): ?>
-                                                <option value="<?= (int)$pl['id'] ?>" data-price="<?= (float)$pl['valor'] ?>">
-                                                    <?= htmlspecialchars($pl['nome']) ?> — R$ <?= number_format((float)$pl['valor'], 2, ',', '.') ?> (<?= (int)$pl['dias'] ?> dias)
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <label class="font-weight-bold">Cupom de desconto (opcional):</label>
-                                        <div class="input-group mb-2">
-                                            <input type="text" id="buyCoupon" class="form-control text-uppercase" placeholder="PROMO10">
-                                            <div class="input-group-append">
-                                                <button type="button" class="btn btn-outline-warning font-weight-bold" onclick="applyCoupon()">Aplicar</button>
+                                        <div class="form-group mb-3">
+                                            <label class="font-weight-bold text-dark mb-1">Escolha o plano:</label>
+                                            <select id="buyPlanId" class="form-control form-control-lg" onchange="resetCoupon()">
+                                                <?php foreach ($planosAtivos as $pl): ?>
+                                                    <option value="<?= (int)$pl['id'] ?>" data-price="<?= (float)$pl['valor'] ?>" data-days="<?= (int)$pl['dias'] ?>" data-name="<?= htmlspecialchars($pl['nome']) ?>">
+                                                        <?= htmlspecialchars($pl['nome']) ?> — R$ <?= number_format((float)$pl['valor'], 2, ',', '.') ?> (<?= (int)$pl['dias'] ?> dias)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group mb-3">
+                                            <label class="font-weight-bold text-dark d-flex justify-content-between align-items-center mb-1">
+                                                <span>Quantidade de créditos:</span>
+                                                <span class="text-muted small font-weight-normal">Quantas recargas deseja comprar</span>
+                                            </label>
+                                            <div class="input-group mb-2">
+                                                <div class="input-group-prepend">
+                                                    <button type="button" class="btn btn-outline-secondary px-3 font-weight-bold" onclick="stepBuyPlanQty(-1)" style="font-size: 18px; line-height: 1;">−</button>
+                                                </div>
+                                                <input type="number" id="buyPlanQty" class="form-control form-control-lg text-center font-weight-bold text-success" value="1" min="1" max="100" style="font-size: 20px;" oninput="updateBuyPlanSummary()">
+                                                <div class="input-group-append">
+                                                    <button type="button" class="btn btn-outline-secondary px-3 font-weight-bold" onclick="stepBuyPlanQty(1)" style="font-size: 18px; line-height: 1;">+</button>
+                                                </div>
+                                            </div>
+                                            <!-- Botões rápidos de quantidade -->
+                                            <div class="d-flex" style="gap: 6px;">
+                                                <button type="button" class="btn btn-sm btn-success text-white font-weight-bold flex-fill qty-preset-btn" data-qty="1" onclick="setBuyPlanQty(1)">1 unid</button>
+                                                <button type="button" class="btn btn-sm btn-outline-success font-weight-bold flex-fill qty-preset-btn" data-qty="2" onclick="setBuyPlanQty(2)">2 unid</button>
+                                                <button type="button" class="btn btn-sm btn-outline-success font-weight-bold flex-fill qty-preset-btn" data-qty="3" onclick="setBuyPlanQty(3)">3 unid</button>
+                                                <button type="button" class="btn btn-sm btn-outline-success font-weight-bold flex-fill qty-preset-btn" data-qty="5" onclick="setBuyPlanQty(5)">5 unid</button>
+                                                <button type="button" class="btn btn-sm btn-outline-success font-weight-bold flex-fill qty-preset-btn" data-qty="10" onclick="setBuyPlanQty(10)">10 unid</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group mb-2">
+                                            <label class="font-weight-bold text-dark mb-1">Cupom de desconto (opcional):</label>
+                                            <div class="input-group">
+                                                <input type="text" id="buyCoupon" class="form-control text-uppercase" placeholder="PROMO10" onkeypress="if(event.keyCode===13){event.preventDefault();applyCoupon();}">
+                                                <div class="input-group-append">
+                                                    <button type="button" class="btn btn-outline-warning font-weight-bold" onclick="applyCoupon()">Aplicar</button>
+                                                </div>
                                             </div>
                                         </div>
                                         <div id="couponFeedback" class="small mb-3"></div>
-                                        <button type="button" class="btn btn-success btn-lg btn-block font-weight-bold" id="btnBuyPlan" onclick="buyPlan()">
+
+                                        <!-- Resumo da Compra -->
+                                        <div class="p-3 mb-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                            <div class="d-flex justify-content-between align-items-center mb-1 small">
+                                                <span class="text-muted">Valor unitário:</span>
+                                                <span id="buySummaryUnit" class="font-weight-bold text-dark">R$ 0,00</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mb-1 small">
+                                                <span class="text-muted">Quantidade selecionada:</span>
+                                                <span id="buySummaryQty" class="font-weight-bold text-dark">1 crédito</span>
+                                            </div>
+                                            <div id="buySummaryDiscountRow" class="d-flex justify-content-between align-items-center mb-1 small text-danger" style="display:none !important;">
+                                                <span>Desconto cupom:</span>
+                                                <span id="buySummaryDiscount" class="font-weight-bold">- R$ 0,00</span>
+                                            </div>
+                                            <hr class="my-2" style="border-color: #cbd5e1;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="font-weight-bold text-dark" style="font-size: 15px;">Total a pagar:</span>
+                                                <span id="buySummaryTotal" class="font-weight-bold text-success" style="font-size: 20px;">R$ 0,00</span>
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="btn btn-success btn-lg btn-block font-weight-bold shadow-sm" id="btnBuyPlan" onclick="buyPlan()">
                                             <i class="fas fa-qrcode mr-1"></i> GERAR PIX
                                         </button>
                                     </div>
@@ -1441,7 +1492,7 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                     <?php else: foreach ($pedidosCliente as $ped): ?>
                                         <tr>
                                             <td class="small"><?= !empty($ped['created_at']) ? date('d/m/Y H:i', strtotime($ped['created_at'])) : '-' ?></td>
-                                            <td class="font-weight-bold"><?= htmlspecialchars($ped['nome_plano']) ?> (<?= (int)$ped['dias'] ?>d)</td>
+                                            <td class="font-weight-bold"><?= (!empty($ped['quantidade']) && (int)$ped['quantidade'] > 1) ? ((int)$ped['quantidade'] . 'x ') : '' ?><?= htmlspecialchars($ped['nome_plano']) ?> (<?= (int)$ped['dias'] ?>d<?= (!empty($ped['quantidade']) && (int)$ped['quantidade'] > 1) ? ' cada' : '' ?>)</td>
                                             <td>R$ <?= number_format((float)$ped['valor_final'], 2, ',', '.') ?></td>
                                             <td>
                                                 <?php if (($ped['status'] ?? '') === 'PAGO'): ?>
@@ -1584,23 +1635,98 @@ function openRecarregarTelaModal(idTela, nome) {
     $('#recarregarTelaModal').modal('show');
 }
 
+let currentCouponInfo = null;
+
+function setBuyPlanQty(q) {
+    const el = document.getElementById('buyPlanQty');
+    if (!el) return;
+    el.value = Math.max(1, Math.min(100, parseInt(q || '1', 10)));
+    updateBuyPlanSummary();
+}
+
+function stepBuyPlanQty(delta) {
+    const el = document.getElementById('buyPlanQty');
+    if (!el) return;
+    let val = parseInt(el.value || '1', 10);
+    val = isNaN(val) ? 1 : val + delta;
+    el.value = Math.max(1, Math.min(100, val));
+    updateBuyPlanSummary();
+}
+
+function updateBuyPlanSummary() {
+    const sel = document.getElementById('buyPlanId');
+    const qtyEl = document.getElementById('buyPlanQty');
+    if (!sel || !qtyEl) return;
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt) return;
+
+    let qty = parseInt(qtyEl.value || '1', 10);
+    if (isNaN(qty) || qty < 1) qty = 1;
+    if (qty > 100) qty = 100;
+    qtyEl.value = qty;
+
+    // Atualiza estado visual dos botões rápidos
+    document.querySelectorAll('.qty-preset-btn').forEach(function(btn) {
+        const bq = parseInt(btn.getAttribute('data-qty'), 10);
+        if (bq === qty) {
+            btn.classList.add('btn-success', 'text-white');
+            btn.classList.remove('btn-outline-success');
+        } else {
+            btn.classList.remove('btn-success', 'text-white');
+            btn.classList.add('btn-outline-success');
+        }
+    });
+
+    const unitPrice = parseFloat(opt.getAttribute('data-price') || '0');
+    const subtotal = unitPrice * qty;
+
+    const unitEl = document.getElementById('buySummaryUnit');
+    const qtySummaryEl = document.getElementById('buySummaryQty');
+    const discRow = document.getElementById('buySummaryDiscountRow');
+    const discEl = document.getElementById('buySummaryDiscount');
+    const totalEl = document.getElementById('buySummaryTotal');
+
+    if (unitEl) unitEl.textContent = 'R$ ' + unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (qtySummaryEl) qtySummaryEl.textContent = qty + (qty > 1 ? ' créditos' : ' crédito');
+
+    // Se houver cupom aplicado, recalcula automaticamente mantendo o desconto proporcional
+    const couponInput = document.getElementById('buyCoupon');
+    if (currentCouponInfo && couponInput && couponInput.value.trim() !== '') {
+        applyCoupon(true);
+        return;
+    }
+
+    if (discRow) discRow.style.setProperty('display', 'none', 'important');
+    if (totalEl) totalEl.textContent = 'R$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 // Abre o modal de pagamento automaticamente quando vier de um link ?buy_plan=ID
 (function() {
     const bp = new URLSearchParams(window.location.search).get('buy_plan');
-    if (bp && window.jQuery) {
+    if (window.jQuery) {
         $(function() {
-            const sel = document.getElementById('buyPlanId');
-            if (sel) {
-                sel.value = bp;
-                $('#comprarPlanoModal').modal('show');
+            if (bp) {
+                const sel = document.getElementById('buyPlanId');
+                if (sel) {
+                    sel.value = bp;
+                    updateBuyPlanSummary();
+                    $('#comprarPlanoModal').modal('show');
+                }
             }
+            $('#comprarPlanoModal').on('show.bs.modal', function() {
+                setTimeout(updateBuyPlanSummary, 100);
+            });
         });
     }
 })();
 
 function resetCoupon() {
+    currentCouponInfo = null;
     const fb = document.getElementById('couponFeedback');
     if (fb) fb.innerHTML = '';
+    const discRow = document.getElementById('buySummaryDiscountRow');
+    if (discRow) discRow.style.setProperty('display', 'none', 'important');
+    updateBuyPlanSummary();
 }
 
 function postAjax(data) {
@@ -1613,28 +1739,65 @@ function postAjax(data) {
     }).then(function(r) { return r.json(); });
 }
 
-function applyCoupon() {
+function applyCoupon(isSilent) {
     const fb = document.getElementById('couponFeedback');
+    const sel = document.getElementById('buyPlanId');
+    const qtyEl = document.getElementById('buyPlanQty');
+    const code = (document.getElementById('buyCoupon') ? document.getElementById('buyCoupon').value : '').trim();
+    if (!sel || !qtyEl) return;
+
+    if (!code) {
+        currentCouponInfo = null;
+        if (!isSilent && fb) fb.innerHTML = '<span class="text-danger">Digite o código do cupom.</span>';
+        updateBuyPlanSummary();
+        return;
+    }
+
     postAjax({
         ajax_action: 'validate_coupon',
-        plan_id: document.getElementById('buyPlanId').value,
-        coupon_code: document.getElementById('buyCoupon').value
+        plan_id: sel.value,
+        quantity: qtyEl.value,
+        coupon_code: code
     }).then(function(res) {
         if (res.success) {
-            fb.innerHTML = '<span class="text-success font-weight-bold"><i class="fas fa-check-circle"></i> Cupom ' + res.label + ' aplicado! Valor final: ' + res.final_formatted + '</span>';
+            currentCouponInfo = res;
+            if (fb) fb.innerHTML = '<span class="text-success font-weight-bold"><i class="fas fa-check-circle"></i> Cupom ' + res.label + ' aplicado!</span>';
+            const discRow = document.getElementById('buySummaryDiscountRow');
+            const discEl = document.getElementById('buySummaryDiscount');
+            const totalEl = document.getElementById('buySummaryTotal');
+            if (discRow && discEl && totalEl) {
+                discRow.style.removeProperty('display');
+                discRow.style.display = 'flex';
+                discEl.textContent = res.discount_formatted || ('- R$ ' + res.discount.toFixed(2));
+                totalEl.textContent = res.final_formatted;
+            }
         } else {
-            fb.innerHTML = '<span class="text-danger">' + (res.msg || 'Cupom inválido.') + '</span>';
+            currentCouponInfo = null;
+            const discRow = document.getElementById('buySummaryDiscountRow');
+            if (discRow) discRow.style.setProperty('display', 'none', 'important');
+            const unitPrice = parseFloat(sel.options[sel.selectedIndex].getAttribute('data-price') || '0');
+            const subtotal = unitPrice * parseInt(qtyEl.value || '1', 10);
+            const totalEl = document.getElementById('buySummaryTotal');
+            if (totalEl) totalEl.textContent = 'R$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (!isSilent && fb) fb.innerHTML = '<span class="text-danger">' + (res.msg || 'Cupom inválido.') + '</span>';
         }
-    }).catch(function() { fb.innerHTML = '<span class="text-danger">Erro de conexão.</span>'; });
+    }).catch(function() {
+        if (!isSilent && fb) fb.innerHTML = '<span class="text-danger">Erro de conexão.</span>';
+    });
 }
 
 function buyPlan() {
     const btn = document.getElementById('btnBuyPlan');
     btn.disabled = true;
+    const sel = document.getElementById('buyPlanId');
+    const qtyEl = document.getElementById('buyPlanQty');
+    const couponInput = document.getElementById('buyCoupon');
+
     postAjax({
         ajax_action: 'buy_plan',
-        plan_id: document.getElementById('buyPlanId').value,
-        coupon_code: document.getElementById('buyCoupon').value
+        plan_id: sel.value,
+        quantity: qtyEl ? qtyEl.value : 1,
+        coupon_code: couponInput ? couponInput.value : ''
     }).then(function(res) {
         btn.disabled = false;
         if (!res.success) { showToastFeedback(res.msg || 'Erro ao gerar pedido.', true); return; }
@@ -1645,14 +1808,18 @@ function buyPlan() {
         }
         document.getElementById('planStep1').style.display = 'none';
         document.getElementById('planStep2').style.display = 'block';
-        document.getElementById('pixTitle').textContent = res.plan_name + ' (' + res.days + ' dias) - ' + res.final_price;
+        document.getElementById('pixTitle').textContent = res.plan_name + ' (' + res.days + ' dias cada) - ' + res.final_price;
         document.getElementById('pixCode').value = res.pix_qr_code || 'PIX não configurado. Fale com o suporte.';
         if (res.pix_qr_base64) {
             document.getElementById('pixQrImg').innerHTML = '<img src="data:image/png;base64,' + res.pix_qr_base64 + '" style="max-width:220px;">';
         }
         const timer = setInterval(function() {
             postAjax({ ajax_action: 'check_order_payment', order_id: res.order_id }).then(function(p) {
-                if (p.paid) { clearInterval(timer); alert('Pagamento confirmado! Crédito liberado.'); window.location.reload(); }
+                if (p.paid) {
+                    clearInterval(timer);
+                    alert('Pagamento confirmado! ' + (p.quantity > 1 ? p.quantity + ' créditos liberados.' : 'Crédito liberado.'));
+                    window.location.reload();
+                }
             }).catch(function() {});
         }, 6000);
     }).catch(function() { btn.disabled = false; showToastFeedback('Erro de conexão.', true); });

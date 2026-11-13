@@ -69,6 +69,7 @@ class BillingController extends Controller
             id_plano INTEGER NOT NULL,
             nome_plano TEXT NOT NULL,
             dias INTEGER NOT NULL DEFAULT 30,
+            quantidade INTEGER NOT NULL DEFAULT 1,
             valor_original REAL NOT NULL DEFAULT 0,
             desconto REAL NOT NULL DEFAULT 0,
             valor_final REAL NOT NULL DEFAULT 0,
@@ -80,6 +81,10 @@ class BillingController extends Controller
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             paid_at DATETIME
         )");
+
+        try {
+            $pdo->exec("ALTER TABLE pedidos_planos ADD COLUMN quantidade INTEGER NOT NULL DEFAULT 1");
+        } catch (\Throwable $e) {}
 
         return $pdo;
     }
@@ -173,17 +178,24 @@ class BillingController extends Controller
                 if ($ord && ($ord['status'] ?? '') !== 'PAGO') {
                     $pdo->prepare("UPDATE pedidos_planos SET status = 'PAGO', paid_at = datetime('now', 'localtime') WHERE id = :id")
                         ->execute([':id' => $orderId]);
-                    $pdo->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
-                        VALUES (:cid, :pid, :np, :d, :vp, :cp, 'DISPONIVEL')")->execute([
-                        ':cid' => (int)$ord['id_cliente'],
-                        ':pid' => (int)$ord['id_plano'],
-                        ':np'  => $ord['nome_plano'],
-                        ':d'   => (int)$ord['dias'],
-                        ':vp'  => (float)$ord['valor_final'],
-                        ':cp'  => (string)$ord['cupom']
-                    ]);
-                    \App\Models\Client::creditAffiliateCommission((int)$ord['id_cliente'], (float)$ord['valor_final'], 'Comissão sobre recarga: plano ' . $ord['nome_plano'] . ' (' . ($ord['nome_cliente'] ?: ('#' . $ord['id_cliente'])) . ')');
-                    $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Pagamento aprovado! O crédito de <b>{$ord['dias']} dias ({$ord['nome_plano']})</b> foi liberado para o motorista.</div>";
+
+                    $qtd = max(1, (int)($ord['quantidade'] ?? 1));
+                    $valUnit = round((float)$ord['valor_final'] / $qtd, 2);
+
+                    for ($i = 0; $i < $qtd; $i++) {
+                        $pdo->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
+                            VALUES (:cid, :pid, :np, :d, :vp, :cp, 'DISPONIVEL')")->execute([
+                            ':cid' => (int)$ord['id_cliente'],
+                            ':pid' => (int)$ord['id_plano'],
+                            ':np'  => $ord['nome_plano'],
+                            ':d'   => (int)$ord['dias'],
+                            ':vp'  => $valUnit,
+                            ':cp'  => (string)$ord['cupom']
+                        ]);
+                    }
+
+                    \App\Models\Client::creditAffiliateCommission((int)$ord['id_cliente'], (float)$ord['valor_final'], 'Comissão sobre recarga: ' . ($qtd > 1 ? "{$qtd}x " : "") . 'plano ' . $ord['nome_plano'] . ' (' . ($ord['nome_cliente'] ?: ('#' . $ord['id_cliente'])) . ')');
+                    $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Pagamento aprovado! <b>{$qtd} crédito(s) de {$ord['dias']} dias ({$ord['nome_plano']})</b> liberados para o motorista.</div>";
                 }
             }
 

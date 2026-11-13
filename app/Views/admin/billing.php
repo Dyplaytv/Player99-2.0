@@ -422,7 +422,12 @@
                     <?php foreach ($pedidos as $ped): ?>
                         <div class="plan-list-row" style="grid-template-columns: 1.5fr 1.2fr 1fr 1fr;">
                             <div>
-                                <div class="fw-bold text-white"><?= htmlspecialchars($ped['nome_plano']) ?> (<?= (int)$ped['dias'] ?>d)</div>
+                                <div class="fw-bold text-white">
+                                    <?php if (!empty($ped['quantidade']) && (int)$ped['quantidade'] > 1): ?>
+                                        <span class="badge bg-primary text-white me-1"><?= (int)$ped['quantidade'] ?>x</span>
+                                    <?php endif; ?>
+                                    <?= htmlspecialchars($ped['nome_plano']) ?> (<?= (int)$ped['dias'] ?>d<?= (!empty($ped['quantidade']) && (int)$ped['quantidade'] > 1) ? ' cada' : '' ?>)
+                                </div>
                                 <small class="text-muted">Motorista: <?= htmlspecialchars($ped['nome_cliente'] ?: ('#' . $ped['id_cliente'])) ?></small>
                                 <?php if (!empty($ped['cupom'])): ?>
                                     <span class="badge bg-warning text-dark ms-1"><?= htmlspecialchars($ped['cupom']) ?></span>
@@ -438,7 +443,7 @@
                             </div>
                             <div class="text-end">
                                 <?php if (($ped['status'] ?? '') !== 'PAGO'): ?>
-                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Confirmar recebimento e liberar crédito de <?= (int)$ped['dias'] ?> dias para este motorista?');">
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Confirmar recebimento e liberar <?= !empty($ped['quantidade']) ? (int)$ped['quantidade'] : 1 ?> crédito(s) de <?= (int)$ped['dias'] ?> dias para este motorista?');">
                                         <input type="hidden" name="action" value="approve_order">
                                         <input type="hidden" name="order_id" value="<?= (int)$ped['id'] ?>">
                                         <button type="submit" class="btn btn-sm btn-success fw-bold">

@@ -258,6 +258,7 @@ class ClientDashboardController extends Controller
 
             if ($ajaxAction === 'validate_coupon') {
                 $planId = (int)$request->input('plan_id', 0);
+                $quantity = max(1, min(100, (int)$request->input('quantity', 1)));
                 $code = strtoupper(preg_replace('/\s+/', '', trim((string)$request->input('coupon_code', ''))));
                 $pdoFin = BillingController::getDb();
                 $stmtPl = $pdoFin->prepare("SELECT * FROM planos WHERE id = :id LIMIT 1");
@@ -286,7 +287,8 @@ class ClientDashboardController extends Controller
                     echo json_encode(['success' => false, 'msg' => 'Este cupom atingiu o limite máximo de usos.']);
                     exit;
                 }
-                $orig = (float)$plan['valor'];
+                $unitPrice = (float)$plan['valor'];
+                $orig = $unitPrice * $quantity;
                 $descVal = ($cp['tipo'] === 'percent')
                     ? round($orig * ((float)$cp['desconto'] / 100.0), 2)
                     : (float)$cp['desconto'];
@@ -302,8 +304,11 @@ class ClientDashboardController extends Controller
                     'success' => true,
                     'coupon' => $cp['codigo'],
                     'label' => $label,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
                     'original_price' => $orig,
                     'discount' => $descVal,
+                    'discount_formatted' => '- R$ ' . number_format($descVal, 2, ',', '.'),
                     'final_price' => $finalVal,
                     'final_formatted' => 'R$ ' . number_format($finalVal, 2, ',', '.')
                 ]);
@@ -312,6 +317,7 @@ class ClientDashboardController extends Controller
 
             if ($ajaxAction === 'buy_plan') {
                 $planId = (int)$request->input('plan_id', 0);
+                $quantity = max(1, min(100, (int)$request->input('quantity', 1)));
                 $code = strtoupper(preg_replace('/\s+/', '', trim((string)$request->input('coupon_code', ''))));
                 $pdoFin = BillingController::getDb();
                 $stmtPl = $pdoFin->prepare("SELECT * FROM planos WHERE id = :id LIMIT 1");
@@ -322,7 +328,8 @@ class ClientDashboardController extends Controller
                     exit;
                 }
 
-                $orig = (float)$plan['valor'];
+                $unitPrice = (float)$plan['valor'];
+                $orig = $unitPrice * $quantity;
                 $descVal = 0.0;
                 $appliedCoupon = '';
 
@@ -344,31 +351,36 @@ class ClientDashboardController extends Controller
                 $cliRow = Client::find($idCliente);
                 $cliName = $cliRow['title'] ?? ($cliRow['username'] ?? ('Cliente #' . $idCliente));
 
-                // Se o cupom deu 100% de desconto (ou plano gratuito), libera o crédito na hora!
+                // Se o cupom deu 100% de desconto (ou plano gratuito), libera os créditos na hora!
                 if ($finalVal <= 0.0) {
-                    $pdoFin->prepare("INSERT INTO pedidos_planos (id_cliente, nome_cliente, id_plano, nome_plano, dias, valor_original, desconto, valor_final, cupom, status, paid_at)
-                        VALUES (:cid, :nc, :pid, :np, :d, :vo, :desc, 0, :cp, 'PAGO', datetime('now', 'localtime'))")->execute([
+                    $pdoFin->prepare("INSERT INTO pedidos_planos (id_cliente, nome_cliente, id_plano, nome_plano, dias, quantidade, valor_original, desconto, valor_final, cupom, status, paid_at)
+                        VALUES (:cid, :nc, :pid, :np, :d, :q, :vo, :desc, 0, :cp, 'PAGO', datetime('now', 'localtime'))")->execute([
                         ':cid' => $idCliente,
                         ':nc'  => $cliName,
                         ':pid' => (int)$plan['id'],
                         ':np'  => $plan['nome'],
                         ':d'   => (int)$plan['dias'],
+                        ':q'   => $quantity,
                         ':vo'  => $orig,
                         ':desc'=> $descVal,
                         ':cp'  => $appliedCoupon
                     ]);
-                    $pdoFin->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
-                        VALUES (:cid, :pid, :np, :d, 0, :cp, 'DISPONIVEL')")->execute([
-                        ':cid' => $idCliente,
-                        ':pid' => (int)$plan['id'],
-                        ':np'  => $plan['nome'],
-                        ':d'   => (int)$plan['dias'],
-                        ':cp'  => $appliedCoupon
-                    ]);
+
+                    for ($i = 0; $i < $quantity; $i++) {
+                        $pdoFin->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
+                            VALUES (:cid, :pid, :np, :d, 0, :cp, 'DISPONIVEL')")->execute([
+                            ':cid' => $idCliente,
+                            ':pid' => (int)$plan['id'],
+                            ':np'  => $plan['nome'],
+                            ':d'   => (int)$plan['dias'],
+                            ':cp'  => $appliedCoupon
+                        ]);
+                    }
+
                     echo json_encode([
                         'success' => true,
                         'free_activated' => true,
-                        'msg' => "Cupom de 100% aplicado! 1 Crédito do plano {$plan['nome']} ({$plan['dias']} dias) foi liberado imediatamente."
+                        'msg' => "Cupom de 100% aplicado! {$quantity} Crédito(s) do plano {$plan['nome']} ({$plan['dias']} dias cada) liberados imediatamente."
                     ]);
                     exit;
                 }
@@ -386,10 +398,12 @@ class ClientDashboardController extends Controller
                 $pixQrCode = '';
                 $pixQrBase64 = '';
 
+                $planLabel = ($quantity > 1 ? "{$quantity}x " : "") . 'Plano ' . $plan['nome'] . ' (' . $plan['dias'] . ' dias cada)';
+
                 if ($mpToken !== '') {
                     $payload = [
                         'transaction_amount' => (float)$finalVal,
-                        'description' => 'Plano ' . $plan['nome'] . ' (' . $plan['dias'] . ' dias) - Player99',
+                        'description' => $planLabel . ' - Player99',
                         'payment_method_id' => 'pix',
                         'payer' => [
                             'email' => !empty($cliRow['email']) ? $cliRow['email'] : ('cliente' . $idCliente . '@player99.com.br'),
@@ -425,14 +439,15 @@ class ClientDashboardController extends Controller
                     $pixQrCode = trim((string)$fatAdm['chave_pix']);
                 }
 
-                $stmtOrd = $pdoFin->prepare("INSERT INTO pedidos_planos (id_cliente, nome_cliente, id_plano, nome_plano, dias, valor_original, desconto, valor_final, cupom, mp_payment_id, pix_qr_code, pix_qr_base64, status)
-                    VALUES (:cid, :nc, :pid, :np, :d, :vo, :desc, :vf, :cp, :mpid, :qr, :qrb64, 'PENDENTE')");
+                $stmtOrd = $pdoFin->prepare("INSERT INTO pedidos_planos (id_cliente, nome_cliente, id_plano, nome_plano, dias, quantidade, valor_original, desconto, valor_final, cupom, mp_payment_id, pix_qr_code, pix_qr_base64, status)
+                    VALUES (:cid, :nc, :pid, :np, :d, :q, :vo, :desc, :vf, :cp, :mpid, :qr, :qrb64, 'PENDENTE')");
                 $stmtOrd->execute([
                     ':cid'   => $idCliente,
                     ':nc'    => $cliName,
                     ':pid'   => (int)$plan['id'],
                     ':np'    => $plan['nome'],
                     ':d'     => (int)$plan['dias'],
+                    ':q'     => $quantity,
                     ':vo'    => $orig,
                     ':desc'  => $descVal,
                     ':vf'    => $finalVal,
@@ -447,7 +462,8 @@ class ClientDashboardController extends Controller
                     'success' => true,
                     'free_activated' => false,
                     'order_id' => $orderId,
-                    'plan_name' => $plan['nome'],
+                    'plan_name' => $planLabel,
+                    'quantity' => $quantity,
                     'days' => (int)$plan['dias'],
                     'final_price' => 'R$ ' . number_format($finalVal, 2, ',', '.'),
                     'pix_qr_code' => $pixQrCode,
@@ -490,17 +506,24 @@ class ClientDashboardController extends Controller
                             if (($res['status'] ?? '') === 'approved') {
                                 $pdoFin->prepare("UPDATE pedidos_planos SET status = 'PAGO', paid_at = datetime('now', 'localtime') WHERE id = :id")
                                     ->execute([':id' => $orderId]);
-                                $pdoFin->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
-                                    VALUES (:cid, :pid, :np, :d, :vp, :cp, 'DISPONIVEL')")->execute([
-                                    ':cid' => $idCliente,
-                                    ':pid' => (int)$ord['id_plano'],
-                                    ':np'  => $ord['nome_plano'],
-                                    ':d'   => (int)$ord['dias'],
-                                    ':vp'  => (float)$ord['valor_final'],
-                                    ':cp'  => (string)$ord['cupom']
-                                ]);
-                                Client::creditAffiliateCommission($idCliente, (float)$ord['valor_final'], 'Comissão sobre recarga: plano ' . $ord['nome_plano'] . ' (' . ($ord['nome_cliente'] ?: ('#' . $idCliente)) . ')');
-                                echo json_encode(['paid' => true]);
+
+                                $qtd = max(1, (int)($ord['quantidade'] ?? 1));
+                                $valUnit = round((float)$ord['valor_final'] / $qtd, 2);
+
+                                for ($i = 0; $i < $qtd; $i++) {
+                                    $pdoFin->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
+                                        VALUES (:cid, :pid, :np, :d, :vp, :cp, 'DISPONIVEL')")->execute([
+                                        ':cid' => $idCliente,
+                                        ':pid' => (int)$ord['id_plano'],
+                                        ':np'  => $ord['nome_plano'],
+                                        ':d'   => (int)$ord['dias'],
+                                        ':vp'  => $valUnit,
+                                        ':cp'  => (string)$ord['cupom']
+                                    ]);
+                                }
+
+                                Client::creditAffiliateCommission($idCliente, (float)$ord['valor_final'], 'Comissão sobre recarga: ' . ($qtd > 1 ? "{$qtd}x " : "") . 'plano ' . $ord['nome_plano'] . ' (' . ($ord['nome_cliente'] ?: ('#' . $idCliente)) . ')');
+                                echo json_encode(['paid' => true, 'quantity' => $qtd]);
                                 exit;
                             }
                         }
@@ -508,6 +531,7 @@ class ClientDashboardController extends Controller
                 }
                 echo json_encode(['paid' => false]);
                 exit;
+            }
             }
         }
 
