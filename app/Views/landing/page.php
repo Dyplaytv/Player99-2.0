@@ -111,7 +111,7 @@
     <?php endif; ?>
 
     <footer>
-        <p style="margin: 0; font-weight: 500;">player99 2.4</p>
+        <p style="margin: 0; font-weight: 500;">player99 2.5</p>
     </footer>
 
 </body>
