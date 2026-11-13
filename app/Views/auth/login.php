@@ -232,7 +232,7 @@
 
     <div class="top-nav">
         <a href="/"><i class="fa fa-arrow-left"></i> Início</a>
-        <a href="/cadastro.php"><i class="fa fa-user-plus"></i> Criar Conta</a>
+        <a href="/cadastro"><i class="fa fa-user-plus"></i> Criar Conta</a>
     </div>
 
     <div class="login-card">
@@ -247,7 +247,7 @@
             <a href="/login" class="auth-switch-tab active">
                 <i class="fa fa-sign-in"></i> Entrar
             </a>
-            <a href="/cadastro.php" class="auth-switch-tab">
+            <a href="/cadastro" class="auth-switch-tab">
                 <i class="fa fa-user-plus"></i> Cadastre-se
             </a>
         </div>
@@ -280,7 +280,7 @@
         </form>
 
         <div class="card-footer-links">
-            Não tem uma conta? <a href="/cadastro.php">Cadastre-se</a>
+            Não tem uma conta? <a href="/cadastro">Cadastre-se</a>
         </div>
     </div>
 
