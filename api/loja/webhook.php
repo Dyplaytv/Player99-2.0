@@ -1,13 +1,29 @@
 <?php
 require_once __DIR__ . '/../../init_loja_db.php';
 
-$config_file = __DIR__ . '/../mercado_pago_gold/config.json';
-if (!file_exists($config_file)) {
+$access_token = '';
+try {
+    $usersDbPath = __DIR__ . '/../db/studiolivecode_users.db';
+    if (file_exists($usersDbPath)) {
+        $pdoUsers = new PDO("sqlite:{$usersDbPath}");
+        $stmtMp = $pdoUsers->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'mercadopago_access_token' LIMIT 1");
+        $stmtMp->execute();
+        $access_token = trim((string)$stmtMp->fetchColumn());
+    }
+} catch (\Throwable $e) {}
+
+if ($access_token === '') {
+    $config_file = __DIR__ . '/../mercado_pago_gold/config.json';
+    if (file_exists($config_file)) {
+        $config = json_decode(file_get_contents($config_file), true);
+        $access_token = trim((string)($config['access_token'] ?? ''));
+    }
+}
+
+if ($access_token === '') {
     http_response_code(500);
     exit;
 }
-$config = json_decode(file_get_contents($config_file), true);
-$access_token = $config['access_token'];
 
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
