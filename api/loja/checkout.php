@@ -32,22 +32,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $pedido_id = $dbLoja->lastInsertRowID();
 
-    // Integração Mercado Pago Gold
-    $config_file = __DIR__ . '/../mercado_pago_gold/config.json';
-    if (!file_exists($config_file)) {
-        die("Configuração do Mercado Pago não encontrada.");
+    // Busca Access Token do Mercado Pago (Configurações Gerais do Painel MVC + fallback config.json)
+    $access_token = '';
+    try {
+        $usersDbPath = __DIR__ . '/../db/studiolivecode_users.db';
+        if (file_exists($usersDbPath)) {
+            $pdoUsers = new PDO("sqlite:{$usersDbPath}");
+            $stmtMp = $pdoUsers->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'mercadopago_access_token' LIMIT 1");
+            $stmtMp->execute();
+            $access_token = trim((string)$stmtMp->fetchColumn());
+        }
+    } catch (\Throwable $e) {}
+
+    if ($access_token === '') {
+        $config_file = __DIR__ . '/../mercado_pago_gold/config.json';
+        if (file_exists($config_file)) {
+            $config = json_decode(file_get_contents($config_file), true);
+            $access_token = trim((string)($config['access_token'] ?? ''));
+        }
     }
-    
-    $config = json_decode(file_get_contents($config_file), true);
-    $access_token = $config['access_token'];
+
+    if ($access_token === '') {
+        die("Access Token do Mercado Pago não configurado. Cadastre seu token em Configurações Gerais no Painel Admin.");
+    }
 
     $external_reference = "LOJA|" . $pedido_id;
 
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') == 443);
+    $scheme = $isHttps ? 'https://' : 'http://';
     $host = $_SERVER['HTTP_HOST'];
     if ($host === 'localhost' || $host === '127.0.0.1' || strpos($host, '192.168.') !== false) {
-        $host = "teste-local.com"; // workaround local
+        $host = "teste-local.com";
+        $scheme = "https://";
     }
-    $base_url = "https://" . $host . "/api/loja";
+    $base_url = $scheme . $host . "/api/loja";
 
     $data = [
         "items" => [
@@ -55,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "title" => "Serviço Digital: " . $produto['titulo'],
                 "quantity" => 1,
                 "currency_id" => "BRL",
-                "unit_price" => round($produto['preco'], 2)
+                "unit_price" => round((float)$produto['preco'], 2)
             ]
         ],
         "payer" => [
@@ -64,33 +82,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ],
         "back_urls" => [
             "success" => $base_url . "/sucesso.php",
-            "failure" => "https://" . $host . "/loja.php",
-            "pending" => "https://" . $host . "/loja.php"
+            "failure" => $scheme . $host . "/loja",
+            "pending" => $scheme . $host . "/loja"
         ],
         "notification_url" => $base_url . "/webhook.php",
-        "auto_return" => "approved",
         "external_reference" => $external_reference
     ];
+    if ($isHttps) {
+        $data["auto_return"] = "approved";
+    }
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "https://api.mercadopago.com/checkout/preferences");
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "Authorization: Bearer " . $access_token,
         "Content-Type: application/json"
     ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     $response = curl_exec($ch);
+    $curlErr = curl_error($ch);
     curl_close($ch);
 
-    $mp_response = json_decode($response, true);
+    $mp_response = json_decode((string)$response, true);
 
     if (isset($mp_response['init_point'])) {
         header("Location: " . $mp_response['init_point']);
         exit;
     } else {
-        die("Erro ao gerar pagamento com Mercado Pago. Verifique o Access Token.");
+        $mpErrMsg = $mp_response['message'] ?? ($curlErr ?: 'Verifique o Access Token.');
+        die("Erro ao gerar pagamento com Mercado Pago: " . htmlspecialchars((string)$mpErrMsg));
     }
 }
 ?>
@@ -114,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="checkout-box">
-        <a href="../../loja.php" class="text-light mb-3 d-inline-block"><i class="fas fa-arrow-left"></i> Voltar</a>
+        <a href="/loja" class="text-light mb-3 d-inline-block"><i class="fas fa-arrow-left"></i> Voltar</a>
         <div class="prod-info">
             <img src="../../uploads/loja/<?php echo $produto['imagem'] ?: 'default.jpg'; ?>" class="prod-img" onerror="this.style.display='none'">
             <h3><?php echo htmlspecialchars($produto['titulo']); ?></h3>
