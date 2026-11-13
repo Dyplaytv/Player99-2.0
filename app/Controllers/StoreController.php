@@ -33,6 +33,8 @@ class StoreController extends Controller
                 imagem TEXT,
                 parceiro_id INTEGER NOT NULL DEFAULT 0,
                 ativo INTEGER DEFAULT 1,
+                observacoes_pos_compra TEXT DEFAULT '',
+                whatsapp_vendedor TEXT DEFAULT '',
                 data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
             $pdo->exec("CREATE TABLE IF NOT EXISTS pedidos (
@@ -40,11 +42,27 @@ class StoreController extends Controller
                 produto_id INTEGER NOT NULL,
                 cliente_email TEXT,
                 cliente_nome TEXT,
+                cliente_whatsapp TEXT DEFAULT '',
+                numero_venda TEXT DEFAULT '',
                 status_pagamento TEXT DEFAULT 'pendente',
                 mp_payment_id TEXT,
                 voucher TEXT,
+                whatsapp_notificado INTEGER DEFAULT 0,
                 data_pedido DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
+
+            $alterQueries = [
+                "ALTER TABLE produtos ADD COLUMN observacoes_pos_compra TEXT DEFAULT ''",
+                "ALTER TABLE produtos ADD COLUMN whatsapp_vendedor TEXT DEFAULT ''",
+                "ALTER TABLE pedidos ADD COLUMN cliente_whatsapp TEXT DEFAULT ''",
+                "ALTER TABLE pedidos ADD COLUMN numero_venda TEXT DEFAULT ''",
+                "ALTER TABLE pedidos ADD COLUMN whatsapp_notificado INTEGER DEFAULT 0"
+            ];
+            foreach ($alterQueries as $aq) {
+                try {
+                    $pdo->exec($aq);
+                } catch (\Throwable $e) {}
+            }
         } catch (\Throwable $e) {}
 
         return $pdo;
@@ -104,6 +122,8 @@ class StoreController extends Controller
             $id = (int)$request->input('id', 0);
             $titulo = trim($request->input('titulo', ''));
             $descricao = trim($request->input('descricao', ''));
+            $observacoesPosCompra = trim((string)$request->input('observacoes_pos_compra', ''));
+            $whatsappVendedor = preg_replace('/\D/', '', trim((string)$request->input('whatsapp_vendedor', '')));
 
             $rawPreco = str_replace(['R$', ' '], '', trim((string)$request->input('preco', '0')));
             if (strpos($rawPreco, ',') !== false && strpos($rawPreco, '.') !== false) {
@@ -136,11 +156,11 @@ class StoreController extends Controller
             }
 
             if ($id > 0) {
-                $sql = "UPDATE produtos SET titulo = :t, descricao = :d, preco = :p" . ($imagem ? ", imagem = :img" : "") . " WHERE id = :id";
+                $sql = "UPDATE produtos SET titulo = :t, descricao = :d, preco = :p, observacoes_pos_compra = :obs, whatsapp_vendedor = :wv" . ($imagem ? ", imagem = :img" : "") . " WHERE id = :id";
                 $stmt = $pdo->prepare($sql);
                 $stmt->bindValue(':id', $id);
             } else {
-                $sql = "INSERT INTO produtos (titulo, descricao, preco, imagem, parceiro_id) VALUES (:t, :d, :p, :img, 0)";
+                $sql = "INSERT INTO produtos (titulo, descricao, preco, imagem, observacoes_pos_compra, whatsapp_vendedor, parceiro_id) VALUES (:t, :d, :p, :img, :obs, :wv, 0)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->bindValue(':img', $imagem);
             }
@@ -148,6 +168,8 @@ class StoreController extends Controller
             $stmt->bindValue(':t', $titulo);
             $stmt->bindValue(':d', $descricao);
             $stmt->bindValue(':p', $preco);
+            $stmt->bindValue(':obs', $observacoesPosCompra);
+            $stmt->bindValue(':wv', $whatsappVendedor);
             if ($imagem && $id > 0) {
                 $stmt->bindValue(':img', $imagem);
             }

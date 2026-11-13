@@ -20,14 +20,24 @@ if (!$produto) {
 
 // Processa o Checkout
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome = $_POST['nome'];
-    $email = $_POST['email'];
+    $nome = trim((string)($_POST['nome'] ?? ''));
+    $email = trim((string)($_POST['email'] ?? ''));
+    $whatsapp = preg_replace('/\D/', '', trim((string)($_POST['whatsapp'] ?? '')));
+
+    try {
+        $randHex = strtoupper(bin2hex(random_bytes(3)));
+    } catch (\Throwable $e) {
+        $randHex = strtoupper(substr(md5(uniqid('', true)), 0, 6));
+    }
+    $numero_venda = 'VND-' . date('Ymd') . '-' . $randHex;
 
     // Insere pedido pendente no banco
-    $stmtPed = $dbLoja->prepare("INSERT INTO pedidos (produto_id, cliente_nome, cliente_email) VALUES (:pid, :nome, :email)");
+    $stmtPed = $dbLoja->prepare("INSERT INTO pedidos (produto_id, cliente_nome, cliente_email, cliente_whatsapp, numero_venda) VALUES (:pid, :nome, :email, :whats, :num)");
     $stmtPed->bindValue(':pid', $prod_id, SQLITE3_INTEGER);
     $stmtPed->bindValue(':nome', $nome, SQLITE3_TEXT);
     $stmtPed->bindValue(':email', $email, SQLITE3_TEXT);
+    $stmtPed->bindValue(':whats', $whatsapp, SQLITE3_TEXT);
+    $stmtPed->bindValue(':num', $numero_venda, SQLITE3_TEXT);
     $stmtPed->execute();
     
     $pedido_id = $dbLoja->lastInsertRowID();
@@ -70,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
         "items" => [
             [
-                "title" => "Serviço Digital: " . $produto['titulo'],
+                "title" => $produto['titulo'] . " (Pedido " . $numero_venda . ")",
                 "quantity" => 1,
                 "currency_id" => "BRL",
                 "unit_price" => round((float)$produto['preco'], 2)
@@ -153,7 +163,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label>Seu Melhor E-mail</label>
                 <input type="email" name="email" class="form-control form-control-lg bg-dark text-light border-secondary" required placeholder="joao@email.com">
-                <small class="form-text text-muted">Você receberá o voucher neste email (fictício).</small>
+                <small class="form-text text-muted">Você receberá o voucher neste email.</small>
+            </div>
+            <div class="form-group">
+                <label>Seu WhatsApp (com DDD)</label>
+                <input type="tel" name="whatsapp" class="form-control form-control-lg bg-dark text-light border-secondary" required placeholder="Ex: 11999999999">
+                <small class="form-text text-muted">Você receberá as informações da compra e confirmação no seu WhatsApp.</small>
             </div>
             <button type="submit" class="btn-pay mt-4"><i class="fas fa-lock"></i> Ir para Pagamento Seguro</button>
         </form>
