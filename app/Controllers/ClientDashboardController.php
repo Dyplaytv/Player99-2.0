@@ -532,7 +532,6 @@ class ClientDashboardController extends Controller
                 echo json_encode(['paid' => false]);
                 exit;
             }
-            }
         }
 
         $client = Client::find($idCliente) ?: [
