@@ -38,13 +38,27 @@ class AuthController extends Controller
             $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-ban'></i> <b>Conta Bloqueada!</b><br>Seu acesso foi temporariamente suspenso. Entre em contato com o suporte.</div>";
         } elseif ($err === 'expired') {
             $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-clock-o'></i> Acesso expirado. Entre em contato para renovar.</div>";
+        } elseif ($err === 'google_disabled') {
+            $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-ban'></i> <b>Login pelo Google desativado!</b><br>Ative o Google OAuth no painel de configurações.</div>";
+        } elseif ($err === 'google_failed') {
+            $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-times-circle'></i> <b>Falha ao autenticar com o Google!</b><br>Tente novamente ou use e-mail e senha.</div>";
+        } elseif ($err === 'invalid_state') {
+            $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-shield'></i> <b>Sessão expirada!</b><br>Por segurança, inicie o login com o Google novamente.</div>";
+        } elseif ($err === 'google_not_found') {
+            $mail = htmlspecialchars($request->input('email', ''));
+            $errorMessage = "<div class='login-alert alert-danger'><i class='fa fa-user-times'></i> <b>Conta Google não encontrada!</b><br>O e-mail <u>{$mail}</u> não está cadastrado no sistema. Cadastre-se primeiro.</div>";
         } elseif ($request->input('cadastrado') === '1') {
             $errorMessage = "<div class='login-alert' style='background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7;'><i class='fa fa-check-circle'></i> Conta criada com sucesso! Faça login abaixo.</div>";
         }
 
+        $settings = EvolutionWebhookController::getSettings();
+        $googleEnabled = ($settings['google_login_enabled'] ?? '0') === '1' && !empty($settings['google_client_id']);
+
         $this->render('auth/login', [
             'errorMessage' => $errorMessage,
-            'inputLogin' => htmlspecialchars($request->input('login', ''))
+            'inputLogin' => htmlspecialchars($request->input('login', '')),
+            'googleEnabled' => $googleEnabled,
+            'googleAuthUrl' => '/auth/google'
         ], null);
     }
 
@@ -295,5 +309,183 @@ class AuthController extends Controller
     {
         Auth::logout();
         $this->redirect('/login?logout=1');
+    }
+
+    public function googleRedirect(Request $request): void
+    {
+        $settings = EvolutionWebhookController::getSettings();
+        $googleEnabled = ($settings['google_login_enabled'] ?? '0') === '1';
+        $clientId = trim($settings['google_client_id'] ?? '');
+
+        if (!$googleEnabled || empty($clientId)) {
+            $this->redirect('/login?err=google_disabled');
+        }
+
+        $state = bin2hex(random_bytes(16));
+        $_SESSION['google_oauth_state'] = $state;
+
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'] ?? '75.119.156.103:8088';
+        $redirectUri = $protocol . $host . '/auth/google/callback';
+
+        $params = [
+            'client_id' => $clientId,
+            'redirect_uri' => $redirectUri,
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'access_type' => 'online',
+            'state' => $state,
+            'prompt' => 'select_account'
+        ];
+
+        $authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" . http_build_query($params);
+        header("Location: " . $authUrl);
+        exit;
+    }
+
+    public function googleCallback(Request $request): void
+    {
+        $code = $request->input('code');
+        $state = $request->input('state');
+
+        if (empty($code)) {
+            $this->redirect('/login?err=google_failed');
+        }
+
+        if (empty($_SESSION['google_oauth_state']) || $state !== $_SESSION['google_oauth_state']) {
+            $this->redirect('/login?err=invalid_state');
+        }
+        unset($_SESSION['google_oauth_state']);
+
+        $settings = EvolutionWebhookController::getSettings();
+        $clientId = trim($settings['google_client_id'] ?? '');
+        $clientSecret = trim($settings['google_client_secret'] ?? '');
+
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'] ?? '75.119.156.103:8088';
+        $redirectUri = $protocol . $host . '/auth/google/callback';
+
+        // 1. Troca o código temporário por access_token e id_token
+        $tokenUrl = "https://oauth2.googleapis.com/token";
+        $postData = [
+            'code' => $code,
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'redirect_uri' => $redirectUri,
+            'grant_type' => 'authorization_code'
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $tokenUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        $tokenResponse = curl_exec($ch);
+        curl_close($ch);
+
+        $googleUserEmail = '';
+        $googleUserName = '';
+
+        if ($tokenResponse) {
+            $tokens = json_decode($tokenResponse, true);
+            if (!empty($tokens['access_token'])) {
+                $userinfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $userinfoUrl);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer " . $tokens['access_token']]);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+                $userInfoResp = curl_exec($ch);
+                curl_close($ch);
+
+                if ($userInfoResp) {
+                    $uData = json_decode($userInfoResp, true);
+                    if (!empty($uData['email']) && (!isset($uData['email_verified']) || $uData['email_verified'] === true)) {
+                        $googleUserEmail = strtolower(trim($uData['email']));
+                        $googleUserName = $uData['name'] ?? '';
+                    }
+                }
+            }
+        }
+
+        if (empty($googleUserEmail)) {
+            $this->redirect('/login?err=google_failed');
+        }
+
+        // 2. Busca na base de usuários administrativos/revenda (users.db)
+        $user = User::findByLogin($googleUserEmail);
+        if (!$user && ($googleUserEmail === 'baitabric@gmail.com' || $googleUserEmail === 'diego@baitabric.com')) {
+            $user = User::findByLogin($googleUserEmail === 'diego@baitabric.com' ? 'diego' : 'baitabric');
+        }
+
+        if ($user) {
+            $isTrueAdmin = Auth::isRoot($user)
+                || ((string)($user['admin'] ?? '') === '1')
+                || ((string)($user['nivel'] ?? '') === '1');
+
+            if ($isTrueAdmin) {
+                $_SESSION["studiolivecodevu"] = true;
+                $_SESSION["id"] = (int)($user['id'] ?? 1);
+                $_SESSION["U"] = $user['username'];
+                $_SESSION["user_email"] = $user['email'] ?? $googleUserEmail;
+                $_SESSION["is_admin"] = true;
+                $_SESSION["nivel"] = $user['nivel'] ?? '1';
+                $_SESSION["auth_provider"] = "google";
+                $_SESSION[$user['username']] = true;
+                $this->redirect('/admin/dashboard');
+                return;
+            }
+
+            $resellerCli = Client::syncResellerClientFromUser($user);
+            if ($resellerCli) {
+                $_SESSION["cliente_logado"] = true;
+                $_SESSION["cliente_id"] = (int)$resellerCli['id'];
+                $_SESSION["cliente_user"] = $resellerCli['username'];
+                $_SESSION["cliente_email"] = $resellerCli['email'] ?? $googleUserEmail;
+                $_SESSION["is_franqueado"] = true;
+                $_SESSION["franqueado_user_id"] = (int)($user['id'] ?? 0);
+                $_SESSION["auth_provider"] = "google";
+                $this->redirect('/portal-franqueado');
+                return;
+            }
+        }
+
+        // 3. Busca na base de clientes/motoristas (clientes.db)
+        $client = Client::findByLogin($googleUserEmail);
+        if ($client) {
+            if (isset($client['active']) && (int)$client['active'] === 0) {
+                $this->redirect('/login?err=blocked');
+            }
+
+            $_SESSION["cliente_logado"] = true;
+            $_SESSION["cliente_id"] = (int)$client['id'];
+            $_SESSION["cliente_user"] = $client['username'];
+            $_SESSION["cliente_email"] = $client['email'] ?? $googleUserEmail;
+            $_SESSION["auth_provider"] = "google";
+
+            if (!empty($client['is_reseller'])) {
+                $_SESSION["is_franqueado"] = true;
+                $this->redirect('/portal-franqueado');
+            } else {
+                unset($_SESSION["is_franqueado"]);
+                $this->redirect('/painel-cliente');
+            }
+            return;
+        }
+
+        // 4. Não cadastrado no sistema
+        $this->redirect('/login?err=google_not_found&email=' . urlencode($googleUserEmail));
+    }
+
+    public function googleLegacy(Request $request): void
+    {
+        if ($request->input('code')) {
+            $this->googleCallback($request);
+        } else {
+            $this->googleRedirect($request);
+        }
     }
 }
