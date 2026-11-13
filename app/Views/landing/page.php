@@ -86,7 +86,7 @@
             <a href="/" class="nav-btn"><i class="fas fa-car" style="margin-right: 6px;"></i>Motoristas</a>
             <a href="/parceiros" class="nav-btn <?= $pageKey === 'parceiros' ? 'current' : '' ?>">Parceiros</a>
             <a href="/afiliados" class="nav-btn <?= $pageKey === 'afiliados' ? 'current' : '' ?>">Afiliado</a>
-            <a href="/loja.php" class="nav-btn nav-btn-highlight">Loja</a>
+            <a href="/loja" class="nav-btn nav-btn-highlight">Loja</a>
             <a href="/login" class="nav-btn nav-btn-register" style="background: linear-gradient(135deg, #0A38D1, #34e2e4); box-shadow: 0 4px 15px rgba(52, 226, 228, 0.4); font-weight: 700; border-radius: 25px; padding: 9px 20px;"><i class="fas fa-user-circle me-1"></i> Entrar / Cadastrar</a>
         </div>
     </nav>
