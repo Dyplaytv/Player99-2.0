@@ -99,19 +99,40 @@ class StoreController extends Controller
             $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Produto excluído com sucesso!</div>";
         }
 
-        // Salvar / Adicionar
+        // Salvar / Adicionar / Editar
         if ($request->isPost() && $request->input('action') === 'save') {
             $id = (int)$request->input('id', 0);
             $titulo = trim($request->input('titulo', ''));
             $descricao = trim($request->input('descricao', ''));
-            $preco = (float)str_replace(['R$', ' ', '.'], '', str_replace(',', '.', $request->input('preco', '0')));
+
+            $rawPreco = str_replace(['R$', ' '], '', trim((string)$request->input('preco', '0')));
+            if (strpos($rawPreco, ',') !== false && strpos($rawPreco, '.') !== false) {
+                $rawPreco = str_replace('.', '', $rawPreco);
+                $rawPreco = str_replace(',', '.', $rawPreco);
+            } elseif (strpos($rawPreco, ',') !== false) {
+                $rawPreco = str_replace(',', '.', $rawPreco);
+            }
+            $preco = max(0, (float)$rawPreco);
+
             $imagem = '';
 
             if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
                 $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
                 $imagem = 'prod_' . uniqid() . '.' . $ext;
-                move_uploaded_file($_FILES['imagem']['tmp_name'], $targetDir . $imagem);
-                @chmod($targetDir . $imagem, 0666);
+                if (move_uploaded_file($_FILES['imagem']['tmp_name'], $targetDir . $imagem)) {
+                    @chmod($targetDir . $imagem, 0666);
+                    if ($id > 0) {
+                        $stmtOld = $pdo->prepare("SELECT imagem FROM produtos WHERE id = :id");
+                        $stmtOld->bindValue(':id', $id);
+                        $stmtOld->execute();
+                        $oldRow = $stmtOld->fetch();
+                        if ($oldRow && !empty($oldRow['imagem']) && $oldRow['imagem'] !== $imagem) {
+                            @unlink($targetDir . $oldRow['imagem']);
+                        }
+                    }
+                } else {
+                    $imagem = '';
+                }
             }
 
             if ($id > 0) {
@@ -132,7 +153,7 @@ class StoreController extends Controller
             }
 
             $stmt->execute();
-            $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Produto salvo com sucesso!</div>";
+            $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> " . ($id > 0 ? 'Produto atualizado com sucesso!' : 'Produto cadastrado com sucesso!') . "</div>";
         }
 
         $produtos = $pdo->query("SELECT * FROM produtos ORDER BY id DESC")->fetchAll();

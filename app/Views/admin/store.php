@@ -60,7 +60,7 @@
                             <th>Foto</th>
                             <th>Produto</th>
                             <th>Preço</th>
-                            <th class="text-center" style="width: 100px;">Ação</th>
+                            <th class="text-center" style="width: 120px;">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -93,12 +93,25 @@
                                         R$ <?= number_format($p['preco'], 2, ',', '.') ?>
                                     </td>
                                     <td class="text-center">
-                                        <form method="POST" onsubmit="return confirm('Deseja realmente excluir este produto?');" class="d-inline m-0">
-                                            <input type="hidden" name="delete" value="<?= (int)$p['id'] ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger text-danger border-danger border-opacity-50" title="Excluir">
-                                                <i class="fa fa-trash"></i>
+                                        <div class="d-flex justify-content-center align-items-center gap-2">
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-info text-info border-info border-opacity-50"
+                                                title="Editar Produto"
+                                                onclick="openEditProductModal(this)"
+                                                data-id="<?= (int)$p['id'] ?>"
+                                                data-titulo="<?= htmlspecialchars($p['titulo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-preco="<?= number_format((float)$p['preco'], 2, '.', '') ?>"
+                                                data-descricao="<?= htmlspecialchars($p['descricao'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-imagem="<?= htmlspecialchars($p['imagem'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                                <i class="fa fa-edit"></i>
                                             </button>
-                                        </form>
+                                            <form method="POST" onsubmit="return confirm('Deseja realmente excluir este produto?');" class="d-inline m-0">
+                                                <input type="hidden" name="delete" value="<?= (int)$p['id'] ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger text-danger border-danger border-opacity-50" title="Excluir">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -109,3 +122,83 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Editar Produto -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border border-secondary border-opacity-50 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                    <i class="fa fa-edit text-info"></i> Editar Produto
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="save">
+                    <input type="hidden" name="id" id="edit_prod_id">
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Título do Produto</label>
+                        <input type="text" name="titulo" id="edit_prod_titulo" class="form-control bg-dark text-white border-secondary" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Preço de Venda (R$)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-success">R$</span>
+                            <input type="number" step="0.01" min="0" name="preco" id="edit_prod_preco" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Foto do Produto</label>
+                        <div id="edit_prod_img_wrap" class="mb-2 d-none align-items-center gap-3 p-2 rounded border border-secondary border-opacity-25" style="background: rgba(255,255,255,0.03);">
+                            <img id="edit_prod_img_preview" src="" alt="Preview" style="width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);">
+                            <small class="text-muted">Foto atual (envie outra abaixo apenas se quiser substituir)</small>
+                        </div>
+                        <input type="file" name="imagem" class="form-control bg-dark text-white border-secondary" accept="image/*">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label text-muted small fw-bold">Descrição Completa</label>
+                        <textarea name="descricao" id="edit_prod_descricao" rows="4" class="form-control bg-dark text-white border-secondary"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info text-dark fw-bold px-4">
+                        <i class="fa fa-save me-1"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openEditProductModal(btn) {
+    document.getElementById('edit_prod_id').value = btn.getAttribute('data-id') || '';
+    document.getElementById('edit_prod_titulo').value = btn.getAttribute('data-titulo') || '';
+    document.getElementById('edit_prod_preco').value = btn.getAttribute('data-preco') || '0.00';
+    document.getElementById('edit_prod_descricao').value = btn.getAttribute('data-descricao') || '';
+
+    const imgName = btn.getAttribute('data-imagem') || '';
+    const imgWrap = document.getElementById('edit_prod_img_wrap');
+    const imgPreview = document.getElementById('edit_prod_img_preview');
+    if (imgName) {
+        imgPreview.src = '/uploads/loja/' + imgName;
+        imgWrap.classList.remove('d-none');
+        imgWrap.classList.add('d-flex');
+    } else {
+        imgPreview.src = '';
+        imgWrap.classList.remove('d-flex');
+        imgWrap.classList.add('d-none');
+    }
+
+    const modalEl = document.getElementById('editProductModal');
+    if (window.bootstrap && modalEl) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+}
+</script>
