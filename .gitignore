@@ -12,10 +12,15 @@ Desktop.ini
 /api/db/*.log
 *.log
 
-# Bancos de Dados SQLite com dados de produção (para não vazar dados reais de clientes)
+# Bancos de Dados SQLite com dados de produção (para não vazar nem sobrescrever dados reais)
+/api/db/*.db
 /api/db/*.db-wal
 /api/db/*.db-shm
 /api/db/*.bak
+/api/.*.db
+*.db
+*.sqlite
+*.sqlite3
 
 # Uploads pesados de clientes (vídeos/fotos temporárias de teste)
 /uploads/clientes/*/*
