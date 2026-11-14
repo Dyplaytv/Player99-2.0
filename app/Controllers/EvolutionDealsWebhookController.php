@@ -83,12 +83,14 @@ class EvolutionDealsWebhookController extends Controller
             return;
         }
 
-        // Se tiver imagem na mensagem da Evolution, usa ela; senão usa a extraída da página do produto
-        $imageUrl = '';
-        if (!empty($message['imageMessage']['url'])) {
-            $imageUrl = $message['imageMessage']['url'];
-        } elseif (!empty($parsed['image_url'])) {
-            $imageUrl = $parsed['image_url'];
+        // Prioriza a imagem pública extraída da página do produto;
+        // URLs da mmg.whatsapp.net (.enc) são criptografadas e não abrem no navegador.
+        $imageUrl = !empty($parsed['image_url']) ? $parsed['image_url'] : '';
+        if ($imageUrl === '' && !empty($message['imageMessage']['url'])) {
+            $waImg = (string)$message['imageMessage']['url'];
+            if (stripos($waImg, 'mmg.whatsapp.net') === false && stripos($waImg, '.enc') === false) {
+                $imageUrl = $waImg;
+            }
         }
 
         // Salva a nova oferta
