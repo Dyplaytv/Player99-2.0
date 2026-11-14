@@ -1,12 +1,9 @@
 <?php
-/**
- * Script CLI de Backup Automático (Ciclo de 2 em 2 horas + Retenção de 7 dias)
- * Uso no Cron (a cada 2 horas):
- *   0 */2 * * * php /www/wwwroot/player99.prod/cli/backup_cron.php >> /var/log/player99_backup.log 2>&1
- *
- * Para forçar backup imediato mesmo sem alterações:
- *   php cli/backup_cron.php --force
- */
+// Script CLI de Backup Automático (Ciclo de 2 em 2 horas + Retenção de 7 dias)
+// Agendamento Cron (a cada 2 horas):
+//   php /www/wwwroot/player99.prod/cli/backup_cron.php
+// Para forçar backup imediato mesmo sem alterações:
+//   php cli/backup_cron.php --force
 
 $projectRoot = dirname(__DIR__);
 $appConfig = @include $projectRoot . '/config/app.php';
