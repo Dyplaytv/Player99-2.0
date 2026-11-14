@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Auth;
+use App\Models\Deal;
 use PDO;
 
 class StoreController extends Controller
@@ -79,10 +80,18 @@ class StoreController extends Controller
             $produtos = [];
         }
 
+        try {
+            Deal::ensureSchema();
+            $deals = Deal::getActiveDeals(50);
+        } catch (\Throwable $e) {
+            $deals = [];
+        }
+
         $this->render('store/public', [
             'pageTitle' => 'Loja de Serviços Digitais - Player99',
-            'pageDescription' => 'Adquira serviços e receba seu Voucher instantaneamente.',
-            'produtos' => $produtos
+            'pageDescription' => 'Adquira serviços, receba seu Voucher instantaneamente e aproveite os melhores achadinhos.',
+            'produtos' => $produtos,
+            'deals' => $deals
         ], null);
     }
 

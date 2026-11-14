@@ -1,7 +1,10 @@
 <?php
 /** @var array $produtos */
+/** @var array $deals */
 /** @var string $pageTitle */
 /** @var string $pageDescription */
+$deals = $deals ?? [];
+$produtos = $produtos ?? [];
 ?><!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -141,6 +144,72 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(52, 226, 228, 0.4);
         }
+        .btn-deal {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+        }
+        .btn-deal:hover {
+            background: linear-gradient(135deg, #fbbf24, #f97316);
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.45);
+        }
+        .card-img-wrap {
+            position: relative;
+        }
+        .card-badge-top {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(15, 16, 21, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fbbf24;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            backdrop-filter: blur(6px);
+        }
+        .card-badge-discount {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+        .price-old {
+            font-size: 0.9rem;
+            color: #64748b;
+            text-decoration: line-through;
+            margin-bottom: 2px;
+        }
+        .store-filters {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 0 auto 30px;
+            padding: 0 20px;
+        }
+        .filter-pill {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #cbd5e1;
+            border-radius: 999px;
+            padding: 8px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-pill:hover, .filter-pill.active {
+            background: linear-gradient(135deg, #0A38D1, #4721fb);
+            border-color: #34e2e4;
+            color: #fff;
+        }
 
         footer {
             background-color: #0a0c10;
@@ -176,15 +245,26 @@
     </nav>
 
     <div class="hero-title">
-        <h1>Loja de Serviços Digitais</h1>
-        <p>Adquira serviços e receba seu Voucher instantaneamente via PIX.</p>
+        <h1>Loja de Serviços & Achadinhos</h1>
+        <p>Adquira serviços via PIX ou aproveite as melhores ofertas e achadinhos selecionados.</p>
     </div>
 
+    <?php if (!empty($produtos) && !empty($deals)): ?>
+    <div class="store-filters">
+        <button type="button" class="filter-pill active" onclick="filterStore('all', this)">Todos (<?= count($produtos) + count($deals) ?>)</button>
+        <button type="button" class="filter-pill" onclick="filterStore('produto', this)">Serviços & Vouchers (<?= count($produtos) ?>)</button>
+        <button type="button" class="filter-pill" onclick="filterStore('achadinho', this)"><i class="fas fa-fire text-warning me-1"></i> Achadinhos (<?= count($deals) ?>)</button>
+    </div>
+    <?php endif; ?>
+
     <div class="store-grid">
-        <?php if (!empty($produtos)): ?>
+        <?php if (!empty($produtos) || !empty($deals)): ?>
             <?php foreach ($produtos as $p): ?>
-                <div class="product-card">
-                    <img src="/uploads/loja/<?= !empty($p['imagem']) ? htmlspecialchars($p['imagem']) : 'default.jpg' ?>" class="product-img" onerror="this.src='https://via.placeholder.com/400x200/181828/ffffff?text=Produto'">
+                <div class="product-card" data-store-type="produto">
+                    <div class="card-img-wrap">
+                        <img src="/uploads/loja/<?= !empty($p['imagem']) ? htmlspecialchars($p['imagem']) : 'default.jpg' ?>" class="product-img" onerror="this.src='https://via.placeholder.com/400x200/181828/ffffff?text=Produto'">
+                        <span class="card-badge-top" style="color: #34e2e4;"><i class="fas fa-ticket-alt"></i> Voucher PIX</span>
+                    </div>
                     <div class="product-body">
                         <div class="product-title"><?= htmlspecialchars($p['titulo']) ?></div>
                         <div class="product-desc"><?= nl2br(htmlspecialchars($p['descricao'] ?? '')) ?></div>
@@ -193,14 +273,57 @@
                     </div>
                 </div>
             <?php endforeach; ?>
+
+            <?php foreach ($deals as $d): ?>
+                <?php
+                    $priceOld = (float)($d['price_old'] ?? 0);
+                    $priceNew = (float)($d['price_new'] ?? 0);
+                    $discPct = (int)($d['discount_pct'] ?? 0);
+                    $platName = ucfirst((string)($d['platform'] ?? 'Oferta'));
+                ?>
+                <div class="product-card" data-store-type="achadinho">
+                    <div class="card-img-wrap">
+                        <img src="<?= !empty($d['image_url']) ? htmlspecialchars($d['image_url']) : 'https://via.placeholder.com/400x200/181828/fbbf24?text=Achadinho' ?>" class="product-img" onerror="this.src='https://via.placeholder.com/400x200/181828/fbbf24?text=Achadinho'">
+                        <span class="card-badge-top"><i class="fas fa-fire"></i> <?= htmlspecialchars($platName) ?></span>
+                        <?php if ($discPct > 0): ?>
+                            <span class="card-badge-discount">-<?= $discPct ?>% OFF</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-title"><?= htmlspecialchars($d['title']) ?></div>
+                        <div class="product-desc">
+                            <span class="badge badge-dark border border-secondary px-2 py-1"><?= htmlspecialchars($d['category'] ?? 'Geral') ?></span>
+                        </div>
+                        <?php if ($priceOld > $priceNew && $priceOld > 0): ?>
+                            <div class="price-old">De R$ <?= number_format($priceOld, 2, ',', '.') ?></div>
+                        <?php endif; ?>
+                        <div class="product-price" style="color: #fbbf24;">
+                            <?= $priceNew > 0 ? ('R$ ' . number_format($priceNew, 2, ',', '.')) : 'Oferta Especial' ?>
+                        </div>
+                        <a href="/o/<?= (int)$d['id'] ?>" target="_blank" rel="noopener noreferrer" class="btn-buy btn-deal">
+                            <i class="fas fa-external-link-alt me-1"></i> Ver Oferta
+                        </a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         <?php else: ?>
             <div class="col-12 text-center py-5 w-100" style="grid-column: 1 / -1;">
                 <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
                 <h4 class="text-muted">Nenhum produto disponível no momento.</h4>
-                <p class="text-muted small">Os produtos cadastrados no painel administrativo aparecerão aqui.</p>
+                <p class="text-muted small">Os produtos e achadinhos cadastrados no painel administrativo aparecerão aqui.</p>
             </div>
         <?php endif; ?>
     </div>
+
+    <script>
+        function filterStore(type, btn) {
+            document.querySelectorAll('.filter-pill').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.querySelectorAll('.product-card[data-store-type]').forEach(card => {
+                card.style.display = (type === 'all' || card.getAttribute('data-store-type') === type) ? 'flex' : 'none';
+            });
+        }
+    </script>
 
     <footer>
         <p style="margin: 0; font-weight: 500;">player99 2.6</p>
