@@ -234,6 +234,12 @@ class BackupService
                         $stats['achadinhos'] = (int)$pdo->query("SELECT COUNT(*) FROM deals")->fetchColumn();
                     }
 
+                    // Ignora tabelas puramente efêmeras de deduplicação de webhook no cálculo do hash
+                    // (elas continuam sendo salvas no .db, mas não disparam backup falso sem mudança cadastral)
+                    if ($tName === 'ai_processed_messages') {
+                        continue;
+                    }
+
                     // Leitura das linhas para compor o hash inteligente
                     $rowsStmt = $pdo->query("SELECT * FROM \"{$tName}\"");
                     if ($rowsStmt) {

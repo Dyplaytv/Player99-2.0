@@ -79,7 +79,7 @@ class BackupController extends Controller
         }
 
         // Inspeção ao vivo do estado atual dos bancos para mostrar comparativo na tela
-        $liveInspection = BackupService::inspectDatabasesAndFingerprint(false);
+        $liveInspection = BackupService::inspectDatabasesAndFingerprint(true);
         $latestBackup = $vaultIndex['backups'][0] ?? null;
         $hasPendingChanges = empty($latestBackup) || (($latestBackup['data_fingerprint'] ?? '') !== $liveInspection['fingerprint']);
 
@@ -141,7 +141,7 @@ class BackupController extends Controller
             'filterDateEnd' => $filterDateEnd,
             'filterType' => $filterType,
             'filterQuery' => $filterQuery,
-        ], 'master');
+        ], 'layouts/master');
     }
 
     public function download(Request $request): void
