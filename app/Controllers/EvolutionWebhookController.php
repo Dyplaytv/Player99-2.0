@@ -349,6 +349,10 @@ class EvolutionWebhookController extends Controller
         $force = $request->input('force') === '1';
         $pollResult = self::pollUnreadMessages($force);
 
+        try {
+            \App\Services\BackupService::maybeRunScheduledCheck(false);
+        } catch (\Throwable $e) {}
+
         self::ensureTables();
         $pdo = Database::users();
         $logs = [];

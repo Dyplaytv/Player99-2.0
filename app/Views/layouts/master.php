@@ -329,9 +329,15 @@
             <?php if (!empty($currentUser['is_root'])): ?>
                 <div class="nav-category" style="color: #ef4444;"><i class="fa fa-shield-alt"></i> Área Root</div>
                 <li>
-                    <a href="/admin/configuracoes" class="sidebar-link root-link">
+                    <a href="/admin/configuracoes" class="sidebar-link root-link <?= ($currentRoute ?? '') === '/admin/configuracoes' ? 'active' : '' ?>">
                         <i class="fa fa-sliders-h"></i>
                         <span>Configurações Gerais</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/backups" class="sidebar-link <?= ($currentRoute ?? '') === '/admin/backups' ? 'active' : '' ?>" style="color: #6ee7b7; border: 1px dashed rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.06); margin-bottom: 6px;">
+                        <i class="fa fa-database" style="color: #34d399;"></i>
+                        <span>Cofre de Backups</span>
                     </a>
                 </li>
                 <li>

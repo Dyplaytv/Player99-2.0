@@ -475,6 +475,7 @@ class ScreenController extends Controller
                         @fastcgi_finish_request();
                     }
                     \App\Controllers\EvolutionWebhookController::pollUnreadMessages(false);
+                    \App\Services\BackupService::maybeRunScheduledCheck(false);
                 } catch (\Throwable $e) {}
             });
 
