@@ -25,6 +25,7 @@ class Deal
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             platform VARCHAR(50) NOT NULL,
             title TEXT NOT NULL,
+            description TEXT DEFAULT '',
             original_url TEXT NOT NULL,
             affiliate_url TEXT NOT NULL,
             image_url TEXT,
@@ -37,6 +38,10 @@ class Deal
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             expires_at DATETIME
         )");
+
+        try {
+            $pdo->exec("ALTER TABLE deals ADD COLUMN description TEXT DEFAULT ''");
+        } catch (\Throwable $e) {}
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS deal_clicks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

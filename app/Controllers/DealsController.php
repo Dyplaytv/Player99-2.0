@@ -58,6 +58,7 @@ class DealsController extends Controller
             elseif ($request->input('action') === 'add_manual') {
                 $rawUrl = trim($request->input('product_url', ''));
                 $customTitle = trim($request->input('title', ''));
+                $customDesc = trim($request->input('description', ''));
                 $priceOld = (float)str_replace(',', '.', $request->input('price_old', '0'));
                 $priceNew = (float)str_replace(',', '.', $request->input('price_new', '0'));
                 $image = trim($request->input('image_url', ''));
@@ -65,13 +66,31 @@ class DealsController extends Controller
 
                 if (!empty($rawUrl)) {
                     $conv = LinkConverterService::convertLink($rawUrl);
+
+                    if ($customTitle === '' || $customDesc === '' || $image === '' || $priceNew <= 0) {
+                        $meta = LinkConverterService::fetchProductMetadata($conv['expanded_url']);
+                        if ($customTitle === '' && !empty($meta['title'])) {
+                            $customTitle = $meta['title'];
+                        }
+                        if ($customDesc === '' && !empty($meta['description'])) {
+                            $customDesc = $meta['description'];
+                        }
+                        if ($image === '' && !empty($meta['image'])) {
+                            $image = $meta['image'];
+                        }
+                        if ($priceNew <= 0 && !empty($meta['price']) && $meta['price'] > 0) {
+                            $priceNew = (float)$meta['price'];
+                        }
+                    }
+
                     $disc = ($priceOld > $priceNew && $priceNew > 0) ? (int)round((($priceOld - $priceNew) / $priceOld) * 100) : 0;
 
-                    $stmt = $pdo->prepare("INSERT INTO deals (platform, title, original_url, affiliate_url, image_url, price_old, price_new, discount_pct, category, active) 
-                        VALUES (:plat, :title, :orig, :aff, :img, :pold, :pnew, :disc, :cat, 1)");
+                    $stmt = $pdo->prepare("INSERT INTO deals (platform, title, description, original_url, affiliate_url, image_url, price_old, price_new, discount_pct, category, active) 
+                        VALUES (:plat, :title, :desc, :orig, :aff, :img, :pold, :pnew, :disc, :cat, 1)");
                     $stmt->execute([
                         ':plat' => $conv['platform'],
                         ':title' => !empty($customTitle) ? $customTitle : ('Oferta ' . ucfirst($conv['platform'])),
+                        ':desc' => $customDesc,
                         ':orig' => $conv['original_url'],
                         ':aff' => $conv['affiliate_url'],
                         ':img' => $image,
@@ -83,6 +102,37 @@ class DealsController extends Controller
 
                     $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Nova oferta cadastrada com sucesso!</div>";
                 }
+            }
+            // 2b. Completar fotos, títulos e descrições de ofertas já importadas
+            elseif ($request->input('action') === 'enrich_missing') {
+                $missing = $pdo->query("SELECT id, title, description, image_url, price_new, original_url FROM deals WHERE active = 1 AND (image_url IS NULL OR image_url = '' OR description IS NULL OR description = '' OR title LIKE 'Super Oferta%') LIMIT 25")->fetchAll();
+                $updatedCount = 0;
+                $updStmt = $pdo->prepare("UPDATE deals SET title = :title, description = :desc, image_url = :img, price_new = :pnew WHERE id = :id");
+
+                foreach ($missing as $item) {
+                    $expanded = LinkConverterService::expandUrl($item['original_url']);
+                    $meta = LinkConverterService::fetchProductMetadata($expanded);
+
+                    $newTitle = $item['title'];
+                    if ((strpos($newTitle, 'Super Oferta') === 0 || strpos($newTitle, 'Oferta ') === 0) && !empty($meta['title'])) {
+                        $newTitle = $meta['title'];
+                    }
+                    $newDesc = !empty($item['description']) ? $item['description'] : ($meta['description'] ?? '');
+                    $newImg = !empty($item['image_url']) ? $item['image_url'] : ($meta['image'] ?? '');
+                    $newPrice = ((float)$item['price_new'] > 0) ? (float)$item['price_new'] : (float)($meta['price'] ?? 0);
+
+                    if ($newTitle !== $item['title'] || $newDesc !== (string)$item['description'] || $newImg !== (string)$item['image_url'] || $newPrice != (float)$item['price_new']) {
+                        $updStmt->execute([
+                            ':title' => $newTitle,
+                            ':desc' => $newDesc,
+                            ':img' => $newImg,
+                            ':pnew' => $newPrice,
+                            ':id' => $item['id']
+                        ]);
+                        $updatedCount++;
+                    }
+                }
+                $msg = "<div class='alert alert-info d-flex align-items-center gap-2 mb-4'><i class='fa fa-magic fa-lg'></i> Atualização concluída: {$updatedCount} oferta(s) enriquecida(s) com imagem/descrição!</div>";
             }
             // 3. Alternar Ativo/Inativo
             elseif ($request->input('action') === 'toggle_active') {

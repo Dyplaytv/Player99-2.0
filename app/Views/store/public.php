@@ -292,7 +292,16 @@ $produtos = $produtos ?? [];
                     <div class="product-body">
                         <div class="product-title"><?= htmlspecialchars($d['title']) ?></div>
                         <div class="product-desc">
-                            <span class="badge badge-dark border border-secondary px-2 py-1"><?= htmlspecialchars($d['category'] ?? 'Geral') ?></span>
+                            <span class="badge badge-dark border border-secondary px-2 py-1 mb-2"><?= htmlspecialchars($d['category'] ?? 'Geral') ?></span>
+                            <?php if (!empty(trim((string)($d['description'] ?? '')))): ?>
+                                <?php
+                                    $descText = trim((string)$d['description']);
+                                    if (mb_strlen($descText) > 120) {
+                                        $descText = mb_substr($descText, 0, 117) . '...';
+                                    }
+                                ?>
+                                <div class="mt-1"><?= htmlspecialchars($descText) ?></div>
+                            <?php endif; ?>
                         </div>
                         <?php if ($priceOld > $priceNew && $priceOld > 0): ?>
                             <div class="price-old">De R$ <?= number_format($priceOld, 2, ',', '.') ?></div>
