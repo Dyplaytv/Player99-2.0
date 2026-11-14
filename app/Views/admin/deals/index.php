@@ -75,7 +75,13 @@
             <h4 class="fw-bold mb-1 text-white"><i class="fa fa-tags text-warning me-2"></i> Vitrine de Afiliados E-commerce (DOOH)</h4>
             <p class="deals-subtext mb-0">Gerencie suas tags de afiliados, captação automática via WhatsApp e ofertas exibidas nos tablets dos veículos.</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
+            <form method="POST" class="d-inline">
+                <input type="hidden" name="action" value="enrich_missing">
+                <button type="submit" class="btn btn-outline-warning" title="Busca foto, título e descrição das ofertas importadas que estão sem esses dados">
+                    <i class="fa fa-magic me-1"></i> Completar Fotos/Descrições
+                </button>
+            </form>
             <button type="button" class="btn btn-outline-info" onclick="checkLinksHealth()">
                 <i class="fa fa-stethoscope me-1"></i> Verificar Links Quebrados
             </button>
@@ -402,7 +408,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label deals-label">TÍTULO DA OFERTA</label>
-                        <input type="text" name="title" class="form-control deals-input" placeholder="Ex: Fone Bluetooth Sem Fio TWS">
+                        <input type="text" name="title" class="form-control deals-input" placeholder="Opcional: se vazio, buscamos do link automaticamente">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label deals-label">DESCRIÇÃO DA OFERTA</label>
+                        <textarea name="description" rows="2" class="form-control deals-input" placeholder="Opcional: se vazio, buscamos do link automaticamente"></textarea>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-6">

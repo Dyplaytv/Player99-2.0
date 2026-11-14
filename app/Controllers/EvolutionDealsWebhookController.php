@@ -83,19 +83,22 @@ class EvolutionDealsWebhookController extends Controller
             return;
         }
 
-        // Se tiver imagem na mensagem da Evolution, salva em /uploads/deals/
+        // Se tiver imagem na mensagem da Evolution, usa ela; senão usa a extraída da página do produto
         $imageUrl = '';
-        if (isset($message['imageMessage']['url'])) {
+        if (!empty($message['imageMessage']['url'])) {
             $imageUrl = $message['imageMessage']['url'];
+        } elseif (!empty($parsed['image_url'])) {
+            $imageUrl = $parsed['image_url'];
         }
 
         // Salva a nova oferta
-        $stmtIns = $pdo->prepare("INSERT INTO deals (platform, title, original_url, affiliate_url, image_url, price_old, price_new, discount_pct, category, active) 
-            VALUES (:plat, :title, :orig, :aff, :img, :pold, :pnew, :disc, :cat, 1)");
+        $stmtIns = $pdo->prepare("INSERT INTO deals (platform, title, description, original_url, affiliate_url, image_url, price_old, price_new, discount_pct, category, active) 
+            VALUES (:plat, :title, :desc, :orig, :aff, :img, :pold, :pnew, :disc, :cat, 1)");
         
         $stmtIns->execute([
             ':plat' => $parsed['platform'],
             ':title' => $parsed['title'],
+            ':desc' => $parsed['description'] ?? '',
             ':orig' => $parsed['original_url'],
             ':aff' => $parsed['affiliate_url'],
             ':img' => $imageUrl,
