@@ -105,7 +105,7 @@ class DealsController extends Controller
             }
             // 2b. Completar fotos, títulos e descrições de ofertas já importadas
             elseif ($request->input('action') === 'enrich_missing') {
-                $missing = $pdo->query("SELECT id, title, description, image_url, price_new, original_url FROM deals WHERE active = 1 AND (image_url IS NULL OR image_url = '' OR description IS NULL OR description = '' OR title LIKE 'Super Oferta%') LIMIT 25")->fetchAll();
+                $missing = $pdo->query("SELECT id, title, description, image_url, price_new, original_url FROM deals WHERE active = 1 AND (image_url IS NULL OR image_url = '' OR image_url LIKE '%mmg.whatsapp.net%' OR image_url LIKE '%.enc%' OR description IS NULL OR description = '' OR title LIKE 'Super Oferta%' OR title LIKE '*%') LIMIT 30")->fetchAll();
                 $updatedCount = 0;
                 $updStmt = $pdo->prepare("UPDATE deals SET title = :title, description = :desc, image_url = :img, price_new = :pnew WHERE id = :id");
 
@@ -113,15 +113,19 @@ class DealsController extends Controller
                     $expanded = LinkConverterService::expandUrl($item['original_url']);
                     $meta = LinkConverterService::fetchProductMetadata($expanded);
 
-                    $newTitle = $item['title'];
+                    $newTitle = trim(str_replace('*', '', (string)$item['title']));
                     if ((strpos($newTitle, 'Super Oferta') === 0 || strpos($newTitle, 'Oferta ') === 0) && !empty($meta['title'])) {
                         $newTitle = $meta['title'];
                     }
                     $newDesc = !empty($item['description']) ? $item['description'] : ($meta['description'] ?? '');
-                    $newImg = !empty($item['image_url']) ? $item['image_url'] : ($meta['image'] ?? '');
+
+                    $curImg = (string)($item['image_url'] ?? '');
+                    $isBrokenWaImg = ($curImg === '' || stripos($curImg, 'mmg.whatsapp.net') !== false || stripos($curImg, '.enc') !== false);
+                    $newImg = (!$isBrokenWaImg) ? $curImg : (!empty($meta['image']) ? $meta['image'] : '');
+
                     $newPrice = ((float)$item['price_new'] > 0) ? (float)$item['price_new'] : (float)($meta['price'] ?? 0);
 
-                    if ($newTitle !== $item['title'] || $newDesc !== (string)$item['description'] || $newImg !== (string)$item['image_url'] || $newPrice != (float)$item['price_new']) {
+                    if ($newTitle !== $item['title'] || $newDesc !== (string)$item['description'] || $newImg !== $curImg || $newPrice != (float)$item['price_new']) {
                         $updStmt->execute([
                             ':title' => $newTitle,
                             ':desc' => $newDesc,
