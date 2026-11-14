@@ -129,6 +129,133 @@ class LinkConverterService
     }
 
     /**
+     * Faz scraping leve (OpenGraph / Meta tags / JSON-LD) da página do produto
+     * para obter título, descrição, imagem e preço automaticamente.
+     */
+    public static function fetchProductMetadata(string $url): array
+    {
+        $meta = [
+            'title' => '',
+            'description' => '',
+            'image' => '',
+            'price' => 0.0
+        ];
+
+        if (empty($url) || !preg_match('#^https?://#i', $url)) {
+            return $meta;
+        }
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_ENCODING, '');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+        ]);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+
+        $html = curl_exec($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if (!$html || $httpCode >= 400) {
+            return $meta;
+        }
+
+        // Limita o HTML analisado aos primeiros ~250KB para manter performance
+        $snippet = substr($html, 0, 260000);
+
+        $extractMeta = static function (string $htmlContent, array $patterns): string {
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $htmlContent, $m) && !empty(trim($m[1]))) {
+                    return html_entity_decode(trim($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                }
+            }
+            return '';
+        };
+
+        // 1. Título
+        $title = $extractMeta($snippet, [
+            '/<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:title["\']/i',
+            '/<meta[^>]+name=["\']twitter:title["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<title[^>]*>([^<]+)<\/title>/i'
+        ]);
+        if ($title !== '') {
+            $title = preg_replace('/\s*\|\s*(Mercado Livre|Amazon\.com\.br|Shopee Brasil|Magazine Luiza).*$/i', '', $title);
+            $meta['title'] = mb_substr(trim($title), 0, 140);
+        }
+
+        // 2. Descrição
+        $desc = $extractMeta($snippet, [
+            '/<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:description["\']/i',
+            '/<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']description["\']/i',
+            '/<meta[^>]+name=["\']twitter:description["\'][^>]+content=["\']([^"\']+)["\']/i'
+        ]);
+        if ($desc !== '') {
+            $desc = preg_replace('/\s+/', ' ', trim($desc));
+            $meta['description'] = mb_substr($desc, 0, 280);
+        }
+
+        // 3. Imagem
+        $img = $extractMeta($snippet, [
+            '/<meta[^>]+property=["\']og:image:secure_url["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']/i',
+            '/<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']twitter:image["\']/i'
+        ]);
+        if ($img !== '' && preg_match('#^https?://#i', $img)) {
+            $meta['image'] = $img;
+        }
+
+        // 4. Preço (meta tags ou JSON-LD)
+        $priceStr = $extractMeta($snippet, [
+            '/<meta[^>]+property=["\']product:price:amount["\'][^>]+content=["\']([0-9.,]+)["\']/i',
+            '/<meta[^>]+itemprop=["\']price["\'][^>]+content=["\']([0-9.,]+)["\']/i'
+        ]);
+        if ($priceStr === '' && preg_match('/"price"\s*:\s*"?([0-9]+(?:\.[0-9]{1,2})?)"?/i', $snippet, $pm)) {
+            $priceStr = $pm[1];
+        }
+        if ($priceStr !== '') {
+            $norm = str_replace(',', '.', $priceStr);
+            $val = (float)$norm;
+            if ($val > 0) {
+                $meta['price'] = $val;
+            }
+        }
+
+        // Fallback via JSON-LD se faltou imagem ou descrição
+        if (($meta['image'] === '' || $meta['description'] === '') && preg_match_all('/<script[^>]+type=["\']application\/ld\+json["\'][^>]*>(.*?)<\/script>/is', $snippet, $ldMatches)) {
+            foreach ($ldMatches[1] as $ldRaw) {
+                $ld = json_decode(trim($ldRaw), true);
+                if (!is_array($ld)) continue;
+                if ($meta['image'] === '' && !empty($ld['image'])) {
+                    $candImg = is_array($ld['image']) ? ($ld['image'][0] ?? '') : $ld['image'];
+                    if (is_string($candImg) && preg_match('#^https?://#i', $candImg)) {
+                        $meta['image'] = $candImg;
+                    }
+                }
+                if ($meta['description'] === '' && !empty($ld['description']) && is_string($ld['description'])) {
+                    $meta['description'] = mb_substr(trim(strip_tags($ld['description'])), 0, 280);
+                }
+                if ($meta['title'] === '' && !empty($ld['name']) && is_string($ld['name'])) {
+                    $meta['title'] = mb_substr(trim($ld['name']), 0, 140);
+                }
+            }
+        }
+
+        return $meta;
+    }
+
+    /**
      * Extrai informações de uma mensagem de texto de grupo de ofertas
      */
     public static function parseDealMessage(string $text): ?array
@@ -157,10 +284,16 @@ class LinkConverterService
                 if (mb_strlen($title) >= 10) break;
             }
         }
+        // Se título veio vazio, preço novo zerado, ou sempre para enriquecer imagem e descrição:
+        $meta = self::fetchProductMetadata($converted['expanded_url']);
+
+        if (empty($title) && !empty($meta['title'])) {
+            $title = $meta['title'];
+        }
         if (empty($title)) {
             $title = 'Super Oferta ' . ucfirst($converted['platform']);
         }
-        $title = mb_substr($title, 0, 120);
+        $title = mb_substr($title, 0, 140);
 
         // Preços (ex: "De R$ 199 por R$ 89,90" ou "R$ 49,90")
         $priceOld = 0.0;
@@ -172,6 +305,10 @@ class LinkConverterService
 
         if (preg_match('/(?:por\s*:?\s*r?\$?\s*|r\$\s*)([0-9]+[.,][0-9]{2})/i', $text, $pNew)) {
             $priceNew = (float)str_replace(',', '.', str_replace('.', '', $pNew[1]));
+        }
+
+        if ($priceNew <= 0 && !empty($meta['price']) && $meta['price'] > 0) {
+            $priceNew = (float)$meta['price'];
         }
 
         // Desconto em %
@@ -200,6 +337,8 @@ class LinkConverterService
         return [
             'platform' => $converted['platform'],
             'title' => $title,
+            'description' => $meta['description'] ?? '',
+            'image_url' => $meta['image'] ?? '',
             'original_url' => $converted['original_url'],
             'affiliate_url' => $converted['affiliate_url'],
             'price_old' => $priceOld,
