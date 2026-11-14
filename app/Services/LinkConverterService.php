@@ -145,30 +145,43 @@ class LinkConverterService
             return $meta;
         }
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 8);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_ENCODING, '');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
-        ]);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+        $fetchHtml = static function (string $targetUrl, string $userAgent): array {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $targetUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_MAXREDIRS, 6);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_ENCODING, '');
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+            ]);
+            curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
+            $body = curl_exec($ch);
+            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            return [$body ?: '', $code];
+        };
 
-        $html = curl_exec($ch);
-        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // Tenta primeiro como crawler social (WhatsApp/Facebook), pois Mercado Livre/Amazon/Shopee
+        // costumam entregar og:image e og:title sem bloqueio anti-bot de datacenter.
+        [$html, $httpCode] = $fetchHtml($url, 'WhatsApp/2.23.20.0 A');
+        if ($html === '' || $httpCode >= 400 || stripos($html, 'og:image') === false) {
+            [$htmlBrowser, $codeBrowser] = $fetchHtml($url, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+            if ($htmlBrowser !== '' && $codeBrowser < 400) {
+                $html = $htmlBrowser;
+                $httpCode = $codeBrowser;
+            }
+        }
 
         if (!$html || $httpCode >= 400) {
             return $meta;
         }
 
-        // Limita o HTML analisado aos primeiros ~250KB para manter performance
-        $snippet = substr($html, 0, 260000);
+        // Limita o HTML analisado aos primeiros ~300KB para manter performance
+        $snippet = substr($html, 0, 310000);
 
         $extractMeta = static function (string $htmlContent, array $patterns): string {
             foreach ($patterns as $pattern) {
@@ -207,13 +220,22 @@ class LinkConverterService
         // 3. Imagem
         $img = $extractMeta($snippet, [
             '/<meta[^>]+property=["\']og:image:secure_url["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image:secure_url["\']/i',
             '/<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']/i',
             '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']/i',
             '/<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']/i',
             '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']twitter:image["\']/i'
         ]);
+        if ($img !== '' && strpos($img, '//') === 0) {
+            $img = 'https:' . $img;
+        }
         if ($img !== '' && preg_match('#^https?://#i', $img)) {
             $meta['image'] = $img;
+        }
+
+        // Fallback específico Mercado Livre caso og:image não venha no HTML
+        if ($meta['image'] === '' && preg_match('#https?://http2\.mlstatic\.com/D_NQ_NP_[^"\'\s<>]+\.(?:jpg|jpeg|png|webp)#i', $snippet, $mlImg)) {
+            $meta['image'] = $mlImg[0];
         }
 
         // 4. Preço (meta tags ou JSON-LD)
@@ -279,7 +301,7 @@ class LinkConverterService
         foreach ($lines as $line) {
             $line = trim($line);
             if (!empty($line) && !preg_match('#https?://#i', $line)) {
-                $title = preg_replace('/[🔥💥⚡🚨😱🛒]/u', '', $line);
+                $title = preg_replace('/[🔥💥⚡🚨😱🛒*]/u', '', $line);
                 $title = trim($title);
                 if (mb_strlen($title) >= 10) break;
             }
