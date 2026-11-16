@@ -133,7 +133,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
 
         .telemetry-badge {
             position: absolute;
-            bottom: 10px;
+            top: 10px;
             right: 15px;
             font-size: 11px;
             color: rgba(255, 255, 255, 0.4);
@@ -161,17 +161,16 @@ $radioName = $radioInfo['radio_name'] ?? '';
             pointer-events: auto;
         }
 
-        /* Banner Flutuante de Achadinhos / Ofertas E-commerce */
+        /* Banner Flutuante de Achadinhos / Ofertas E-commerce (Esquerda) */
         #dealBanner {
             display: none;
             position: absolute;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 20px;
+            left: 16px;
             background: rgba(10, 14, 26, 0.94);
             border: 2px solid #ffaa00;
-            border-radius: 50px;
-            padding: 6px 18px 6px 10px;
+            border-radius: 22px;
+            padding: 8px 18px 8px 10px;
             color: #fff;
             z-index: 3000;
             box-shadow: 0 8px 30px rgba(255, 170, 0, 0.4);
@@ -179,32 +178,68 @@ $radioName = $radioInfo['radio_name'] ?? '';
             backdrop-filter: blur(10px);
             align-items: center;
             gap: 12px;
-            max-width: 90%;
+            max-width: calc(100% - 210px);
             pointer-events: auto;
             animation: pulseBanner 2.5s infinite;
         }
         @keyframes pulseBanner {
-            0%, 100% { box-shadow: 0 8px 30px rgba(255, 170, 0, 0.35); transform: translateX(-50%) scale(1); }
-            50% { box-shadow: 0 10px 40px rgba(255, 170, 0, 0.7); transform: translateX(-50%) scale(1.02); }
+            0%, 100% { box-shadow: 0 8px 30px rgba(255, 170, 0, 0.35); transform: scale(1); }
+            50% { box-shadow: 0 10px 40px rgba(255, 170, 0, 0.7); transform: scale(1.02); }
         }
         #dealBanner img {
-            width: 40px;
-            height: 40px;
-            object-fit: cover;
-            border-radius: 50%;
+            width: 58px;
+            height: 58px;
+            object-fit: cover !important;
+            border-radius: 14px;
             border: 2px solid #ffaa00;
             display: block;
+            flex-shrink: 0;
         }
-        .deal-btn-touch {
-            background: linear-gradient(135deg, #ffaa00, #ff4500);
+
+        /* QR Code Fixo da Loja do Motorista (Canto Direito Inferior) */
+        #storeQrWidget {
+            position: absolute;
+            bottom: 20px;
+            right: 16px;
+            width: 168px;
+            background: rgba(10, 14, 26, 0.94);
+            border: 2px solid #ffaa00;
+            border-radius: 20px;
+            padding: 8px 10px;
             color: #fff;
-            padding: 6px 14px;
-            border-radius: 30px;
-            font-size: 11px;
+            z-index: 3000;
+            box-shadow: 0 8px 30px rgba(255, 170, 0, 0.4);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 6px;
+            pointer-events: auto;
+            animation: pulseBanner 2.5s infinite;
+        }
+        #storeQrWidget .store-qr-box {
+            background: #fff;
+            padding: 5px;
+            border-radius: 10px;
+            line-height: 0;
+        }
+        #storeQrWidget img {
+            width: 78px;
+            height: 78px;
+            object-fit: contain !important;
+            display: block;
+        }
+        #storeQrWidget .store-qr-text {
+            font-size: 10px;
             font-weight: 800;
+            line-height: 1.25;
+            color: #ffaa00;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        #dealModalQrCode {
+            object-fit: contain !important;
         }
 
         /* Modal Tela Cheia com QR Code Ampliado e Timer */
@@ -301,17 +336,24 @@ $radioName = $radioInfo['radio_name'] ?? '';
             <?php endforeach; ?>
         <?php endif; ?>
 
-        <!-- Banner Flutuante de Oferta / Achadinho -->
+        <!-- Banner Flutuante de Oferta / Achadinho (Esquerda) -->
         <div id="dealBanner" onclick="openDealModal()">
             <img id="dealBannerImg" src="" alt="Produto">
-            <div style="text-align: left; line-height: 1.2;">
+            <div style="text-align: left; line-height: 1.25; min-width: 0; flex: 1;">
                 <div style="font-size: 11px; color: #ffaa00; font-weight: 700; text-transform: uppercase;">
                     🔥 Achadinho no Carro <span id="dealBannerDiscount" style="background:#ff3333; color:#fff; padding:1px 5px; border-radius:4px; font-size:10px; margin-left:4px;"></span>
                 </div>
-                <div id="dealBannerTitle" style="font-size: 13px; font-weight: 700; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
-                <div id="dealBannerPrice" style="font-size: 12px; color: #00ffaa; font-weight: 800;"></div>
+                <div id="dealBannerTitle" style="font-size: 13px; font-weight: 700; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                <div id="dealBannerPrice" style="font-size: 13px; color: #00ffaa; font-weight: 800;"></div>
             </div>
-            <div class="deal-btn-touch">Toque para Comprar</div>
+        </div>
+
+        <!-- QR Code Fixo do Link do Motorista para a Loja Player99 (Canto Direito Inferior) -->
+        <div id="storeQrWidget">
+            <div class="store-qr-box">
+                <img id="storeQrCodeImg" src="" alt="QR Code Loja">
+            </div>
+            <div class="store-qr-text">Escaneie para ver esta e outras ofertas</div>
         </div>
 
         <div class="telemetry-badge">
@@ -495,6 +537,11 @@ $radioName = $radioInfo['radio_name'] ?? '';
         // ==========================================
         const dealsList = <?= json_encode($deals ?? []) ?>;
         const screenId = <?= (int)($screen['id'] ?? 0) ?>;
+        const driverLojaUrl = window.location.origin + '/loja?carro=' + screenId;
+        const storeQrImgEl = document.getElementById('storeQrCodeImg');
+        if (storeQrImgEl) {
+            storeQrImgEl.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=' + encodeURIComponent(driverLojaUrl);
+        }
         let currentDealIndex = 0;
         let dealCountdownInterval = null;
         let dealTouchCount = 0;
