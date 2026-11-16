@@ -63,6 +63,7 @@
             padding: 0;
             display: flex;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         /* Sidebar Moderna */
@@ -314,16 +315,145 @@
             border-bottom-right-radius: 12px;
             border-right: 1px solid var(--border-card);
         }
+
+        /* Botão Menu Mobile & Backdrop */
+        .mobile-menu-btn {
+            display: none;
+            background: rgba(52, 226, 228, 0.12);
+            border: 1px solid rgba(52, 226, 228, 0.35);
+            color: var(--primary-cyan);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .sidebar-close-btn {
+            display: none;
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(3px);
+            z-index: 1040;
+        }
+        .sidebar-backdrop.show {
+            display: block;
+        }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            flex: 1;
+        }
+        .topbar-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Responsividade Tablets e Celulares */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 1050;
+                box-shadow: 10px 0 35px rgba(0, 0, 0, 0.6);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-close-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .mobile-menu-btn {
+                display: inline-flex;
+            }
+            .main-wrapper {
+                margin-left: 0;
+                width: 100%;
+            }
+            .topbar {
+                padding: 10px 16px;
+                height: auto;
+                min-height: 64px;
+                gap: 10px;
+            }
+            .topbar-title {
+                font-size: 1rem !important;
+            }
+            .page-content {
+                padding: 18px 16px;
+            }
+            .glass-card {
+                padding: 18px;
+                border-radius: 16px;
+                overflow-x: auto;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .topbar {
+                padding: 8px 12px;
+                min-height: 58px;
+            }
+            .topbar-user {
+                gap: 8px;
+                flex-shrink: 0;
+            }
+            .topbar-user .user-badge {
+                display: none;
+            }
+            .topbar-user .fw-semibold {
+                font-size: 0.85rem;
+                max-width: 90px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .page-content {
+                padding: 14px 12px;
+            }
+            .glass-card {
+                padding: 14px;
+                margin-bottom: 16px;
+            }
+            .stat-val {
+                font-size: 1.4rem;
+            }
+        }
     </style>
 </head>
 <body>
 
+    <!-- Backdrop Mobile -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
     <!-- Sidebar -->
-    <aside class="sidebar">
-        <a href="/admin/dashboard" class="sidebar-brand">
-            <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" onerror="this.onerror=null; this.src='/assets/images/logo.png';">
-            <span>Player99</span>
-        </a>
+    <aside class="sidebar" id="appSidebar">
+        <div class="sidebar-brand">
+            <a href="/admin/dashboard" class="d-flex align-items-center gap-2 text-decoration-none text-white flex-grow-1">
+                <img src="<?= \App\Core\View::logoUrl() ?>" alt="Logo" onerror="this.onerror=null; this.src='/assets/images/logo.png';">
+                <span>Player99</span>
+            </a>
+            <button type="button" class="sidebar-close-btn" onclick="closeSidebar()" aria-label="Fechar menu">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
 
         <ul class="sidebar-nav">
             <?php if (!empty($currentUser['is_root'])): ?>
@@ -427,8 +557,11 @@
     <!-- Main Wrapper -->
     <div class="main-wrapper">
         <header class="topbar">
-            <div>
-                <h5 class="mb-0 fw-bold"><?= $pageHeading ?? 'Painel de Controle' ?></h5>
+            <div class="topbar-left">
+                <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Abrir menu">
+                    <i class="fa fa-bars"></i>
+                </button>
+                <h5 class="mb-0 fw-bold topbar-title"><?= $pageHeading ?? 'Painel de Controle' ?></h5>
             </div>
             <div class="topbar-user">
                 <?php if (!empty($currentUser['is_root'])): ?>
@@ -454,6 +587,28 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function toggleSidebar() {
+            var sidebar = document.getElementById('appSidebar');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar || !backdrop) return;
+            sidebar.classList.toggle('open');
+            backdrop.classList.toggle('show');
+        }
+        function closeSidebar() {
+            var sidebar = document.getElementById('appSidebar');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar) sidebar.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('show');
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeSidebar();
+        });
+        document.querySelectorAll('#appSidebar .sidebar-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 991.98) closeSidebar();
+            });
+        });
+
         setInterval(function() {
             fetch('/api/evolution/poll').catch(function() {});
         }, 8000);
