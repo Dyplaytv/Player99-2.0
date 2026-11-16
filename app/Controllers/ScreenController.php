@@ -690,6 +690,34 @@ class ScreenController extends Controller
             }
         } catch (\Throwable $e) {}
 
+        // Expande o item "Playlist da Player99" caso o cliente tenha adicionado na sua playlist
+        if (!empty($videos)) {
+            $expandedVideos = [];
+            $storePlaylistCache = null;
+            foreach ($videos as $vidItem) {
+                $fnItem = trim((string)($vidItem['filename'] ?? ''));
+                if ($fnItem === '/widgets/loja_promo.php') {
+                    if ($storePlaylistCache === null) {
+                        $storePlaylistCache = $this->getPlayer99StorePlaylistMedia((int)$screen['id']);
+                        if (empty($storePlaylistCache)) {
+                            $storePlaylistCache = [[
+                                'id' => 0,
+                                'title' => 'Playlist da Player99',
+                                'filename' => '/widgets/loja_promo.php?carro=' . (int)$screen['id'],
+                                'duration' => 10
+                            ]];
+                        }
+                    }
+                    foreach ($storePlaylistCache as $spItem) {
+                        $expandedVideos[] = $spItem;
+                    }
+                } else {
+                    $expandedVideos[] = $vidItem;
+                }
+            }
+            $videos = $expandedVideos;
+        }
+
         $radioInfo = $this->resolveRadioInfo($pdo, $screen);
         $deals = \App\Models\Deal::getActiveDeals(10);
 
