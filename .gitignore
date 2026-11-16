@@ -35,3 +35,4 @@ Desktop.ini
 /router.php
 
 /api/db/rss_cache_*.json
+/storage_backups_vault/

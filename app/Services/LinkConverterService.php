@@ -243,12 +243,11 @@ class LinkConverterService
             '/<meta[^>]+property=["\']product:price:amount["\'][^>]+content=["\']([0-9.,]+)["\']/i',
             '/<meta[^>]+itemprop=["\']price["\'][^>]+content=["\']([0-9.,]+)["\']/i'
         ]);
-        if ($priceStr === '' && preg_match('/"price"\s*:\s*"?([0-9]+(?:\.[0-9]{1,2})?)"?/i', $snippet, $pm)) {
+        if ($priceStr === '' && preg_match('/"price"\s*:\s*"?([0-9.,]+)"?/i', $snippet, $pm)) {
             $priceStr = $pm[1];
         }
         if ($priceStr !== '') {
-            $norm = str_replace(',', '.', $priceStr);
-            $val = (float)$norm;
+            $val = self::parsePrice($priceStr);
             if ($val > 0) {
                 $meta['price'] = $val;
             }
@@ -275,6 +274,45 @@ class LinkConverterService
         }
 
         return $meta;
+    }
+
+    /**
+     * Normaliza strings de preço nos formatos BR (1.580,00 / 1.580) e US (1,580.00 / 1580.00) para float.
+     */
+    public static function parsePrice(string $raw): float
+    {
+        $clean = preg_replace('/[^0-9.,]/', '', trim($raw));
+        if ($clean === '' || $clean === null) {
+            return 0.0;
+        }
+
+        $hasDot = strpos($clean, '.') !== false;
+        $hasComma = strpos($clean, ',') !== false;
+
+        if ($hasDot && $hasComma) {
+            if (strrpos($clean, ',') > strrpos($clean, '.')) {
+                $clean = str_replace('.', '', $clean);
+                $clean = str_replace(',', '.', $clean);
+            } else {
+                $clean = str_replace(',', '', $clean);
+            }
+        } elseif ($hasComma) {
+            $parts = explode(',', $clean);
+            if (count($parts) === 2 && strlen($parts[1]) <= 2) {
+                $clean = $parts[0] . '.' . $parts[1];
+            } else {
+                $clean = str_replace(',', '', $clean);
+            }
+        } elseif ($hasDot) {
+            $parts = explode('.', $clean);
+            if (count($parts) === 2 && strlen($parts[1]) <= 2) {
+                // Já está no formato decimal com ponto (ex: 1580.00 ou 89.9)
+            } else {
+                $clean = str_replace('.', '', $clean);
+            }
+        }
+
+        return (float)$clean;
     }
 
     /**
@@ -317,16 +355,19 @@ class LinkConverterService
         }
         $title = mb_substr($title, 0, 140);
 
-        // Preços (ex: "De R$ 199 por R$ 89,90" ou "R$ 49,90")
+        // Preços (ex: "De R$ 1.580,00 por R$ 999,90", "R$ 1.580", "R$ 1580" ou "R$ 49,90")
         $priceOld = 0.0;
         $priceNew = 0.0;
+        $pricePattern = '[0-9]{1,3}(?:\.[0-9]{3})+(?:,[0-9]{1,2})?|[0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?';
 
-        if (preg_match('/(?:de\s*:?\s*r?\$?\s*)([0-9]+[.,][0-9]{2})/i', $text, $pOld)) {
-            $priceOld = (float)str_replace(',', '.', str_replace('.', '', $pOld[1]));
+        if (preg_match('/(?:de\s*:?\s*r?\$?\s*)(' . $pricePattern . ')/i', $text, $pOld)) {
+            $priceOld = self::parsePrice($pOld[1]);
         }
 
-        if (preg_match('/(?:por\s*:?\s*r?\$?\s*|r\$\s*)([0-9]+[.,][0-9]{2})/i', $text, $pNew)) {
-            $priceNew = (float)str_replace(',', '.', str_replace('.', '', $pNew[1]));
+        if (preg_match('/(?:por(?:\s+apenas|\s+só)?\s*:?\s*r?\$?\s*)(' . $pricePattern . ')/i', $text, $pNew)) {
+            $priceNew = self::parsePrice($pNew[1]);
+        } elseif (preg_match('/(?:r\$\s*)(' . $pricePattern . ')/i', $text, $pNew)) {
+            $priceNew = self::parsePrice($pNew[1]);
         }
 
         if ($priceNew <= 0 && !empty($meta['price']) && $meta['price'] > 0) {
