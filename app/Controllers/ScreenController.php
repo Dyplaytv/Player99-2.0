@@ -644,6 +644,37 @@ class ScreenController extends Controller
         $radioInfo = $this->resolveRadioInfo($pdo, $screen);
         $deals = \App\Models\Deal::getActiveDeals(10);
 
+        // Inclui também os produtos ativos da Loja na rotação da barra de achadinhos
+        $storeDeals = [];
+        try {
+            $lojaDbPath = dirname(__DIR__, 2) . '/api/db/studiolivecode_loja.db';
+            if (file_exists($lojaDbPath)) {
+                $pdoLoja = new \PDO("sqlite:{$lojaDbPath}", null, null, [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
+                ]);
+                $stmtLoja = $pdoLoja->query("SELECT id, titulo, preco, imagem FROM produtos WHERE ativo = 1 ORDER BY id DESC LIMIT 10");
+                $produtosLoja = $stmtLoja ? $stmtLoja->fetchAll() : [];
+                foreach ($produtosLoja as $prod) {
+                    $storeDeals[] = [
+                        'id' => (int)$prod['id'],
+                        'item_type' => 'store',
+                        'platform' => 'loja',
+                        'title' => (string)$prod['titulo'],
+                        'image_url' => !empty($prod['imagem']) ? ('/uploads/loja/' . $prod['imagem']) : '',
+                        'price_old' => 0,
+                        'price_new' => (float)$prod['preco'],
+                        'discount_pct' => 0,
+                        'target_path' => '/api/loja/checkout.php?prod_id=' . (int)$prod['id']
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        if (!empty($storeDeals)) {
+            $deals = array_merge($storeDeals, $deals);
+        }
+
         $locked = $this->isScreenLocked($pdo, $screen);
         if ($locked) {
             $videos = $this->getLockMedia();

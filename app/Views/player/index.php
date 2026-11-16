@@ -341,7 +341,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
             <img id="dealBannerImg" src="" alt="Produto">
             <div style="text-align: left; line-height: 1.25; min-width: 0; flex: 1;">
                 <div style="font-size: 11px; color: #ffaa00; font-weight: 700; text-transform: uppercase;">
-                    🔥 Achadinho no Carro <span id="dealBannerDiscount" style="background:#ff3333; color:#fff; padding:1px 5px; border-radius:4px; font-size:10px; margin-left:4px;"></span>
+                    <span id="dealBannerBadgeLabel">🔥 Achadinho no Carro</span> <span id="dealBannerDiscount" style="background:#ff3333; color:#fff; padding:1px 5px; border-radius:4px; font-size:10px; margin-left:4px;"></span>
                 </div>
                 <div id="dealBannerTitle" style="font-size: 13px; font-weight: 700; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
                 <div id="dealBannerPrice" style="font-size: 13px; color: #00ffaa; font-weight: 800;"></div>
@@ -549,7 +549,8 @@ $radioName = $radioInfo['radio_name'] ?? '';
 
         function showNextDealBanner() {
             if (!dealsList || dealsList.length === 0) return;
-            const deal = dealsList[currentDealIndex];
+            const idx = currentDealIndex;
+            const deal = dealsList[idx];
             currentDealIndex = (currentDealIndex + 1) % dealsList.length;
 
             const banner = document.getElementById('dealBanner');
@@ -557,6 +558,11 @@ $radioName = $radioInfo['radio_name'] ?? '';
             const title = document.getElementById('dealBannerTitle');
             const price = document.getElementById('dealBannerPrice');
             const disc = document.getElementById('dealBannerDiscount');
+            const badgeLabel = document.getElementById('dealBannerBadgeLabel');
+
+            if (badgeLabel) {
+                badgeLabel.innerText = (deal.item_type === 'store') ? '🛒 Loja Player99' : '🔥 Achadinho no Carro';
+            }
 
             if (deal.image_url) {
                 img.src = deal.image_url;
@@ -575,6 +581,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
                 disc.style.display = 'none';
             }
 
+            banner.setAttribute('data-deal-idx', idx);
             banner.setAttribute('data-deal-id', deal.id);
             banner.style.display = 'flex';
         }
@@ -584,8 +591,8 @@ $radioName = $radioInfo['radio_name'] ?? '';
             dealTouchCount++;
 
             const banner = document.getElementById('dealBanner');
-            const dealId = parseInt(banner.getAttribute('data-deal-id') || '0', 10);
-            const deal = dealsList.find(d => d.id == dealId) || dealsList[0];
+            const dealIdx = parseInt(banner.getAttribute('data-deal-idx') || '-1', 10);
+            const deal = (dealIdx >= 0 && dealsList[dealIdx]) ? dealsList[dealIdx] : dealsList[0];
             if (!deal) return;
 
             // Pausa mídia e timer atual
@@ -605,7 +612,9 @@ $radioName = $radioInfo['radio_name'] ?? '';
             }
 
             // Gera QR Code via API pública sem dependências pesadas
-            const targetUrl = window.location.origin + '/o/' + deal.id + '?carro=' + screenId;
+            const targetUrl = (deal.item_type === 'store' && deal.target_path)
+                ? (window.location.origin + deal.target_path)
+                : (window.location.origin + '/o/' + deal.id + '?carro=' + screenId);
             const qrApi = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=4&data=' + encodeURIComponent(targetUrl);
             document.getElementById('dealModalQrCode').src = qrApi;
 
