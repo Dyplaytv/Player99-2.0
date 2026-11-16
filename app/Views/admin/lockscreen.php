@@ -34,6 +34,15 @@
 
     <!-- Coluna Direita: Mídias Cadastradas -->
     <div class="col-12 col-lg-7">
+        <div class="alert alert-info bg-dark border-info border-opacity-50 text-white d-flex align-items-center justify-content-between gap-3 mb-3">
+            <div>
+                <div class="fw-bold text-info"><i class="fa fa-store me-1"></i> Playlist da Player99 (Automática)</div>
+                <small class="text-muted">Os produtos ativos da sua Loja e os Achadinhos são exibidos automaticamente em tela cheia com QR Code sempre que uma tela estiver bloqueada.</small>
+            </div>
+            <a href="/widgets/loja_promo.php?type=store&id=1" target="_blank" class="btn btn-sm btn-outline-info text-nowrap">
+                <i class="fa fa-eye me-1"></i> Prévia
+            </a>
+        </div>
         <div class="glass-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">

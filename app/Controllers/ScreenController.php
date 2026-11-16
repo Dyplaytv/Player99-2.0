@@ -576,7 +576,49 @@ class ScreenController extends Controller
         }
     }
 
-    private function getLockMedia(): array
+    /**
+     * Gera automaticamente a "Playlist da Player99" com propagandas em tela cheia
+     * dos produtos ativos da Loja e dos Achadinhos.
+     */
+    private function getPlayer99StorePlaylistMedia(int $screenId = 0): array
+    {
+        $items = [];
+
+        try {
+            $lojaDbPath = dirname(__DIR__, 2) . '/api/db/studiolivecode_loja.db';
+            if (is_file($lojaDbPath)) {
+                $pdoLoja = new \PDO("sqlite:{$lojaDbPath}", null, null, [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
+                ]);
+                $stmtLoja = $pdoLoja->query("SELECT id, titulo FROM produtos WHERE ativo = 1 ORDER BY id DESC LIMIT 15");
+                foreach (($stmtLoja ? $stmtLoja->fetchAll() : []) as $prod) {
+                    $items[] = [
+                        'id' => 0,
+                        'title' => 'Playlist da Player99 - ' . (string)$prod['titulo'],
+                        'filename' => '/widgets/loja_promo.php?type=store&id=' . (int)$prod['id'] . '&carro=' . $screenId,
+                        'duration' => 12
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        try {
+            $deals = \App\Models\Deal::getActiveDeals(15);
+            foreach ($deals as $deal) {
+                $items[] = [
+                    'id' => 0,
+                    'title' => 'Playlist da Player99 - ' . (string)($deal['title'] ?? 'Oferta'),
+                    'filename' => '/widgets/loja_promo.php?type=deal&id=' . (int)$deal['id'] . '&carro=' . $screenId,
+                    'duration' => 12
+                ];
+            }
+        } catch (\Throwable $e) {}
+
+        return $items;
+    }
+
+    private function getLockMedia(int $screenId = 0): array
     {
         $items = [];
         try {
@@ -592,6 +634,13 @@ class ScreenController extends Controller
                 }
             }
         } catch (\Throwable $e) {}
+
+        // Anexa automaticamente a Playlist da Player99 (propagandas da loja em tela cheia)
+        $storePlaylist = $this->getPlayer99StorePlaylistMedia($screenId);
+        if (!empty($storePlaylist)) {
+            $items = array_merge($items, $storePlaylist);
+        }
+
         return $items;
     }
 
@@ -677,7 +726,7 @@ class ScreenController extends Controller
 
         $locked = $this->isScreenLocked($pdo, $screen);
         if ($locked) {
-            $videos = $this->getLockMedia();
+            $videos = $this->getLockMedia((int)$screen['id']);
             $radioInfo = ['audio_mode' => 'video', 'id_radio' => 0, 'radio_url' => '', 'radio_name' => ''];
         }
 
@@ -737,6 +786,76 @@ class ScreenController extends Controller
     public function widget(Request $request, string $slug = ''): void
     {
         $slug = str_replace('.php', '', trim($slug));
+
+        if ($slug === 'loja_promo') {
+            $type = trim((string)$request->input('type', 'store'));
+            $itemId = (int)$request->input('id', 0);
+            $carroId = (int)$request->input('carro', 0);
+            $item = null;
+
+            if ($type === 'store' && $itemId > 0) {
+                try {
+                    $lojaDbPath = dirname(__DIR__, 2) . '/api/db/studiolivecode_loja.db';
+                    if (is_file($lojaDbPath)) {
+                        $pdoLoja = new \PDO("sqlite:{$lojaDbPath}", null, null, [
+                            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
+                        ]);
+                        $stmt = $pdoLoja->prepare("SELECT * FROM produtos WHERE id = :id LIMIT 1");
+                        $stmt->execute([':id' => $itemId]);
+                        $row = $stmt->fetch();
+                        if ($row) {
+                            $item = [
+                                'item_type' => 'store',
+                                'platform' => 'Loja Player99',
+                                'title' => (string)$row['titulo'],
+                                'description' => (string)($row['descricao'] ?? ''),
+                                'image_url' => !empty($row['imagem']) ? ('/uploads/loja/' . $row['imagem']) : '',
+                                'price_old' => 0,
+                                'price_new' => (float)$row['preco'],
+                                'discount_pct' => 0,
+                                'target_path' => '/api/loja/checkout.php?prod_id=' . (int)$row['id']
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            } elseif ($type === 'deal' && $itemId > 0) {
+                try {
+                    $row = \App\Models\Deal::find($itemId);
+                    if ($row) {
+                        $item = [
+                            'item_type' => 'deal',
+                            'platform' => (string)($row['platform'] ?? 'Oferta'),
+                            'title' => (string)($row['title'] ?? ''),
+                            'description' => (string)($row['description'] ?? ''),
+                            'image_url' => (string)($row['image_url'] ?? ''),
+                            'price_old' => (float)($row['price_old'] ?? 0),
+                            'price_new' => (float)($row['price_new'] ?? 0),
+                            'discount_pct' => (int)($row['discount_pct'] ?? 0),
+                            'target_path' => '/o/' . (int)$row['id'] . '?carro=' . $carroId
+                        ];
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            if (!$item) {
+                $item = [
+                    'item_type' => 'store',
+                    'platform' => 'Player99',
+                    'title' => 'Conheça a Loja Oficial Player99',
+                    'description' => 'Escaneie o QR Code e confira nossas ofertas e serviços exclusivos.',
+                    'image_url' => '',
+                    'price_old' => 0,
+                    'price_new' => 0,
+                    'discount_pct' => 0,
+                    'target_path' => '/loja?carro=' . $carroId
+                ];
+            }
+
+            $this->render('player/widget_loja_promo', ['item' => $item], null);
+            return;
+        }
+
         $presets = [
             'hora' => [
                 'title' => 'Hora Certa',

@@ -336,6 +336,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
             <?php endforeach; ?>
         <?php endif; ?>
 
+        <?php if (empty($locked)): ?>
         <!-- Banner Flutuante de Oferta / Achadinho (Esquerda) -->
         <div id="dealBanner" onclick="openDealModal()">
             <img id="dealBannerImg" src="" alt="Produto">
@@ -355,6 +356,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
             </div>
             <div class="store-qr-text">Escaneie para ver esta e outras ofertas</div>
         </div>
+        <?php endif; ?>
 
         <div class="telemetry-badge">
             Player99 • Cod: <?= htmlspecialchars($codigo) ?>
