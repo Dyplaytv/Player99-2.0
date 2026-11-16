@@ -597,7 +597,7 @@ class ScreenController extends Controller
                         'id' => 0,
                         'title' => 'Playlist da Player99 - ' . (string)$prod['titulo'],
                         'filename' => '/widgets/loja_promo.php?type=store&id=' . (int)$prod['id'] . '&carro=' . $screenId,
-                        'duration' => 12
+                        'duration' => 8
                     ];
                 }
             }
@@ -610,7 +610,7 @@ class ScreenController extends Controller
                     'id' => 0,
                     'title' => 'Playlist da Player99 - ' . (string)($deal['title'] ?? 'Oferta'),
                     'filename' => '/widgets/loja_promo.php?type=deal&id=' . (int)$deal['id'] . '&carro=' . $screenId,
-                    'duration' => 12
+                    'duration' => 8
                 ];
             }
         } catch (\Throwable $e) {}
@@ -791,6 +791,20 @@ class ScreenController extends Controller
             $type = trim((string)$request->input('type', 'store'));
             $itemId = (int)$request->input('id', 0);
             $carroId = (int)$request->input('carro', 0);
+            $driverId = 0;
+
+            if ($carroId > 0) {
+                try {
+                    $stmtScr = Database::clients()->prepare("SELECT id_cliente, user_id FROM screens WHERE id = :id LIMIT 1");
+                    $stmtScr->execute([':id' => $carroId]);
+                    $scrRow = $stmtScr->fetch();
+                    if ($scrRow) {
+                        $driverId = (int)($scrRow['user_id'] ?: $scrRow['id_cliente'] ?: 0);
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            $lojaTargetPath = '/loja?carro=' . $carroId . ($driverId > 0 ? '&motorista=' . $driverId : '');
             $item = null;
 
             if ($type === 'store' && $itemId > 0) {
@@ -814,7 +828,7 @@ class ScreenController extends Controller
                                 'price_old' => 0,
                                 'price_new' => (float)$row['preco'],
                                 'discount_pct' => 0,
-                                'target_path' => '/api/loja/checkout.php?prod_id=' . (int)$row['id']
+                                'target_path' => $lojaTargetPath
                             ];
                         }
                     }
@@ -832,7 +846,7 @@ class ScreenController extends Controller
                             'price_old' => (float)($row['price_old'] ?? 0),
                             'price_new' => (float)($row['price_new'] ?? 0),
                             'discount_pct' => (int)($row['discount_pct'] ?? 0),
-                            'target_path' => '/o/' . (int)$row['id'] . '?carro=' . $carroId
+                            'target_path' => $lojaTargetPath
                         ];
                     }
                 } catch (\Throwable $e) {}
@@ -848,7 +862,7 @@ class ScreenController extends Controller
                     'price_old' => 0,
                     'price_new' => 0,
                     'discount_pct' => 0,
-                    'target_path' => '/loja?carro=' . $carroId
+                    'target_path' => $lojaTargetPath
                 ];
             }
 

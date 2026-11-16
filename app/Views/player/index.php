@@ -550,17 +550,17 @@ $radioName = $radioInfo['radio_name'] ?? '';
         const MAX_DEAL_TOUCHES = 2; // Trava de segurança anti-abuso
 
         function showNextDealBanner() {
-            if (!dealsList || dealsList.length === 0) return;
-            const idx = currentDealIndex;
-            const deal = dealsList[idx];
-            currentDealIndex = (currentDealIndex + 1) % dealsList.length;
-
             const banner = document.getElementById('dealBanner');
             const img = document.getElementById('dealBannerImg');
             const title = document.getElementById('dealBannerTitle');
             const price = document.getElementById('dealBannerPrice');
             const disc = document.getElementById('dealBannerDiscount');
             const badgeLabel = document.getElementById('dealBannerBadgeLabel');
+
+            if (!banner || !img || !title || !price || !disc || !dealsList || dealsList.length === 0) return;
+            const idx = currentDealIndex;
+            const deal = dealsList[idx];
+            currentDealIndex = (currentDealIndex + 1) % dealsList.length;
 
             if (badgeLabel) {
                 badgeLabel.innerText = (deal.item_type === 'store') ? '🛒 Loja Player99' : '🔥 Achadinho no Carro';
