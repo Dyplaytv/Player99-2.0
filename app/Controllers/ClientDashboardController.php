@@ -1252,6 +1252,7 @@ class ClientDashboardController extends Controller
             try { $pdoRadios->exec("ALTER TABLE entretenimentos ADD COLUMN bg_image TEXT"); } catch (\Throwable $e) {}
 
             $defaults = [
+                ['Playlist da Player99 (Loja & Achadinhos)', '/widgets/loja_promo.php', 'fas fa-store', ''],
                 ['Hora Atual', '/widgets/hora.php', 'fas fa-clock', ''],
                 ['Frases e Pensamentos', '/widgets/frases.php', 'fas fa-quote-left', ''],
                 ['RSS: Notícias (Últimas - G1)', '/widgets/noticias.php', 'fas fa-newspaper', 'https://g1.globo.com/rss/g1/'],
