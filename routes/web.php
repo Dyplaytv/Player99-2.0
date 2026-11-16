@@ -17,6 +17,7 @@ use App\Controllers\FranchiseController;
 use App\Controllers\EvolutionWebhookController;
 use App\Controllers\DealsController;
 use App\Controllers\EvolutionDealsWebhookController;
+use App\Controllers\BackupController;
 
 /** @var Router $router */
 
@@ -87,6 +88,7 @@ $router->get('/admin/telas/criar', [ScreenController::class, 'create']);
 $router->post('/admin/telas/criar', [ScreenController::class, 'create']);
 $router->get('/admin/telas/{id}/midias', [ScreenController::class, 'media']);
 $router->post('/admin/telas/{id}/midias', [ScreenController::class, 'media']);
+$router->post('/admin/telas/{id}/midias/chunk', [ScreenController::class, 'mediaChunk']);
 $router->get('/admin/telas/{id}/deletar', [ScreenController::class, 'delete']);
 $router->post('/admin/telas/{id}/validade', [ScreenController::class, 'updateExpire']);
 $router->get('/all_users.php', [ScreenController::class, 'list']);
@@ -199,3 +201,10 @@ $router->get('/promo/{id}', [DealsController::class, 'redirectDeal']);
 // Webhook de Captação Automática de Ofertas via WhatsApp (Evolution API)
 $router->post('/api/evolution/deals-webhook', [EvolutionDealsWebhookController::class, 'handle']);
 $router->get('/api/evolution/deals-webhook', [EvolutionDealsWebhookController::class, 'handle']);
+
+// Cofre de Backups & Recuperação Automática (Ciclo 2h / Retenção 7 Dias)
+$router->get('/admin/backups', [BackupController::class, 'index']);
+$router->post('/admin/backups', [BackupController::class, 'index']);
+$router->get('/admin/backups/download', [BackupController::class, 'download']);
+$router->get('/api/backups/cron', [BackupController::class, 'cronWebhook']);
+$router->post('/api/backups/cron', [BackupController::class, 'cronWebhook']);

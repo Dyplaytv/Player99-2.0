@@ -25,16 +25,29 @@
             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
                 <i class="fa fa-cloud-upload-alt text-info"></i> Adicionar Vídeo ou Anúncio
             </h5>
-            <form method="POST" enctype="multipart/form-data">
+            <div id="chunkUploadAlert" class="d-none mb-3"></div>
+            <form id="mediaUploadForm" method="POST" enctype="multipart/form-data">
                 <div class="mb-3">
                     <label class="form-label text-muted small fw-bold">Título da Campanha / Anunciante</label>
-                    <input type="text" name="media_title" class="form-control bg-dark text-white border-secondary" placeholder="Ex: Comercial Restaurante Sabor" required>
+                    <input type="text" id="mediaTitleInput" name="media_title" class="form-control bg-dark text-white border-secondary" placeholder="Ex: Comercial Restaurante Sabor" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted small fw-bold">Arquivo de Mídia (MP4, WEBM, JPG, PNG)</label>
-                    <input type="file" name="media_file" class="form-control bg-dark text-white border-secondary" accept="video/mp4,video/webm,image/*" required>
+                    <input type="file" id="mediaFileInput" name="media_file" class="form-control bg-dark text-white border-secondary" accept="video/mp4,video/webm,image/*" required>
+                    <div class="form-text text-muted small mt-1">
+                        Envio automático em blocos de 1.5 MB para evitar timeout em VTs grandes.
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
+                <div id="chunkUploadProgressWrap" class="d-none mb-3">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span id="chunkUploadStatusText">Preparando envio...</span>
+                        <span id="chunkUploadPercentText" class="fw-bold text-info">0%</span>
+                    </div>
+                    <div class="progress bg-dark border border-secondary" style="height: 10px;">
+                        <div id="chunkUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <button type="submit" id="mediaUploadSubmitBtn" class="btn btn-primary w-100 fw-bold py-2">
                     <i class="fa fa-plus me-1"></i> Enviar para a Tela
                 </button>
             </form>
@@ -145,3 +158,122 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const form = document.getElementById('mediaUploadForm');
+    if (!form || typeof fetch === 'undefined') return;
+
+    const fileInput = document.getElementById('mediaFileInput');
+    const titleInput = document.getElementById('mediaTitleInput');
+    const submitBtn = document.getElementById('mediaUploadSubmitBtn');
+    const progressWrap = document.getElementById('chunkUploadProgressWrap');
+    const progressBar = document.getElementById('chunkUploadProgressBar');
+    const statusText = document.getElementById('chunkUploadStatusText');
+    const percentText = document.getElementById('chunkUploadPercentText');
+    const alertBox = document.getElementById('chunkUploadAlert');
+
+    const CHUNK_SIZE = 1536 * 1024; // 1.5 MB por bloco (abaixo de qualquer limite 2M/50M e timeout 60s)
+    const CHUNK_ENDPOINT = '/admin/telas/<?= (int)$screen['id'] ?>/midias/chunk';
+    const REDIRECT_URL = '/admin/telas/<?= (int)$screen['id'] ?>/midias?msg=uploaded';
+
+    function showError(msg) {
+        alertBox.className = 'alert alert-danger d-flex align-items-center gap-2 mb-3';
+        alertBox.innerHTML = '<i class="fa fa-times-circle"></i><span></span>';
+        alertBox.querySelector('span').textContent = msg;
+    }
+
+    function formatMb(bytes) {
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    async function sendChunkWithRetry(formData, attempts) {
+        let lastErr = null;
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const resp = await fetch(CHUNK_ENDPOINT, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                const text = await resp.text();
+                let data = null;
+                try {
+                    data = JSON.parse(text);
+                } catch (_) {
+                    throw new Error('Resposta inesperada do servidor (HTTP ' + resp.status + ').');
+                }
+                if (!resp.ok || !data || !data.success) {
+                    throw new Error((data && data.message) ? data.message : ('Erro HTTP ' + resp.status));
+                }
+                return data;
+            } catch (err) {
+                lastErr = err;
+                if (i < attempts - 1) {
+                    await new Promise(r => setTimeout(r, 800 * (i + 1)));
+                }
+            }
+        }
+        throw lastErr || new Error('Falha no envio do bloco.');
+    }
+
+    form.addEventListener('submit', async function (e) {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+
+        e.preventDefault();
+        alertBox.className = 'd-none mb-3';
+        alertBox.textContent = '';
+
+        const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+        if (totalChunks > 512) {
+            showError('Arquivo muito grande (limite máximo de ~768 MB por VT).');
+            return;
+        }
+
+        const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+        const mediaTitle = (titleInput.value || '').trim() || file.name;
+
+        submitBtn.disabled = true;
+        fileInput.disabled = true;
+        titleInput.disabled = true;
+        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i> Enviando...';
+        progressWrap.classList.remove('d-none');
+        progressBar.style.width = '0%';
+        percentText.textContent = '0%';
+        statusText.textContent = 'Iniciando envio (' + formatMb(file.size) + ')...';
+
+        try {
+            for (let idx = 0; idx < totalChunks; idx++) {
+                const start = idx * CHUNK_SIZE;
+                const end = Math.min(file.size, start + CHUNK_SIZE);
+                const blob = file.slice(start, end);
+
+                const fd = new FormData();
+                fd.append('upload_id', uploadId);
+                fd.append('chunk_index', String(idx));
+                fd.append('total_chunks', String(totalChunks));
+                fd.append('filename', file.name);
+                fd.append('media_title', mediaTitle);
+                fd.append('chunk', blob, file.name + '.part');
+
+                statusText.textContent = 'Enviando parte ' + (idx + 1) + ' de ' + totalChunks + ' (' + formatMb(end) + ' / ' + formatMb(file.size) + ')';
+                await sendChunkWithRetry(fd, 3);
+
+                const pct = Math.round(((idx + 1) / totalChunks) * 100);
+                progressBar.style.width = pct + '%';
+                percentText.textContent = pct + '%';
+            }
+
+            statusText.textContent = 'Finalizando e salvando mídia...';
+            window.location.href = REDIRECT_URL;
+        } catch (err) {
+            showError(err && err.message ? err.message : 'Erro ao enviar arquivo.');
+            submitBtn.disabled = false;
+            fileInput.disabled = false;
+            titleInput.disabled = false;
+            submitBtn.innerHTML = '<i class="fa fa-plus me-1"></i> Enviar para a Tela';
+        }
+    });
+})();
+</script>

@@ -59,8 +59,8 @@ class DealsController extends Controller
                 $rawUrl = trim($request->input('product_url', ''));
                 $customTitle = trim($request->input('title', ''));
                 $customDesc = trim($request->input('description', ''));
-                $priceOld = (float)str_replace(',', '.', $request->input('price_old', '0'));
-                $priceNew = (float)str_replace(',', '.', $request->input('price_new', '0'));
+                $priceOld = LinkConverterService::parsePrice((string)$request->input('price_old', '0'));
+                $priceNew = LinkConverterService::parsePrice((string)$request->input('price_new', '0'));
                 $image = trim($request->input('image_url', ''));
                 $category = trim($request->input('category', 'Geral'));
 
