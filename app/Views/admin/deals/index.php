@@ -290,19 +290,35 @@
 
     <!-- 3. Lista de Ofertas Ativas -->
     <div class="card bg-dark border-secondary border-opacity-25">
-        <div class="card-header bg-dark border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold text-white"><i class="fa fa-list text-warning me-2"></i> Ofertas em Exibição nos Tablets (<?= count($deals) ?>)</h6>
-            <small class="text-muted">Ordenadas pelas mais recentes</small>
+        <div class="card-header bg-dark border-secondary border-opacity-25 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <h6 class="mb-0 fw-bold text-white"><i class="fa fa-list text-warning me-2"></i> Ofertas em Exibição nos Tablets (<?= count($deals) ?>)</h6>
+                <span id="dealsSelectedBadge" class="badge bg-warning text-dark d-none">0 selecionadas</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <form id="bulkDeleteForm" method="POST" class="d-inline" onsubmit="return confirmBulkDeleteDeals()">
+                    <input type="hidden" name="action" value="bulk_delete">
+                    <div id="bulkDeleteInputs"></div>
+                    <button type="submit" id="btnBulkDeleteDeals" class="btn btn-sm btn-danger fw-bold d-none">
+                        <i class="fa fa-trash-alt me-1"></i> Excluir em Lote (<span id="bulkDeleteCount">0</span>)
+                    </button>
+                </form>
+                <small class="text-muted">Ordenadas pelas mais recentes</small>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-dark table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-muted small">
+                            <th style="width: 42px;" class="text-center">
+                                <input type="checkbox" id="selectAllDeals" class="form-check-input" title="Selecionar todas as ofertas">
+                            </th>
                             <th style="width: 80px;" class="text-center">MÍDIA</th>
                             <th>PRODUTO / TÍTULO</th>
                             <th>PLATAFORMA</th>
                             <th>PREÇO</th>
+                            <th class="text-center">DATA</th>
                             <th class="text-center">CLIQUES NO CARRO</th>
                             <th class="text-center">STATUS</th>
                             <th style="width: 140px;" class="text-end">AÇÕES</th>
@@ -311,7 +327,7 @@
                     <tbody>
                         <?php if (empty($deals)): ?>
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-5">
+                                <td colspan="9" class="text-center text-muted py-5">
                                     <i class="fa fa-tags fa-2x mb-2 d-block"></i>
                                     Nenhuma oferta cadastrada ainda. Conecte o grupo do WhatsApp da Evolution ou adicione ofertas manuais acima!
                                 </td>
@@ -319,6 +335,9 @@
                         <?php else: ?>
                             <?php foreach ($deals as $d): ?>
                                 <tr>
+                                    <td class="text-center">
+                                        <input type="checkbox" class="form-check-input deal-checkbox" value="<?= (int)$d['id'] ?>" aria-label="Selecionar oferta <?= (int)$d['id'] ?>">
+                                    </td>
                                     <td class="text-center">
                                         <?php if (!empty($d['image_url'])): ?>
                                             <img src="<?= htmlspecialchars($d['image_url']) ?>" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #333;" alt="Thumb">
@@ -350,6 +369,14 @@
                                             <?php endif; ?>
                                         <?php else: ?>
                                             <span class="text-muted small">Consulte</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center text-nowrap">
+                                        <?php if (!empty($d['created_at'])): ?>
+                                            <div class="small text-white fw-semibold"><?= date('d/m/Y', strtotime($d['created_at'])) ?></div>
+                                            <div class="text-muted" style="font-size: 11px;"><?= date('H:i', strtotime($d['created_at'])) ?></div>
+                                        <?php else: ?>
+                                            <span class="text-muted small">-</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
@@ -438,6 +465,11 @@
                             <option value="Moda & Acessórios">Moda & Acessórios</option>
                             <option value="Geral">Geral</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label deals-label">DATA DO CADASTRO (OPCIONAL)</label>
+                        <input type="datetime-local" name="created_at" class="form-control deals-input">
+                        <small class="deals-subtext" style="font-size: 11px;">Se deixar vazio, usa a data e hora atual.</small>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
@@ -598,5 +630,62 @@ function checkLinksHealth() {
             location.reload();
         })
         .catch(err => alert('Erro ao executar checagem.'));
+}
+
+(function initBulkDealsSelection() {
+    const selectAll = document.getElementById('selectAllDeals');
+    const checkboxes = Array.from(document.querySelectorAll('.deal-checkbox'));
+    const btnBulk = document.getElementById('btnBulkDeleteDeals');
+    const countSpan = document.getElementById('bulkDeleteCount');
+    const selectedBadge = document.getElementById('dealsSelectedBadge');
+
+    if (!selectAll || checkboxes.length === 0) return;
+
+    function updateSelectionUI() {
+        const checked = checkboxes.filter(cb => cb.checked);
+        const total = checkboxes.length;
+        const count = checked.length;
+
+        selectAll.checked = (count > 0 && count === total);
+        selectAll.indeterminate = (count > 0 && count < total);
+
+        if (selectedBadge) {
+            selectedBadge.textContent = count + (count === 1 ? ' selecionada' : ' selecionadas');
+            selectedBadge.classList.toggle('d-none', count === 0);
+        }
+
+        if (btnBulk && countSpan) {
+            countSpan.textContent = count;
+            btnBulk.classList.toggle('d-none', count <= 1);
+        }
+    }
+
+    selectAll.addEventListener('change', function() {
+        const state = this.checked;
+        checkboxes.forEach(cb => { cb.checked = state; });
+        updateSelectionUI();
+    });
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelectionUI);
+    });
+})();
+
+function confirmBulkDeleteDeals() {
+    const checked = Array.from(document.querySelectorAll('.deal-checkbox:checked'));
+    if (checked.length <= 1) return false;
+    if (!confirm('Deseja excluir permanentemente as ' + checked.length + ' ofertas selecionadas?')) {
+        return false;
+    }
+    const container = document.getElementById('bulkDeleteInputs');
+    container.innerHTML = '';
+    checked.forEach(cb => {
+        const inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'deal_ids[]';
+        inp.value = cb.value;
+        container.appendChild(inp);
+    });
+    return true;
 }
 </script>

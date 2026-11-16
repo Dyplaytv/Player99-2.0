@@ -84,9 +84,11 @@ class DealsController extends Controller
                     }
 
                     $disc = ($priceOld > $priceNew && $priceNew > 0) ? (int)round((($priceOld - $priceNew) / $priceOld) * 100) : 0;
+                    $createdAtRaw = trim($request->input('created_at', ''));
+                    $createdAt = ($createdAtRaw !== '') ? date('Y-m-d H:i:s', strtotime($createdAtRaw)) : date('Y-m-d H:i:s');
 
-                    $stmt = $pdo->prepare("INSERT INTO deals (platform, title, description, original_url, affiliate_url, image_url, price_old, price_new, discount_pct, category, active) 
-                        VALUES (:plat, :title, :desc, :orig, :aff, :img, :pold, :pnew, :disc, :cat, 1)");
+                    $stmt = $pdo->prepare("INSERT INTO deals (platform, title, description, original_url, affiliate_url, image_url, price_old, price_new, discount_pct, category, active, created_at) 
+                        VALUES (:plat, :title, :desc, :orig, :aff, :img, :pold, :pnew, :disc, :cat, 1, :cat_dt)");
                     $stmt->execute([
                         ':plat' => $conv['platform'],
                         ':title' => !empty($customTitle) ? $customTitle : ('Oferta ' . ucfirst($conv['platform'])),
@@ -97,7 +99,8 @@ class DealsController extends Controller
                         ':pold' => $priceOld,
                         ':pnew' => $priceNew,
                         ':disc' => $disc,
-                        ':cat' => $category
+                        ':cat' => $category,
+                        ':cat_dt' => $createdAt
                     ]);
 
                     $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle fa-lg'></i> Nova oferta cadastrada com sucesso!</div>";
@@ -149,6 +152,21 @@ class DealsController extends Controller
                 $id = (int)$request->input('deal_id');
                 $pdo->prepare("DELETE FROM deals WHERE id = :id")->execute([':id' => $id]);
                 $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-trash fa-lg'></i> Oferta removida!</div>";
+            }
+            // 5. Excluir Ofertas em Lote
+            elseif ($request->input('action') === 'bulk_delete') {
+                $rawIds = $request->input('deal_ids', []);
+                if (!is_array($rawIds)) {
+                    $rawIds = [];
+                }
+                $ids = array_values(array_unique(array_filter(array_map('intval', $rawIds), fn($v) => $v > 0)));
+                if (!empty($ids)) {
+                    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                    $stmtDel = $pdo->prepare("DELETE FROM deals WHERE id IN ({$placeholders})");
+                    $stmtDel->execute($ids);
+                    $removed = count($ids);
+                    $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-trash-alt fa-lg'></i> {$removed} oferta(s) removida(s) em lote!</div>";
+                }
             }
         }
 
