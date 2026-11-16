@@ -284,7 +284,7 @@ $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data
                         <div class="qr-frame">
                             <img src="<?= htmlspecialchars($qrUrl) ?>" alt="QR Code da Oferta">
                         </div>
-                        <div class="qr-label">Aponte a câmera e garanta já!</div>
+                        <div class="qr-label">Escaneie para ver esta e outras ofertas</div>
                     </div>
                 </div>
             </div>
