@@ -88,6 +88,7 @@ $router->get('/admin/telas/criar', [ScreenController::class, 'create']);
 $router->post('/admin/telas/criar', [ScreenController::class, 'create']);
 $router->get('/admin/telas/{id}/midias', [ScreenController::class, 'media']);
 $router->post('/admin/telas/{id}/midias', [ScreenController::class, 'media']);
+$router->post('/admin/telas/{id}/midias/chunk', [ScreenController::class, 'mediaChunk']);
 $router->get('/admin/telas/{id}/deletar', [ScreenController::class, 'delete']);
 $router->post('/admin/telas/{id}/validade', [ScreenController::class, 'updateExpire']);
 $router->get('/all_users.php', [ScreenController::class, 'list']);

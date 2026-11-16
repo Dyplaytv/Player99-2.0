@@ -156,6 +156,78 @@ class ScreenController extends Controller
         ], 'layouts/master');
     }
 
+    private function getClientMediaUploadDir(int $clientId): string
+    {
+        $uploadDir = dirname(__DIR__, 2) . '/uploads/clientes/' . $clientId . '/';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+        return $uploadDir;
+    }
+
+    private function isAllowedMediaExtension(string $ext): bool
+    {
+        return in_array(strtolower($ext), ['mp4', 'webm', 'ogg', 'jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+    }
+
+    private function saveVideoRecord(\PDO $pdo, int $clientId, int $screenId, string $title, string $fileName): void
+    {
+        $stmtV = $pdo->prepare("INSERT INTO videos (id_cliente, id_tela, title, filename, upload_date) VALUES (:cid, :tid, :t, :f, datetime('now', 'localtime'))");
+        $stmtV->execute([
+            ':cid' => $clientId,
+            ':tid' => $screenId,
+            ':t' => $title !== '' ? $title : $fileName,
+            ':f' => $fileName
+        ]);
+        $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id = :tid")->execute([':tid' => $screenId]);
+    }
+
+    private function uploadErrorMessage(int $errorCode): string
+    {
+        $maxUpload = ini_get('upload_max_filesize') ?: 'desconhecido';
+        $maxPost = ini_get('post_max_size') ?: 'desconhecido';
+        switch ($errorCode) {
+            case UPLOAD_ERR_INI_SIZE:
+                return "O arquivo excede o limite upload_max_filesize do PHP ({$maxUpload}).";
+            case UPLOAD_ERR_FORM_SIZE:
+                return "O arquivo excede o limite máximo permitido pelo formulário (post_max_size: {$maxPost}).";
+            case UPLOAD_ERR_PARTIAL:
+                return 'O envio do arquivo foi interrompido antes de concluir. Tente novamente.';
+            case UPLOAD_ERR_NO_FILE:
+                return 'Nenhum arquivo foi selecionado para envio.';
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'Diretório temporário de upload não encontrado no servidor.';
+            case UPLOAD_ERR_CANT_WRITE:
+                return 'Falha de permissão ao gravar o arquivo temporário no disco do servidor.';
+            case UPLOAD_ERR_EXTENSION:
+                return 'Uma extensão do PHP bloqueou o upload deste arquivo.';
+            default:
+                return "Falha desconhecida no upload (código {$errorCode}).";
+        }
+    }
+
+    private function cleanupStaleChunkDirs(string $chunkRoot, int $maxAgeSeconds = 7200): void
+    {
+        if (!is_dir($chunkRoot)) {
+            return;
+        }
+        $now = time();
+        foreach (@scandir($chunkRoot) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $dir = $chunkRoot . $entry;
+            if (is_dir($dir) && ($now - (@filemtime($dir) ?: $now)) > $maxAgeSeconds) {
+                foreach (@scandir($dir) ?: [] as $f) {
+                    if ($f !== '.' && $f !== '..') {
+                        @unlink($dir . '/' . $f);
+                    }
+                }
+                @rmdir($dir);
+            }
+        }
+    }
+
     public function media(Request $request, $id): void
     {
         if (!Auth::check() || !Auth::isAdmin()) {
@@ -172,12 +244,12 @@ class ScreenController extends Controller
         }
 
         $clientId = (int)($screen['id_cliente'] ?: $screen['id']);
-        $uploadDir = dirname(__DIR__, 2) . '/uploads/clientes/' . $clientId . '/';
-        if (!is_dir($uploadDir)) {
-            @mkdir($uploadDir, 0777, true);
-        }
+        $uploadDir = $this->getClientMediaUploadDir($clientId);
 
         $msg = '';
+        if ($request->input('msg') === 'uploaded') {
+            $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle'></i> Mídia adicionada à programação da tela com sucesso!</div>";
+        }
 
         // Excluir mídia
         if ($request->input('delete_media') !== null) {
@@ -211,29 +283,35 @@ class ScreenController extends Controller
             $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle'></i> Configurações da tela atualizadas e sinal enviado ao player!</div>";
         }
 
-        // Upload de Nova Mídia (Vídeo ou Imagem)
-        if ($request->isPost() && isset($_FILES['media_file']) && $_FILES['media_file']['error'] === UPLOAD_ERR_OK) {
+        // Upload Direto (Fallback caso enviado via POST tradicional)
+        $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($request->isPost() && empty($_POST) && empty($_FILES) && $contentLength > 0) {
+            $postMax = ini_get('post_max_size') ?: 'desconhecido';
+            $sentMb = round($contentLength / 1048576, 1);
+            $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-times-circle'></i> O envio ({$sentMb} MB) excedeu o limite post_max_size do PHP ({$postMax}). Use o envio fracionado ou ajuste o servidor.</div>";
+        } elseif ($request->isPost() && isset($_FILES['media_file'])) {
+            @set_time_limit(0);
             $file = $_FILES['media_file'];
-            $mediaTitle = trim($request->input('media_title', pathinfo($file['name'], PATHINFO_FILENAME)));
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $allowed = ['mp4', 'webm', 'ogg', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $errCode = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
 
-            if (!in_array($ext, $allowed)) {
-                $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-times-circle'></i> Formato não suportado. Use MP4, WEBM, JPG ou PNG.</div>";
+            if ($errCode !== UPLOAD_ERR_OK) {
+                $errText = htmlspecialchars($this->uploadErrorMessage($errCode));
+                $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-times-circle'></i> {$errText}</div>";
             } else {
-                $fileName = 'ad_' . time() . '_' . uniqid() . '.' . $ext;
-                if (move_uploaded_file($file['tmp_name'], $uploadDir . $fileName)) {
-                    $stmtV = $pdo->prepare("INSERT INTO videos (id_cliente, id_tela, title, filename, upload_date) VALUES (:cid, :tid, :t, :f, datetime('now', 'localtime'))");
-                    $stmtV->execute([
-                        ':cid' => $clientId,
-                        ':tid' => $screen['id'],
-                        ':t' => $mediaTitle,
-                        ':f' => $fileName
-                    ]);
-                    $pdo->prepare("UPDATE telas SET force_reload = 1 WHERE id = :tid")->execute([':tid' => $screen['id']]);
-                    $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle'></i> Mídia adicionada à programação da tela com sucesso!</div>";
+                $mediaTitle = trim($request->input('media_title', pathinfo($file['name'], PATHINFO_FILENAME)));
+                $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+                if (!$this->isAllowedMediaExtension($ext)) {
+                    $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-times-circle'></i> Formato não suportado. Use MP4, WEBM, JPG ou PNG.</div>";
                 } else {
-                    $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-times-circle'></i> Falha ao salvar arquivo no diretório de uploads.</div>";
+                    $fileName = 'ad_' . time() . '_' . uniqid() . '.' . $ext;
+                    if (move_uploaded_file($file['tmp_name'], $uploadDir . $fileName)) {
+                        @chmod($uploadDir . $fileName, 0666);
+                        $this->saveVideoRecord($pdo, $clientId, (int)$screen['id'], $mediaTitle, $fileName);
+                        $msg = "<div class='alert alert-success d-flex align-items-center gap-2 mb-4'><i class='fa fa-check-circle'></i> Mídia adicionada à programação da tela com sucesso!</div>";
+                    } else {
+                        $msg = "<div class='alert alert-danger d-flex align-items-center gap-2 mb-4'><i class='fa fa-times-circle'></i> Falha ao salvar arquivo no diretório de uploads.</div>";
+                    }
                 }
             }
         }
@@ -252,6 +330,137 @@ class ScreenController extends Controller
             'clientId' => $clientId,
             'msg' => $msg
         ], 'layouts/master');
+    }
+
+    /**
+     * Recebe upload em partes pequenas (chunks) para evitar timeout 504 no Nginx/PHP
+     * e contornar limites rígidos de upload_max_filesize / post_max_size em vídeos grandes.
+     */
+    public function mediaChunk(Request $request, $id): void
+    {
+        if (!Auth::check() || !Auth::isAdmin()) {
+            $this->json(['success' => false, 'message' => 'Sessão expirada ou acesso negado.'], 403);
+        }
+
+        // Libera o lock da sessão imediatamente para evitar bloqueio de requisições simultâneas
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        @set_time_limit(0);
+
+        Screen::ensureSchema();
+        $pdo = Database::clients();
+
+        $screen = Screen::find((int)$id);
+        if (!$screen) {
+            $this->json(['success' => false, 'message' => 'Tela não encontrada.'], 404);
+        }
+
+        $uploadId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$request->input('upload_id', ''));
+        $chunkIndex = (int)$request->input('chunk_index', -1);
+        $totalChunks = (int)$request->input('total_chunks', 0);
+        $origFilename = trim((string)$request->input('filename', ''));
+        $mediaTitle = trim((string)$request->input('media_title', ''));
+
+        if (strlen($uploadId) < 8 || $chunkIndex < 0 || $totalChunks < 1 || $totalChunks > 512 || $chunkIndex >= $totalChunks) {
+            $this->json(['success' => false, 'message' => 'Parâmetros de chunk inválidos.'], 422);
+        }
+
+        $ext = strtolower(pathinfo($origFilename, PATHINFO_EXTENSION));
+        if (!$this->isAllowedMediaExtension($ext)) {
+            $this->json(['success' => false, 'message' => 'Formato não suportado. Use MP4, WEBM, OGG, JPG, PNG, GIF ou WEBP.'], 422);
+        }
+
+        if (!isset($_FILES['chunk'])) {
+            $this->json(['success' => false, 'message' => 'Bloco de arquivo não recebido pelo servidor.'], 400);
+        }
+
+        $errCode = (int)($_FILES['chunk']['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($errCode !== UPLOAD_ERR_OK) {
+            $this->json(['success' => false, 'message' => $this->uploadErrorMessage($errCode)], 400);
+        }
+
+        $clientId = (int)($screen['id_cliente'] ?: $screen['id']);
+        $uploadDir = $this->getClientMediaUploadDir($clientId);
+        $chunkRoot = $uploadDir . '.chunks/';
+        if (!is_dir($chunkRoot)) {
+            @mkdir($chunkRoot, 0777, true);
+        }
+        if ($chunkIndex === 0) {
+            $this->cleanupStaleChunkDirs($chunkRoot);
+        }
+
+        $chunkDir = $chunkRoot . $uploadId . '/';
+        if (!is_dir($chunkDir) && !@mkdir($chunkDir, 0777, true) && !is_dir($chunkDir)) {
+            $this->json(['success' => false, 'message' => 'Não foi possível criar diretório temporário de upload.'], 500);
+        }
+
+        $partPath = $chunkDir . sprintf('part_%05d', $chunkIndex);
+        if (!move_uploaded_file($_FILES['chunk']['tmp_name'], $partPath)) {
+            $this->json(['success' => false, 'message' => 'Falha ao gravar parte do arquivo no servidor.'], 500);
+        }
+
+        if ($chunkIndex < $totalChunks - 1) {
+            $this->json([
+                'success' => true,
+                'completed' => false,
+                'chunk_index' => $chunkIndex
+            ]);
+        }
+
+        // Último chunk recebido: valida todas as partes e monta o arquivo final por streaming
+        for ($i = 0; $i < $totalChunks; $i++) {
+            if (!is_file($chunkDir . sprintf('part_%05d', $i))) {
+                $this->json(['success' => false, 'message' => "Parte #{$i} está ausente. Tente enviar novamente."], 400);
+            }
+        }
+
+        $fileName = 'ad_' . time() . '_' . uniqid() . '.' . $ext;
+        $tmpFinalPath = $uploadDir . $fileName . '.assembling';
+        $finalPath = $uploadDir . $fileName;
+
+        $outHandle = @fopen($tmpFinalPath, 'wb');
+        if (!$outHandle) {
+            $this->json(['success' => false, 'message' => 'Falha ao criar arquivo final no diretório de uploads.'], 500);
+        }
+
+        $assemblyOk = true;
+        for ($i = 0; $i < $totalChunks; $i++) {
+            $inHandle = @fopen($chunkDir . sprintf('part_%05d', $i), 'rb');
+            if (!$inHandle) {
+                $assemblyOk = false;
+                break;
+            }
+            if (stream_copy_to_stream($inHandle, $outHandle) === false) {
+                $assemblyOk = false;
+                fclose($inHandle);
+                break;
+            }
+            fclose($inHandle);
+        }
+        fclose($outHandle);
+
+        // Limpa partes temporárias
+        for ($i = 0; $i < $totalChunks; $i++) {
+            @unlink($chunkDir . sprintf('part_%05d', $i));
+        }
+        @rmdir($chunkDir);
+
+        if (!$assemblyOk || !@rename($tmpFinalPath, $finalPath)) {
+            @unlink($tmpFinalPath);
+            $this->json(['success' => false, 'message' => 'Falha ao montar o arquivo de mídia no servidor.'], 500);
+        }
+
+        @chmod($finalPath, 0666);
+        $finalTitle = $mediaTitle !== '' ? $mediaTitle : pathinfo($origFilename, PATHINFO_FILENAME);
+        $this->saveVideoRecord($pdo, $clientId, (int)$screen['id'], $finalTitle, $fileName);
+
+        $this->json([
+            'success' => true,
+            'completed' => true,
+            'filename' => $fileName,
+            'message' => 'Mídia adicionada à programação da tela com sucesso!'
+        ]);
     }
 
     public function updateExpire(Request $request, $id): void
