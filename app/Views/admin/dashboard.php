@@ -137,13 +137,44 @@ $f = static fn(string $k, $def = 0) => $finData[$k] ?? $def;
                         <small class="text-muted" style="font-size:11px;"><?= (int)$f('pendentes_qtd', 0) ?> pedido(s) aguardando</small>
                     </div>
                 </div>
+                <?php
+                    $saquesPendentesQtd = (int)$f('saques_pendentes_qtd', 0);
+                    $saquesPendentesVal = (float)$f('saques_pendentes_valor', 0);
+                    $temSaquePendente = ($saquesPendentesQtd > 0 || $saquesPendentesVal > 0);
+                ?>
                 <div class="col-6 col-md-3">
-                    <div class="p-2 px-3 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50">
-                        <div class="small text-muted">Saques Solicitados</div>
-                        <div class="fw-bold text-danger">R$ <?= number_format((float)$f('saques_pendentes_valor', 0), 2, ',', '.') ?></div>
-                        <small class="text-muted" style="font-size:11px;"><?= (int)$f('saques_pendentes_qtd', 0) ?> pendente(s) de PIX</small>
-                    </div>
+                    <a href="/admin/afiliados#saques-solicitados"
+                       class="d-block text-decoration-none p-2 px-3 rounded-3 border <?= $temSaquePendente ? 'border-danger saque-pendente-pulse' : 'border-secondary border-opacity-25 bg-dark bg-opacity-50' ?>"
+                       style="cursor: pointer; transition: transform 0.2s;"
+                       title="Clique para abrir Saques Solicitados e dar baixa">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Saques Solicitados</span>
+                            <i class="fa fa-arrow-up-right-from-square <?= $temSaquePendente ? 'text-danger' : 'text-muted' ?>" style="font-size: 11px;"></i>
+                        </div>
+                        <div class="fw-bold text-danger">R$ <?= number_format($saquesPendentesVal, 2, ',', '.') ?></div>
+                        <small class="<?= $temSaquePendente ? 'text-warning fw-bold' : 'text-muted' ?>" style="font-size:11px;"><?= $saquesPendentesQtd ?> pendente(s) de PIX</small>
+                    </a>
                 </div>
+                <?php if ($temSaquePendente): ?>
+                <style>
+                    @keyframes saquePendentePulse {
+                        0%, 100% {
+                            background: rgba(239, 68, 68, 0.14);
+                            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+                        }
+                        50% {
+                            background: rgba(239, 68, 68, 0.30);
+                            box-shadow: 0 0 18px 2px rgba(239, 68, 68, 0.65);
+                        }
+                    }
+                    .saque-pendente-pulse {
+                        animation: saquePendentePulse 1.3s ease-in-out infinite;
+                    }
+                    .saque-pendente-pulse:hover {
+                        transform: translateY(-2px);
+                    }
+                </style>
+                <?php endif; ?>
                 <div class="col-6 col-md-3">
                     <div class="p-2 px-3 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50">
                         <div class="small text-muted">Total Geral / Ticket</div>

@@ -6,7 +6,7 @@ $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
 <div class="row g-4 mb-4">
     <!-- Solicitações de Saque Pendentes -->
-    <div class="col-lg-7">
+    <div class="col-lg-7" id="saques-solicitados">
         <div class="glass-card h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">
