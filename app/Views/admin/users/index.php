@@ -66,106 +66,65 @@
                         <th style="width: 40px;"><input type="checkbox" id="checkAll"></th>
                         <th>Cliente / Nome</th>
                         <th>Status</th>
-                        <th>Vencimento</th>
-                        <th class="text-center">Alt. Data</th>
-                        <th class="text-center">Bloquear</th>
+                        <th class="text-center">Créditos</th>
+                        <th class="text-center">Ajustar Créditos</th>
                         <th class="text-center">Deletar</th>
-                        <th class="text-center">Múltiplo</th>
-                        <th class="text-center">Cobrar</th>
                         <th class="text-center">Franqueado / Rev.</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php 
-                    $today = date('Y-m-d');
+                    $hasActiveScreenMap = $hasActiveScreenMap ?? [];
+                    $creditsMap = $creditsMap ?? [];
                     foreach ($clients as $c): 
-                        $expDate = $c['expire_date'] ?? '';
-                        $isActive = isset($c['active']) ? (int)$c['active'] : 1;
-                        $multiplo = isset($c['multiplo']) ? (float)$c['multiplo'] : 1.0;
+                        $cid = (int)$c['id'];
                         $whats = trim($c['whatsapp'] ?? '');
-                        $cleanWhats = preg_replace('/\D/', '', $whats);
-
-                        $isExpired = false;
-                        if (!empty($expDate) && $expDate < $today) {
-                            $isExpired = true;
-                        }
+                        $hasActiveScreen = !empty($hasActiveScreenMap[$cid]);
+                        $creditsCount = (int)($creditsMap[$cid] ?? 0);
+                        $clientDisplayName = !empty($c['title']) ? $c['title'] : $c['username'];
                     ?>
                         <tr class="client-row" data-search="<?= strtolower(htmlspecialchars(($c['title'] ?? '') . ' ' . ($c['username'] ?? '') . ' ' . $whats)) ?>">
-                            <td><input type="checkbox" class="client-check" value="<?= $c['id'] ?>"></td>
+                            <td><input type="checkbox" class="client-check" value="<?= $cid ?>"></td>
                             <td>
-                                <div class="fw-bold text-white"><?= htmlspecialchars(!empty($c['title']) ? $c['title'] : $c['username']) ?></div>
+                                <div class="fw-bold text-white"><?= htmlspecialchars($clientDisplayName) ?></div>
                                 <small class="text-muted font-monospace">@<?= htmlspecialchars($c['username']) ?></small>
                             </td>
 
                             <!-- STATUS COM BOTÃO DO OLHO (MODO ESPIÃO AUTORIZADO) -->
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <?php if ($isActive === 0): ?>
-                                        <span class="badge bg-secondary text-dark border border-secondary px-2 py-1">Bloqueado</span>
-                                    <?php elseif ($isExpired): ?>
-                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1">Vencido</span>
-                                    <?php else: ?>
+                                    <?php if ($hasActiveScreen): ?>
                                         <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 px-2 py-1">Ativo</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary bg-opacity-25 text-muted border border-secondary border-opacity-50 px-2 py-1">Desativado</span>
                                     <?php endif; ?>
 
                                     <!-- ÍCONE DO OLHO: ENTRAR COMO O CLIENTE COM ACESSO TOTAL -->
-                                    <a href="/admin/usuarios/<?= $c['id'] ?>/espiao" target="_blank" class="btn btn-sm btn-warning text-dark py-0 px-2 fw-bold d-inline-flex align-items-center" title="Acessar como este cliente (Modo Espião com acesso total)">
+                                    <a href="/admin/usuarios/<?= $cid ?>/espiao" target="_blank" class="btn btn-sm btn-warning text-dark py-0 px-2 fw-bold d-inline-flex align-items-center" title="Acessar como este cliente (Modo Espião com acesso total)">
                                         <i class="fa fa-eye"></i>
                                     </a>
                                 </div>
                             </td>
 
-                            <td>
-                                <?php if (!empty($expDate)): ?>
-                                    <span class="font-monospace text-white"><?= date('d/m/Y', strtotime($expDate)) ?></span>
-                                <?php else: ?>
-                                    <span class="text-muted">Sem Data</span>
-                                <?php endif; ?>
+                            <!-- QUANTIDADE DE CRÉDITOS DO CLIENTE -->
+                            <td class="text-center">
+                                <span class="badge <?= $creditsCount > 0 ? 'bg-info bg-opacity-25 text-info border border-info border-opacity-50' : 'bg-dark text-muted border border-secondary border-opacity-50' ?> px-3 py-2 font-monospace">
+                                    <i class="fa fa-coins me-1"></i> <?= $creditsCount ?>
+                                </span>
                             </td>
 
-                            <!-- ALTERAR DATA -->
+                            <!-- ADICIONAR / RETIRAR CRÉDITOS -->
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-info text-dark py-1 px-2" onclick="promptChangeDate(<?= $c['id'] ?>, '<?= $expDate ?>')" title="Alterar Vencimento">
-                                    <i class="fa fa-calendar-alt"></i>
+                                <button type="button" class="btn btn-sm btn-info text-dark fw-bold py-1 px-2" onclick='openCreditsModal(<?= $cid ?>, <?= json_encode($clientDisplayName) ?>, <?= $creditsCount ?>)' title="Adicionar ou retirar créditos">
+                                    <i class="fa fa-coins"></i>
                                 </button>
-                            </td>
-
-                            <!-- BLOQUEAR / DESBLOQUEAR -->
-                            <td class="text-center">
-                                <?php if ($isActive === 1): ?>
-                                    <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2" onclick="toggleBlockClient(<?= $c['id'] ?>, 0)" title="Bloquear Acesso">
-                                        <i class="fa fa-ban"></i>
-                                    </button>
-                                <?php else: ?>
-                                    <button type="button" class="btn btn-sm btn-success text-white py-1 px-2" onclick="toggleBlockClient(<?= $c['id'] ?>, 1)" title="Desbloquear Acesso">
-                                        <i class="fa fa-check"></i>
-                                    </button>
-                                <?php endif; ?>
                             </td>
 
                             <!-- DELETAR -->
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-danger py-1 px-2" onclick="deleteClient(<?= $c['id'] ?>)" title="Deletar Cliente">
+                                <button type="button" class="btn btn-sm btn-danger py-1 px-2" onclick="deleteClient(<?= $cid ?>)" title="Deletar Cliente">
                                     <i class="fa fa-trash"></i>
                                 </button>
-                            </td>
-
-                            <!-- MÚLTIPLO -->
-                            <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-info py-1 px-2 font-monospace" onclick="promptChangeMultiplo(<?= $c['id'] ?>, '<?= $multiplo ?>')" title="Alterar Múltiplo">
-                                    x<?= number_format($multiplo, 1) ?>
-                                </button>
-                            </td>
-
-                            <!-- COBRAR VIA WHATSAPP -->
-                            <td class="text-center">
-                                <?php if (!empty($cleanWhats)): ?>
-                                    <a href="https://api.whatsapp.com/send?phone=<?= $cleanWhats ?>&text=<?= urlencode('Olá ' . ($c['title'] ?? $c['username']) . ', tudo bem? Entramos em contato sobre o seu plano do Player99.') ?>" target="_blank" class="btn btn-sm btn-success py-1 px-3 d-inline-flex align-items-center gap-1">
-                                        <i class="fab fa-whatsapp"></i> Cobrar
-                                    </a>
-                                <?php else: ?>
-                                    <span class="text-muted small">Sem WhatsApp</span>
-                                <?php endif; ?>
                             </td>
 
                             <!-- FRANQUEADO / REVENDEDOR (PERFIL INTERMEDIÁRIO) -->
@@ -260,23 +219,42 @@
     </div>
 <?php endif; ?>
 
-<!-- Modal Calendário para Alterar Vencimento -->
-<div class="modal fade" id="datePickerModal" tabindex="-1" aria-hidden="true">
+<!-- Modal Adicionar / Retirar Créditos -->
+<div class="modal fade" id="creditsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content bg-dark text-white border border-secondary">
             <div class="modal-header border-secondary">
-                <h6 class="modal-title fw-bold"><i class="fa fa-calendar-alt text-info me-2"></i> Alterar Validade</h6>
+                <h6 class="modal-title fw-bold"><i class="fa fa-coins text-info me-2"></i> Créditos do Cliente</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="dpClientId" value="">
-                <label class="form-label small text-muted">Escolha a nova data no calendário:</label>
-                <input type="date" id="dpDateInput" class="form-control bg-black text-white border-secondary" style="color-scheme: dark;">
+                <input type="hidden" id="credClientId" value="">
+                <div class="mb-2 small text-muted">Cliente: <strong id="credClientName" class="text-white"></strong></div>
+                <div class="mb-3 small text-muted">Créditos atuais: <span id="credCurrentCount" class="badge bg-info text-dark fw-bold">0</span></div>
+
+                <label class="form-label small text-muted">Ação:</label>
+                <div class="btn-group w-100 mb-3" role="group">
+                    <input type="radio" class="btn-check" name="credMode" id="credModeAdd" value="add" checked onchange="toggleCredDaysField()">
+                    <label class="btn btn-sm btn-outline-success fw-bold" for="credModeAdd"><i class="fa fa-plus me-1"></i> Adicionar</label>
+
+                    <input type="radio" class="btn-check" name="credMode" id="credModeRemove" value="remove" onchange="toggleCredDaysField()">
+                    <label class="btn btn-sm btn-outline-danger fw-bold" for="credModeRemove"><i class="fa fa-minus me-1"></i> Retirar</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Quantidade de Créditos:</label>
+                    <input type="number" id="credQtyInput" min="1" max="100" value="1" class="form-control bg-black text-white border-secondary">
+                </div>
+
+                <div id="credDaysGroup">
+                    <label class="form-label small text-muted">Dias por Crédito:</label>
+                    <input type="number" id="credDaysInput" min="1" max="3650" value="30" class="form-control bg-black text-white border-secondary">
+                </div>
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-sm btn-cyan fw-bold" onclick="saveClientExpireDate()">
-                    <i class="fa fa-check me-1"></i> Salvar
+                <button type="button" class="btn btn-sm btn-cyan fw-bold" onclick="saveClientCredits()">
+                    <i class="fa fa-check me-1"></i> Aplicar
                 </button>
             </div>
         </div>
@@ -296,59 +274,55 @@ if (searchInput) {
     });
 }
 
-function promptChangeDate(id, current) {
-    document.getElementById('dpClientId').value = String(id);
-    document.getElementById('dpDateInput').value = (current || '').slice(0, 10);
-    const modalEl = document.getElementById('datePickerModal');
+function openCreditsModal(id, name, currentCredits) {
+    document.getElementById('credClientId').value = String(id);
+    document.getElementById('credClientName').textContent = name || '';
+    document.getElementById('credCurrentCount').textContent = String(currentCredits || 0);
+    document.getElementById('credModeAdd').checked = true;
+    document.getElementById('credQtyInput').value = '1';
+    document.getElementById('credDaysInput').value = '30';
+    toggleCredDaysField();
+
+    const modalEl = document.getElementById('creditsModal');
     if (window.bootstrap && bootstrap.Modal) {
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
-    } else {
-        const newDate = prompt("Digite a nova data de vencimento (AAAA-MM-DD):", current);
-        if (newDate && newDate.trim() !== '') {
-            submitClientExpireDate(id, newDate.trim());
-        }
     }
 }
 
-function saveClientExpireDate() {
-    const id = document.getElementById('dpClientId').value;
-    const val = document.getElementById('dpDateInput').value;
-    if (!val) { alert('Selecione uma data válida.'); return; }
-    submitClientExpireDate(id, val);
+function toggleCredDaysField() {
+    const isAdd = document.getElementById('credModeAdd').checked;
+    const grp = document.getElementById('credDaysGroup');
+    if (grp) grp.style.display = isAdd ? 'block' : 'none';
 }
 
-function submitClientExpireDate(id, newDate) {
+function saveClientCredits() {
+    const id = document.getElementById('credClientId').value;
+    const mode = document.getElementById('credModeRemove').checked ? 'remove' : 'add';
+    const qty = parseInt(document.getElementById('credQtyInput').value || '1', 10);
+    const dias = parseInt(document.getElementById('credDaysInput').value || '30', 10);
+
+    if (!qty || qty < 1) {
+        alert('Informe uma quantidade válida (mínimo 1).');
+        return;
+    }
+
     const formData = new FormData();
-    formData.append('action', 'update_date');
+    formData.append('action', 'adjust_credits');
     formData.append('id', id);
-    formData.append('new_date', newDate);
+    formData.append('mode', mode);
+    formData.append('qty', String(qty));
+    formData.append('dias', String(dias > 0 ? dias : 30));
 
     fetch('/admin/usuarios', { method: 'POST', body: formData })
         .then(res => res.json())
-        .then(() => window.location.reload());
-}
-
-function toggleBlockClient(id, newState) {
-    const actionName = newState === 0 ? "bloquear" : "desbloquear";
-    if (confirm("Deseja realmente " + actionName + " o acesso deste cliente?")) {
-        const formData = new FormData();
-        formData.append('action', 'toggle_block');
-        formData.append('id', id);
-        formData.append('new_state', newState);
-
-        fetch('/admin/usuarios', { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    window.location.reload();
-                } else {
-                    alert('Erro ao atualizar status do cliente.');
-                }
-            })
-            .catch(err => {
-                alert('Erro na requisição. Tente novamente.');
-            });
-    }
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                alert('Erro ao ajustar créditos.');
+            }
+        })
+        .catch(() => alert('Erro na requisição. Tente novamente.'));
 }
 
 function toggleReseller(id, state) {
