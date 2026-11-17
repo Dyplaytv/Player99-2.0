@@ -127,6 +127,22 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             .bottom-nav a i { display: block; font-size: 20px; margin-bottom: 2px; }
             .bottom-nav a.active { color: #00f3ff; font-weight: 700; }
         }
+        @keyframes plusBlinkAnim {
+            0%   { transform: scale(1); filter: brightness(1); }
+            35%  { transform: scale(1.45); filter: drop-shadow(0 0 8px #28a745) brightness(1.3); }
+            70%  { transform: scale(0.95); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        .plus-blink-active {
+            animation: plusBlinkAnim 0.55s ease;
+        }
+        @keyframes itemAddedFlash {
+            0%   { background-color: #d4edda; border-color: #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.35); }
+            100% { background-color: #fff; }
+        }
+        .item-added-flash {
+            animation: itemAddedFlash 0.65s ease;
+        }
     </style>
 </head>
 <body>
@@ -2298,7 +2314,8 @@ if (document.getElementById('sourceList') && document.getElementById('targetList
 }
 
 function moveToTarget(iconEl) {
-    const item = iconEl.closest('.video-item').cloneNode(true);
+    const sourceItem = iconEl.closest('.video-item');
+    const item = sourceItem.cloneNode(true);
     item.setAttribute('data-duration', '15');
     const icon = item.querySelector('.fa-plus-circle');
     const badge = document.createElement('span');
@@ -2309,8 +2326,30 @@ function moveToTarget(iconEl) {
     item.insertBefore(badge, icon);
     icon.className = 'fas fa-trash text-danger';
     icon.setAttribute('onclick', 'removeTarget(this)');
-    document.getElementById('targetList').appendChild(item);
+    const targetList = document.getElementById('targetList');
+    targetList.appendChild(item);
     document.getElementById('emptyMsg')?.remove();
+
+    // Feedback visual: pisca o ícone "+" e destaca a linha adicionada
+    iconEl.classList.remove('plus-blink-active');
+    void iconEl.offsetWidth;
+    iconEl.classList.add('plus-blink-active');
+    iconEl.classList.remove('fa-plus-circle');
+    iconEl.classList.add('fa-check-circle');
+    setTimeout(function() {
+        iconEl.classList.remove('fa-check-circle', 'plus-blink-active');
+        iconEl.classList.add('fa-plus-circle');
+    }, 550);
+
+    if (sourceItem) {
+        sourceItem.classList.remove('item-added-flash');
+        void sourceItem.offsetWidth;
+        sourceItem.classList.add('item-added-flash');
+        setTimeout(() => sourceItem.classList.remove('item-added-flash'), 650);
+    }
+
+    item.classList.add('item-added-flash');
+    setTimeout(() => item.classList.remove('item-added-flash'), 750);
 }
 
 function removeTarget(iconEl) {
