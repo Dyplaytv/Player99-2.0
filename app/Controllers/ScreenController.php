@@ -644,24 +644,11 @@ class ScreenController extends Controller
         return $items;
     }
 
-    public function player(Request $request, string $codigo = ''): void
+    /**
+     * Resolve a playlist completa da tela (incluindo expansão da Playlist da Player99).
+     */
+    private function resolveScreenPlaylist(\PDO $pdo, array $screen): array
     {
-        if ($codigo === '') {
-            $codigo = trim((string)$request->input('codigo', ''));
-        }
-        Screen::ensureSchema();
-        $screen = Screen::findByCode($codigo);
-        if (!$screen) {
-            http_response_code(404);
-            die("<div style='background:#08090e;color:#fff;font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;'>
-                    <h2 style='color:#34e2e4;'>Player99 DOOH</h2>
-                    <p>Código de tela <b>" . htmlspecialchars($codigo) . "</b> não encontrado.</p>
-                 </div>");
-        }
-
-        Screen::updatePing((int)$screen['id']);
-
-        $pdo = Database::clients();
         $videos = [];
         $cid = (int)($screen['id_cliente'] ?: $screen['id']);
         $plId = (int)($screen['id_playlist'] ?? 0);
@@ -718,6 +705,29 @@ class ScreenController extends Controller
             $videos = $expandedVideos;
         }
 
+        return $videos;
+    }
+
+    public function player(Request $request, string $codigo = ''): void
+    {
+        if ($codigo === '') {
+            $codigo = trim((string)$request->input('codigo', ''));
+        }
+        Screen::ensureSchema();
+        $screen = Screen::findByCode($codigo);
+        if (!$screen) {
+            http_response_code(404);
+            die("<div style='background:#08090e;color:#fff;font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;'>
+                    <h2 style='color:#34e2e4;'>Player99 DOOH</h2>
+                    <p>Código de tela <b>" . htmlspecialchars($codigo) . "</b> não encontrado.</p>
+                 </div>");
+        }
+
+        Screen::updatePing((int)$screen['id']);
+
+        $pdo = Database::clients();
+        $videos = $this->resolveScreenPlaylist($pdo, $screen);
+
         $radioInfo = $this->resolveRadioInfo($pdo, $screen);
         $deals = \App\Models\Deal::getActiveDeals(10);
 
@@ -765,6 +775,54 @@ class ScreenController extends Controller
             'radioInfo' => $radioInfo,
             'locked' => $locked,
             'deals' => $deals
+        ], null);
+    }
+
+    /**
+     * Página Pública do Motorista voltada ao Passageiro (/motorista/{codigo})
+     */
+    public function driverPage(Request $request, string $codigo = ''): void
+    {
+        if ($codigo === '') {
+            $codigo = trim((string)$request->input('codigo', ''));
+        }
+        Screen::ensureSchema();
+        $screen = Screen::findByCode($codigo);
+        if (!$screen) {
+            http_response_code(404);
+            die("<div style='background:#08090e;color:#fff;font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;'>
+                    <h2 style='color:#34e2e4;'>Player99</h2>
+                    <p>Página do motorista <b>" . htmlspecialchars($codigo) . "</b> não encontrada.</p>
+                 </div>");
+        }
+
+        $pdo = Database::clients();
+        $locked = $this->isScreenLocked($pdo, $screen);
+        $videos = $locked
+            ? $this->getLockMedia((int)$screen['id'])
+            : $this->resolveScreenPlaylist($pdo, $screen);
+
+        $driverName = trim((string)($screen['nome_tela'] ?: $screen['title'] ?: 'Motorista Parceiro'));
+        $driverId = (int)($screen['user_id'] ?: $screen['id_cliente'] ?: 0);
+        try {
+            $cid = (int)($screen['id_cliente'] ?: 0);
+            if ($cid > 0) {
+                $stCli = $pdo->prepare("SELECT title, username FROM ibo WHERE id = :id LIMIT 1");
+                $stCli->execute([':id' => $cid]);
+                $cliRow = $stCli->fetch();
+                if ($cliRow && !empty($cliRow['title'])) {
+                    $driverName = trim((string)$cliRow['title']);
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        $this->render('player/driver_page', [
+            'screen' => $screen,
+            'videos' => $videos,
+            'codigo' => $codigo,
+            'driverName' => $driverName,
+            'driverId' => $driverId,
+            'locked' => $locked
         ], null);
     }
 

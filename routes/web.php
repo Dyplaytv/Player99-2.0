@@ -98,6 +98,8 @@ $router->post('/users_create.php', [ScreenController::class, 'create']);
 $router->get('/player/{codigo}', [ScreenController::class, 'player']);
 $router->get('/player', [ScreenController::class, 'player']);
 $router->get('/player.php', [ScreenController::class, 'player']);
+$router->get('/motorista/{codigo}', [ScreenController::class, 'driverPage']);
+$router->get('/m/{codigo}', [ScreenController::class, 'driverPage']);
 $router->get('/tv', [ScreenController::class, 'tv']);
 $router->get('/tv.php', [ScreenController::class, 'tv']);
 $router->get('/api_pairing.php', [ScreenController::class, 'apiPairing']);
