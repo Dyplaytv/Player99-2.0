@@ -539,10 +539,10 @@ $radioName = $radioInfo['radio_name'] ?? '';
         // ==========================================
         const dealsList = <?= json_encode($deals ?? []) ?>;
         const screenId = <?= (int)($screen['id'] ?? 0) ?>;
-        const driverLojaUrl = window.location.origin + '/loja?carro=' + screenId;
+        const driverPageUrl = window.location.origin + '/motorista/' + encodeURIComponent(codigo);
         const storeQrImgEl = document.getElementById('storeQrCodeImg');
         if (storeQrImgEl) {
-            storeQrImgEl.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=' + encodeURIComponent(driverLojaUrl);
+            storeQrImgEl.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=' + encodeURIComponent(driverPageUrl);
         }
         let currentDealIndex = 0;
         let dealCountdownInterval = null;
