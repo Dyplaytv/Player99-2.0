@@ -76,16 +76,6 @@ $clientId = (int)($screen['id_cliente'] ?? 0);
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .driver-code-pill {
-            background: rgba(52, 226, 228, 0.12);
-            border: 1px solid rgba(52, 226, 228, 0.35);
-            color: #34e2e4;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
 
         /* Card do Player */
         .player-card {
@@ -99,8 +89,26 @@ $clientId = (int)($screen['id_cliente'] ?? 0);
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
+            max-height: 70vh;
             background: #000;
             overflow: hidden;
+            margin: 0 auto;
+            transition: all 0.25s ease;
+        }
+        .player-stage.is-portrait {
+            aspect-ratio: 9 / 16;
+            max-width: 400px;
+            max-height: 68vh;
+        }
+        @media (max-width: 640px) {
+            .player-stage:not(.is-portrait) {
+                aspect-ratio: 16 / 10;
+                min-height: 220px;
+            }
+            .player-stage.is-portrait {
+                max-width: 330px;
+                max-height: 64vh;
+            }
         }
         .stage-item {
             position: absolute;
@@ -313,14 +321,12 @@ $clientId = (int)($screen['id_cliente'] ?? 0);
                     <div class="driver-name"><?= htmlspecialchars($driverName) ?></div>
                 </div>
             </div>
-            <div class="driver-code-pill">
-                <i class="fas fa-tv"></i> <?= htmlspecialchars($codigo) ?>
-            </div>
         </header>
 
         <!-- Player Automático com a Mesma Playlist do Tablet -->
+        <?php $screenRotation = (int)($screen['rotation'] ?? 0); ?>
         <section class="player-card">
-            <div class="player-stage" id="driverStage">
+            <div class="player-stage <?= in_array($screenRotation, [90, 270], true) ? 'is-portrait' : '' ?>" id="driverStage">
                 <?php if (empty($videos)): ?>
                     <div class="player-empty">
                         <i class="fas fa-film fa-3x mb-2" style="color:#34e2e4;"></i>
@@ -418,6 +424,38 @@ $clientId = (int)($screen['id_cliente'] ?? 0);
         let isPaused = false;
         let isMuted = true;
 
+        const defaultPortrait = <?= in_array((int)($screen['rotation'] ?? 0), [90, 270], true) ? 'true' : 'false' ?>;
+        const stageEl = document.getElementById('driverStage');
+
+        function syncStageAspect(el) {
+            if (!stageEl || !el) return;
+            if (el.tagName === 'VIDEO') {
+                if (el.videoWidth > 0 && el.videoHeight > 0) {
+                    stageEl.classList.toggle('is-portrait', el.videoHeight > el.videoWidth);
+                } else {
+                    el.addEventListener('loadedmetadata', function onMeta() {
+                        el.removeEventListener('loadedmetadata', onMeta);
+                        if (el.classList.contains('active') && el.videoWidth > 0 && el.videoHeight > 0) {
+                            stageEl.classList.toggle('is-portrait', el.videoHeight > el.videoWidth);
+                        }
+                    });
+                }
+            } else if (el.tagName === 'IMG') {
+                if (el.naturalWidth > 0 && el.naturalHeight > 0) {
+                    stageEl.classList.toggle('is-portrait', el.naturalHeight > el.naturalWidth);
+                } else {
+                    el.addEventListener('load', function onLoad() {
+                        el.removeEventListener('load', onLoad);
+                        if (el.classList.contains('active') && el.naturalWidth > 0 && el.naturalHeight > 0) {
+                            stageEl.classList.toggle('is-portrait', el.naturalHeight > el.naturalWidth);
+                        }
+                    });
+                }
+            } else {
+                stageEl.classList.toggle('is-portrait', defaultPortrait);
+            }
+        }
+
         function startSlide(idx) {
             if (items.length === 0) return;
             if (slideTimer) clearTimeout(slideTimer);
@@ -435,6 +473,7 @@ $clientId = (int)($screen['id_cliente'] ?? 0);
             chips.forEach((c, i) => c.classList.toggle('active', i === currentIdx));
 
             const active = items[currentIdx];
+            syncStageAspect(active);
             if (titleEl && active) {
                 titleEl.textContent = active.getAttribute('data-title') || ('Anúncio ' + (currentIdx + 1));
             }
