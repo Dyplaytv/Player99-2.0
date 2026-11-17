@@ -7,6 +7,7 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Models\User;
 use App\Models\Client;
+use App\Models\Screen;
 
 class UserController extends Controller
 {
@@ -75,6 +76,48 @@ class UserController extends Controller
                     echo json_encode(['status' => 'success']);
                     return;
                 }
+            } elseif ($action === 'adjust_credits') {
+                $cid = (int)$request->input('id');
+                $mode = trim((string)$request->input('mode', 'add'));
+                $qty = max(1, min(100, (int)$request->input('qty', 1)));
+                $dias = max(1, min(3650, (int)$request->input('dias', 30)));
+
+                if ($cid > 0) {
+                    $pdoFin = Database::financial();
+                    $pdoFin->exec("CREATE TABLE IF NOT EXISTS cliente_creditos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id_cliente INTEGER NOT NULL,
+                        id_plano INTEGER DEFAULT 0,
+                        nome_plano TEXT DEFAULT '',
+                        dias INTEGER NOT NULL DEFAULT 30,
+                        valor_pago REAL DEFAULT 0,
+                        cupom_usado TEXT DEFAULT '',
+                        status TEXT DEFAULT 'DISPONIVEL',
+                        id_tela_usada INTEGER DEFAULT 0,
+                        nome_tela_usada TEXT DEFAULT '',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        used_at DATETIME
+                    )");
+
+                    if ($mode === 'remove') {
+                        $stmtDelCred = $pdoFin->prepare("DELETE FROM cliente_creditos WHERE id IN (
+                            SELECT id FROM cliente_creditos WHERE id_cliente = :cid AND status = 'DISPONIVEL' ORDER BY id DESC LIMIT :lim
+                        )");
+                        $stmtDelCred->bindValue(':cid', $cid, \PDO::PARAM_INT);
+                        $stmtDelCred->bindValue(':lim', $qty, \PDO::PARAM_INT);
+                        $stmtDelCred->execute();
+                    } else {
+                        $stmtInsCred = $pdoFin->prepare("INSERT INTO cliente_creditos (id_cliente, id_plano, nome_plano, dias, valor_pago, cupom_usado, status)
+                            VALUES (:cid, 0, 'Crédito Manual Admin', :dias, 0, '', 'DISPONIVEL')");
+                        for ($i = 0; $i < $qty; $i++) {
+                            $stmtInsCred->execute([':cid' => $cid, ':dias' => $dias]);
+                        }
+                    }
+
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'success']);
+                    return;
+                }
             } elseif ($action === 'delete_client') {
                 $cid = (int)$request->input('id');
                 if ($cid > 0) {
@@ -95,6 +138,44 @@ class UserController extends Controller
         $stmtClients = $pdoClients->query("SELECT * FROM ibo ORDER BY id DESC");
         $clients = $stmtClients->fetchAll();
 
+        // Verifica quais clientes possuem ao menos 1 tela com data ativa
+        $hasActiveScreenMap = [];
+        try {
+            $screensByClient = [];
+            foreach ($pdoClients->query("SELECT id_cliente, expire_date FROM telas")->fetchAll() as $tRow) {
+                $screensByClient[(int)$tRow['id_cliente']][] = (string)($tRow['expire_date'] ?? '');
+            }
+            foreach ($clients as $cli) {
+                $cid = (int)$cli['id'];
+                $cliActive = !isset($cli['active']) || (int)$cli['active'] !== 0;
+                $cliExp = trim((string)($cli['expire_date'] ?? ''));
+                $hasActive = false;
+
+                if ($cliActive && !empty($screensByClient[$cid])) {
+                    foreach ($screensByClient[$cid] as $scrExp) {
+                        $effExp = trim($scrExp) !== '' ? trim($scrExp) : $cliExp;
+                        if ($effExp !== '' && !Screen::isExpiredValue($effExp)) {
+                            $hasActive = true;
+                            break;
+                        }
+                    }
+                }
+                $hasActiveScreenMap[$cid] = $hasActive;
+            }
+        } catch (\Throwable $e) {}
+
+        // Conta quantos créditos disponíveis cada cliente possui
+        $creditsMap = [];
+        try {
+            $pdoFin = Database::financial();
+            $stmtCred = $pdoFin->query("SELECT id_cliente, COUNT(*) as total FROM cliente_creditos WHERE status = 'DISPONIVEL' GROUP BY id_cliente");
+            if ($stmtCred) {
+                foreach ($stmtCred->fetchAll() as $cr) {
+                    $creditsMap[(int)$cr['id_cliente']] = (int)$cr['total'];
+                }
+            }
+        } catch (\Throwable $e) {}
+
         // 2. Carrega todos os Usuários Administrativos / Revendas da tabela 'users'
         $users = User::all();
 
@@ -104,6 +185,8 @@ class UserController extends Controller
             'currentRoute' => '/admin/usuarios',
             'currentUser' => Auth::user(),
             'clients' => $clients,
+            'hasActiveScreenMap' => $hasActiveScreenMap,
+            'creditsMap' => $creditsMap,
             'users' => $users,
             'currentTab' => $tab
         ], 'layouts/master');
