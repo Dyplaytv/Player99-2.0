@@ -83,21 +83,7 @@ class UserController extends Controller
                 $dias = max(1, min(3650, (int)$request->input('dias', 30)));
 
                 if ($cid > 0) {
-                    $pdoFin = Database::financial();
-                    $pdoFin->exec("CREATE TABLE IF NOT EXISTS cliente_creditos (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        id_cliente INTEGER NOT NULL,
-                        id_plano INTEGER DEFAULT 0,
-                        nome_plano TEXT DEFAULT '',
-                        dias INTEGER NOT NULL DEFAULT 30,
-                        valor_pago REAL DEFAULT 0,
-                        cupom_usado TEXT DEFAULT '',
-                        status TEXT DEFAULT 'DISPONIVEL',
-                        id_tela_usada INTEGER DEFAULT 0,
-                        nome_tela_usada TEXT DEFAULT '',
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        used_at DATETIME
-                    )");
+                    $pdoFin = BillingController::getDb();
 
                     if ($mode === 'remove') {
                         $stmtDelCred = $pdoFin->prepare("DELETE FROM cliente_creditos WHERE id IN (
@@ -167,7 +153,7 @@ class UserController extends Controller
         // Conta quantos créditos disponíveis cada cliente possui
         $creditsMap = [];
         try {
-            $pdoFin = Database::financial();
+            $pdoFin = BillingController::getDb();
             $stmtCred = $pdoFin->query("SELECT id_cliente, COUNT(*) as total FROM cliente_creditos WHERE status = 'DISPONIVEL' GROUP BY id_cliente");
             if ($stmtCred) {
                 foreach ($stmtCred->fetchAll() as $cr) {
