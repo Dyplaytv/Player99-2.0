@@ -38,7 +38,8 @@ class Screen extends Model
                 'rotation' => 'INTEGER DEFAULT 0',
                 'force_reload' => 'INTEGER DEFAULT 0',
                 'ultimo_ping' => 'TEXT',
-                'expire_date' => 'TEXT'
+                'expire_date' => 'TEXT',
+                'last_lock_whats_at' => 'TEXT'
             ];
             foreach ($requiredCols as $cName => $cDef) {
                 if (!in_array($cName, $colNames)) {

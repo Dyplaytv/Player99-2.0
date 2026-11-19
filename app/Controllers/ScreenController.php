@@ -7,6 +7,8 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Models\Screen;
 use App\Models\Client;
+use App\Services\EvolutionService;
+use App\Services\WhatsAppWelcomeService;
 
 class ScreenController extends Controller
 {
@@ -577,6 +579,83 @@ class ScreenController extends Controller
     }
 
     /**
+     * Envia notificação via WhatsApp para o motorista quando a tela é aberta vencida
+     * (com trava de 24h por tela para evitar envios repetidos).
+     */
+    private function notifyExpiredScreenWhatsApp(\PDO $pdo, array $screen): void
+    {
+        try {
+            $screenId = (int)($screen['id'] ?? 0);
+            $cid = (int)($screen['id_cliente'] ?? 0);
+            if ($screenId <= 0 || $cid <= 0) {
+                return;
+            }
+
+            // Evita spam: envia no máximo 1 vez a cada 24h por tela
+            $lastSent = trim((string)($screen['last_lock_whats_at'] ?? ''));
+            if ($lastSent !== '') {
+                $lastTs = strtotime($lastSent);
+                if ($lastTs !== false && (time() - $lastTs) < 86400) {
+                    return;
+                }
+            }
+
+            $stmtCli = $pdo->prepare("SELECT title, username, whatsapp FROM ibo WHERE id = :id LIMIT 1");
+            $stmtCli->execute([':id' => $cid]);
+            $cli = $stmtCli->fetch();
+            if (!$cli || empty($cli['whatsapp'])) {
+                return;
+            }
+
+            $phone = WhatsAppWelcomeService::formatBrazilPhone((string)$cli['whatsapp']);
+            if (!$phone) {
+                return;
+            }
+
+            $pdoUsers = Database::users();
+            $settings = [];
+            $stmtSet = $pdoUsers->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('evolution_api_url', 'evolution_api_key', 'evolution_instance_name')");
+            if ($stmtSet) {
+                while ($row = $stmtSet->fetch()) {
+                    $settings[$row['setting_key']] = $row['setting_value'];
+                }
+            }
+
+            $evoUrl = trim((string)($settings['evolution_api_url'] ?? ''));
+            $evoKey = trim((string)($settings['evolution_api_key'] ?? ''));
+            $evoInst = trim((string)($settings['evolution_instance_name'] ?? 'player99')) ?: 'player99';
+            if ($evoUrl === '' || $evoKey === '') {
+                return;
+            }
+
+            // Marca antes de disparar para evitar duplicidade em acessos simultâneos
+            $pdo->prepare("UPDATE telas SET last_lock_whats_at = datetime('now', 'localtime') WHERE id = :id")
+                ->execute([':id' => $screenId]);
+
+            $nomeMotorista = trim((string)($cli['title'] ?: $cli['username'] ?: 'Motorista'));
+            $nomeTela = trim((string)($screen['nome_tela'] ?: $screen['title'] ?: 'Sua Tela'));
+            $codigoTela = trim((string)($screen['player_code'] ?? ''));
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'player99.com.br';
+            $portalUrl = $scheme . '://' . $host . '/painel-cliente';
+
+            $mensagem = "Olá, *{$nomeMotorista}*! 👋\n\n"
+                . "Passando para avisar que a sua tela *{$nomeTela}*"
+                . ($codigoTela !== '' ? " (cód: `{$codigoTela}`)" : '')
+                . " está com a validade vencida no momento. ⏳\n\n"
+                . "Por esse motivo, enquanto ela estiver vencida, ficará passando automaticamente apenas a *Playlist da Loja Player99*. 🛒\n\n"
+                . "Para voltar a exibir seus vídeos, anúncios, notícias, web rádios e liberar todas as funções do sistema, basta adicionar créditos e recarregar sua tela pelo *Portal do Motorista*:\n"
+                . "🔗 {$portalUrl}\n\n"
+                . "Qualquer dúvida, estamos à disposição! 🚀";
+
+            $evo = new EvolutionService($evoUrl, $evoKey, $evoInst);
+            $evo->sendText($phone, $mensagem, '', 6);
+        } catch (\Throwable $e) {
+            error_log('Erro notifyExpiredScreenWhatsApp: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Gera automaticamente a "Playlist da Player99" com propagandas em tela cheia
      * dos produtos ativos da Loja e dos Achadinhos.
      */
@@ -764,6 +843,7 @@ class ScreenController extends Controller
 
         $locked = $this->isScreenLocked($pdo, $screen);
         if ($locked) {
+            $this->notifyExpiredScreenWhatsApp($pdo, $screen);
             $videos = $this->getLockMedia((int)$screen['id']);
             $radioInfo = ['audio_mode' => 'video', 'id_radio' => 0, 'radio_url' => '', 'radio_name' => ''];
         }
