@@ -637,7 +637,7 @@ class ScreenController extends Controller
             $codigoTela = trim((string)($screen['player_code'] ?? ''));
             $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $host = $_SERVER['HTTP_HOST'] ?? 'player99.com.br';
-            $portalUrl = $scheme . '://' . $host . '/painel-cliente';
+            $portalUrl = $scheme . '://' . $host . '/login';
 
             $mensagem = "Olá, *{$nomeMotorista}*! 👋\n\n"
                 . "Passando para avisar que a sua tela *{$nomeTela}*"
