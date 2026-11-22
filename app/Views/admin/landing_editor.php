@@ -41,6 +41,51 @@ $formUrl = '/admin/landing-editor?page=' . urlencode($activePage);
     </form>
 </div>
 
+<!-- Aplicativo do Tablet (.APK) -->
+<div class="glass-card mb-4 border border-success border-opacity-25" style="background: rgba(16, 24, 38, 0.92);">
+    <form method="POST" action="<?= $formUrl ?>" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="app_apk">
+        <input type="hidden" name="page" value="<?= htmlspecialchars($activePage) ?>">
+        <div class="row align-items-center g-4">
+            <div class="col-12 col-md-4 text-center">
+                <div class="fw-bold mb-2 text-white"><i class="fab fa-android text-success me-1"></i> App do Tablet (.APK)</div>
+                <div class="p-3 rounded-4 d-inline-flex flex-column align-items-center justify-content-center w-100" style="background: rgba(0, 0, 0, 0.55); border: 2px dashed rgba(34, 197, 94, 0.35); min-height: 115px;">
+                    <?php if (!empty($appInfo['url'])): ?>
+                        <i class="fab fa-android fa-2x text-success mb-2"></i>
+                        <div class="small fw-bold text-white text-truncate w-100 px-2"><?= htmlspecialchars($appInfo['name']) ?></div>
+                        <div class="text-muted" style="font-size: 11px;">
+                            <?= htmlspecialchars($appInfo['size']) ?> • <?= htmlspecialchars($appInfo['updated_at']) ?>
+                        </div>
+                        <a href="<?= htmlspecialchars($appInfo['url']) ?>" download class="btn btn-sm btn-outline-success mt-2">
+                            <i class="fa fa-download me-1"></i> Baixar APK Atual
+                        </a>
+                    <?php else: ?>
+                        <i class="fa fa-mobile-alt fa-2x text-muted mb-2"></i>
+                        <div class="small text-muted">Nenhum APK enviado ainda</div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="col-12 col-md-8">
+                <h6 class="fw-bold text-white mb-2">Subir / Atualizar Aplicativo Player99 para Tablet</h6>
+                <p class="text-muted small mb-3">
+                    Este arquivo <b>.APK</b> ficará disponível na tela inicial do <b>Portal do Motorista</b> (botão <i>Todas Funcionando</i>) para que os motoristas baixem e instalem diretamente no tablet do carro.
+                </p>
+                <div class="row g-2 align-items-start">
+                    <div class="col-12 col-sm-8">
+                        <input type="file" name="app_apk" class="form-control bg-dark text-white border-secondary" style="padding: 10px 14px;" accept=".apk,application/vnd.android.package-archive" required>
+                        <small class="text-muted d-block mt-2" style="font-size: 11px;">Envie o arquivo instalador Android (.apk).</small>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                        <button type="submit" class="btn btn-success w-100 fw-bold d-flex align-items-center justify-content-center" style="height: 46px; font-size: 0.95rem;">
+                            <i class="fa fa-cloud-upload-alt me-2"></i> Enviar APK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
 <!-- Abas das páginas -->
 <div class="glass-card mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">

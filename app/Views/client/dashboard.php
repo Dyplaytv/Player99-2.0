@@ -150,6 +150,7 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
 
 <!-- Navegação inferior Mobile na ordem solicitada -->
 <nav class="bottom-nav">
+    <a href="?<?= $baseParam ?>tab=inicio" class="<?= $tab === 'inicio' ? 'active' : '' ?>"><i class="fas fa-home"></i>Início</a>
     <a href="?<?= $baseParam ?>tab=arquivos" class="<?= $tab === 'arquivos' ? 'active' : '' ?>"><i class="fas fa-image"></i>Arquivos</a>
     <a href="?<?= $baseParam ?>tab=lista" class="<?= $tab === 'lista' ? 'active' : '' ?>"><i class="fas fa-list-ul"></i>Playlist</a>
     <a href="?<?= $baseParam ?>tab=telas" class="<?= $tab === 'telas' ? 'active' : '' ?>"><i class="fas fa-desktop"></i>Telas</a>
@@ -167,7 +168,7 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             <span><?= htmlspecialchars($customization['brand_name'] ?: 'Player99') ?></span>
         </div>
 
-        <a href="?<?= $baseParam ?>tab=telas" class="sidebar-status">
+        <a href="?<?= $baseParam ?>tab=inicio" class="sidebar-status <?= $tab === 'inicio' ? 'active' : '' ?>" style="<?= $tab === 'inicio' ? 'box-shadow: 0 0 18px rgba(0, 243, 255, 0.35); background: rgba(0, 243, 255, 0.14);' : '' ?>">
             <i class="fas fa-check-circle mr-1"></i> TODAS FUNCIONANDO
         </a>
 
@@ -258,6 +259,268 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
             <?php endif; ?>
             <?php if (!empty($err)): ?>
                 <div class="alert alert-danger shadow-sm"><i class="fas fa-exclamation-triangle mr-1"></i> <?= htmlspecialchars($err) ?></div>
+            <?php endif; ?>
+
+            <!-- ========================================================= -->
+            <!-- 0. TELA INICIAL DO MOTORISTA (TODAS FUNCIONANDO)          -->
+            <!-- ========================================================= -->
+            <?php if ($tab === 'inicio'): ?>
+                <?php
+                    $totalTelasCli = count($screens ?? []);
+                    $totalOnlineCli = 0;
+                    foreach (($screens ?? []) as $sc) {
+                        $uPing = trim((string)($sc['ultimo_ping'] ?? ''));
+                        if ($uPing !== '' && (time() - (int)strtotime($uPing)) <= 120) {
+                            $totalOnlineCli++;
+                        }
+                    }
+                    $totalArqCli = count($arquivosOnly ?? []);
+                    $totalPlCli = count($playlistsList ?? []);
+                    $totalCredCli = count($creditosDisponiveis ?? []);
+                    $apkUrl = trim((string)($tabletApp['url'] ?? ''));
+                    $apkName = trim((string)($tabletApp['name'] ?? 'player99-tablet.apk'));
+                    $apkSize = trim((string)($tabletApp['size'] ?? ''));
+                ?>
+                <style>
+                    .welcome-hero {
+                        background: linear-gradient(135deg, #0b1424 0%, #102542 60%, #0d3b66 100%);
+                        color: #fff;
+                        border-radius: 16px;
+                        padding: 26px 24px;
+                        margin-bottom: 22px;
+                        box-shadow: 0 10px 30px rgba(11, 20, 36, 0.22);
+                    }
+                    .step-flow-grid {
+                        display: grid;
+                        grid-template-columns: repeat(4, 1fr);
+                        gap: 14px;
+                    }
+                    .step-flow-card {
+                        position: relative;
+                        background: #fff;
+                        border: 2px solid #e2e8f0;
+                        border-radius: 14px;
+                        padding: 18px 16px;
+                        text-align: center;
+                        transition: all 0.2s ease;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                    }
+                    .step-flow-card:hover {
+                        border-color: #00bcd4;
+                        transform: translateY(-3px);
+                        box-shadow: 0 8px 22px rgba(0, 188, 212, 0.14);
+                    }
+                    .step-num-badge {
+                        width: 38px;
+                        height: 38px;
+                        border-radius: 50%;
+                        background: linear-gradient(135deg, #0A38D1, #00bcd4);
+                        color: #fff;
+                        font-weight: 800;
+                        font-size: 16px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 10px;
+                    }
+                    .step-arrow {
+                        position: absolute;
+                        right: -13px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 24px;
+                        height: 24px;
+                        background: #00bcd4;
+                        color: #fff;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 11px;
+                        z-index: 2;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                    }
+                    @media (max-width: 991.98px) {
+                        .step-flow-grid { grid-template-columns: repeat(2, 1fr); }
+                        .step-arrow { display: none; }
+                    }
+                    @media (max-width: 575.98px) {
+                        .step-flow-grid { grid-template-columns: 1fr; }
+                    }
+                </style>
+
+                <!-- Boas-vindas + Download do App do Tablet -->
+                <div class="welcome-hero">
+                    <div class="row align-items-center">
+                        <div class="col-lg-7 mb-3 mb-lg-0">
+                            <span class="badge badge-info px-3 py-1 mb-2" style="background: rgba(0,243,255,0.18); color: #00f3ff; border: 1px solid rgba(0,243,255,0.4);">
+                                <i class="fas fa-check-circle mr-1"></i> Central do Motorista Player99
+                            </span>
+                            <h3 class="font-weight-bold mb-2">Bem-vindo, <?= htmlspecialchars($client['title'] ?: $client['username']) ?>!</h3>
+                            <p class="mb-3" style="color: #cbd5e1; font-size: 0.95rem;">
+                                Aqui você configura tudo para o tablet do seu carro rodar suas propagandas, notícias, rádios e ofertas da Player99 de forma simples e rápida.
+                            </p>
+                            <div class="d-flex flex-wrap" style="gap: 10px;">
+                                <span class="badge badge-dark px-3 py-2" style="background: rgba(255,255,255,0.1); font-size: 12px;">
+                                    <i class="fas fa-desktop text-info mr-1"></i> <?= $totalTelasCli ?> Tela(s) (<?= $totalOnlineCli ?> online)
+                                </span>
+                                <span class="badge badge-dark px-3 py-2" style="background: rgba(255,255,255,0.1); font-size: 12px;">
+                                    <i class="fas fa-photo-video text-primary mr-1"></i> <?= $totalArqCli ?> Arquivo(s)
+                                </span>
+                                <span class="badge badge-dark px-3 py-2" style="background: rgba(255,255,255,0.1); font-size: 12px;">
+                                    <i class="fas fa-list-ul text-warning mr-1"></i> <?= $totalPlCli ?> Playlist(s)
+                                </span>
+                                <span class="badge badge-dark px-3 py-2" style="background: rgba(255,255,255,0.1); font-size: 12px;">
+                                    <i class="fas fa-bolt text-success mr-1"></i> <?= $totalCredCli ?> Crédito(s)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="p-3 rounded text-center" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(0,243,255,0.35); border-radius: 14px !important;">
+                                <div class="mb-2" style="font-size: 13px; font-weight: 700; color: #00f3ff;">
+                                    <i class="fab fa-android fa-lg mr-1"></i> APLICATIVO PARA O TABLET
+                                </div>
+                                <?php if ($apkUrl !== ''): ?>
+                                    <p class="small mb-3" style="color: #e2e8f0;">
+                                        Baixe aqui o aplicativo oficial para instalar no tablet do seu veículo:
+                                    </p>
+                                    <a href="<?= htmlspecialchars($apkUrl) ?>" download="<?= htmlspecialchars($apkName) ?>" class="btn btn-success btn-lg btn-block font-weight-bold shadow-sm">
+                                        <i class="fas fa-download mr-2"></i> Baixe aqui seu App (.APK)
+                                    </a>
+                                    <small class="d-block mt-2" style="color: #94a3b8; font-size: 11px;">
+                                        <?= htmlspecialchars($apkName) ?><?= $apkSize !== '' ? ' • ' . htmlspecialchars($apkSize) : '' ?>
+                                    </small>
+                                <?php else: ?>
+                                    <p class="small mb-2" style="color: #cbd5e1;">
+                                        O aplicativo instalador (.APK) será disponibilizado aqui em breve pelo administrador.
+                                    </p>
+                                    <span class="badge badge-secondary px-3 py-2">Aguardando envio do APK</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desenho do Passo a Passo (4 Etapas) -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <div>
+                            <i class="fas fa-route text-primary mr-2"></i> Passo a Passo para sua Tela Funcionar
+                        </div>
+                        <small class="text-muted">Siga os 4 passos abaixo na ordem</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="step-flow-grid">
+                            <!-- Passo 1 -->
+                            <div class="step-flow-card">
+                                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                                <div>
+                                    <div class="step-num-badge">1</div>
+                                    <div class="mb-2"><i class="fas fa-cloud-upload-alt fa-2x text-primary"></i></div>
+                                    <h6 class="font-weight-bold text-dark">Subir Arquivos</h6>
+                                    <p class="small text-muted mb-3">Envie os vídeos (MP4) e imagens (JPG/PNG) que deseja exibir no tablet.</p>
+                                </div>
+                                <a href="?<?= $baseParam ?>tab=arquivos" class="btn btn-sm btn-outline-primary font-weight-bold">
+                                    Ir para Arquivos <i class="fas fa-chevron-right ml-1"></i>
+                                </a>
+                            </div>
+
+                            <!-- Passo 2 -->
+                            <div class="step-flow-card">
+                                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                                <div>
+                                    <div class="step-num-badge">2</div>
+                                    <div class="mb-2"><i class="fas fa-list-ol fa-2x text-success"></i></div>
+                                    <h6 class="font-weight-bold text-dark">Criar a Playlist</h6>
+                                    <p class="small text-muted mb-3">Dê um nome à playlist, clique no <b>+</b> para adicionar seus arquivos e salve.</p>
+                                </div>
+                                <a href="?<?= $baseParam ?>tab=lista" class="btn btn-sm btn-outline-success font-weight-bold">
+                                    Ir para Playlist <i class="fas fa-chevron-right ml-1"></i>
+                                </a>
+                            </div>
+
+                            <!-- Passo 3 -->
+                            <div class="step-flow-card">
+                                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                                <div>
+                                    <div class="step-num-badge">3</div>
+                                    <div class="mb-2"><i class="fas fa-link fa-2x text-info"></i></div>
+                                    <h6 class="font-weight-bold text-dark">Vincular a Tela</h6>
+                                    <p class="small text-muted mb-3">Abra o App no tablet, pegue o código de 6 dígitos e clique em <b>+ Vincular Tela</b>.</p>
+                                </div>
+                                <a href="?<?= $baseParam ?>tab=telas" class="btn btn-sm btn-outline-info font-weight-bold">
+                                    Ir para Telas <i class="fas fa-chevron-right ml-1"></i>
+                                </a>
+                            </div>
+
+                            <!-- Passo 4 -->
+                            <div class="step-flow-card">
+                                <div>
+                                    <div class="step-num-badge">4</div>
+                                    <div class="mb-2"><i class="fas fa-play-circle fa-2x text-warning"></i></div>
+                                    <h6 class="font-weight-bold text-dark">Selecionar a Playlist</h6>
+                                    <p class="small text-muted mb-3">Na tela vinculada, escolha sua playlist em <b>Lista de Reprodução</b> para rodar!</p>
+                                </div>
+                                <a href="?<?= $baseParam ?>tab=telas" class="btn btn-sm btn-warning text-dark font-weight-bold">
+                                    Selecionar Agora <i class="fas fa-play ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mini Tutoriais -->
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 mb-0">
+                            <div class="card-header bg-white" style="font-size: 15px;">
+                                <span><i class="fab fa-android text-success mr-2"></i> 1. Como Instalar o App</span>
+                            </div>
+                            <div class="card-body small text-muted" style="line-height: 1.65;">
+                                <ol class="pl-3 mb-0">
+                                    <li>No tablet do carro, acesse este painel e toque em <b>Baixe aqui seu App (.APK)</b> acima.</li>
+                                    <li>Ao concluir o download, toque no arquivo e autorize <b>"Instalar de fontes desconhecidas"</b> caso o Android peça.</li>
+                                    <li>Conclua a instalação e abra o aplicativo <b>Player99</b>.</li>
+                                    <li>Um <b>código de 6 letras/números</b> aparecerá na tela do tablet — anote esse código!</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 mb-0">
+                            <div class="card-header bg-white" style="font-size: 15px;">
+                                <span><i class="fas fa-photo-video text-primary mr-2"></i> 2. Subir Arquivos e Criar Playlist</span>
+                            </div>
+                            <div class="card-body small text-muted" style="line-height: 1.65;">
+                                <ol class="pl-3 mb-0">
+                                    <li>Entre na aba <b>Arquivos</b> e envie seus vídeos (MP4) ou imagens (JPG/PNG).</li>
+                                    <li>Depois entre na aba <b>Playlist</b> e digite um nome (ex: <i>Minha Programação</i>).</li>
+                                    <li>Clique no botão verde <b>+</b> nos arquivos (e na aba <i>Entretenimentos</i> se quiser notícias ou Playlist Player99).</li>
+                                    <li>Clique em <b>Salvar Playlist</b>.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 mb-0">
+                            <div class="card-header bg-white" style="font-size: 15px;">
+                                <span><i class="fas fa-desktop text-info mr-2"></i> 3. Conectar Tela e Rodar Playlist</span>
+                            </div>
+                            <div class="card-body small text-muted" style="line-height: 1.65;">
+                                <ol class="pl-3 mb-0">
+                                    <li>Entre na aba <b>Telas (Player)</b> e clique em <b>+ Vincular Tela</b>.</li>
+                                    <li>Digite um nome para o carro/tela e informe o <b>código do tablet</b>.</li>
+                                    <li>Na coluna <b>Lista de Reprodução</b>, selecione a playlist que você criou.</li>
+                                    <li>Clique no botão azul de <b>Atualizar</b> (<i class="fas fa-sync-alt"></i>) e sua programação começará a passar no tablet!</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             <?php endif; ?>
 
             <!-- ========================================================= -->
