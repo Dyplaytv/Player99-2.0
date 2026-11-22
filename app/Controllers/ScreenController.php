@@ -796,10 +796,12 @@ class ScreenController extends Controller
         $screen = Screen::findByCode($codigo);
         if (!$screen) {
             http_response_code(404);
-            die("<div style='background:#08090e;color:#fff;font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;'>
-                    <h2 style='color:#34e2e4;'>Player99 DOOH</h2>
-                    <p>Código de tela <b>" . htmlspecialchars($codigo) . "</b> não encontrado.</p>
-                 </div>");
+            $this->render('player/not_found', [
+                'codigo' => $codigo,
+                'headline' => 'Código de tela não encontrado',
+                'subtext' => 'Verifique se o código foi digitado corretamente ou vincule esta tela no Portal do Motorista.'
+            ], null);
+            return;
         }
 
         Screen::updatePing((int)$screen['id']);
@@ -870,10 +872,12 @@ class ScreenController extends Controller
         $screen = Screen::findByCode($codigo);
         if (!$screen) {
             http_response_code(404);
-            die("<div style='background:#08090e;color:#fff;font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;'>
-                    <h2 style='color:#34e2e4;'>Player99</h2>
-                    <p>Página do motorista <b>" . htmlspecialchars($codigo) . "</b> não encontrada.</p>
-                 </div>");
+            $this->render('player/not_found', [
+                'codigo' => $codigo,
+                'headline' => 'Página do motorista não encontrada',
+                'subtext' => 'Verifique o QR Code ou o código informado e tente novamente.'
+            ], null);
+            return;
         }
 
         $pdo = Database::clients();
