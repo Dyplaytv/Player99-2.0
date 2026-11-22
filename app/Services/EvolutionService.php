@@ -290,4 +290,49 @@ class EvolutionService
 
         return [];
     }
+
+    /**
+     * Lista os grupos do WhatsApp conectados nesta instância da Evolution API.
+     */
+    public function fetchAllGroups(): array
+    {
+        $res = $this->request("group/fetchAllGroups/{$this->instance}?getParticipants=false", 'GET', null, 15);
+        if (!$res['success'] || !is_array($res['data'])) {
+            return [
+                'success' => false,
+                'error' => $res['error'] ?? 'Não foi possível buscar os grupos. Verifique se o WhatsApp está conectado.',
+                'groups' => []
+            ];
+        }
+
+        $rawList = $res['data'];
+        if (isset($rawList['groups']) && is_array($rawList['groups'])) {
+            $rawList = $rawList['groups'];
+        } elseif (isset($rawList['data']) && is_array($rawList['data'])) {
+            $rawList = $rawList['data'];
+        }
+
+        $groups = [];
+        if (is_array($rawList)) {
+            foreach ($rawList as $g) {
+                if (!is_array($g)) continue;
+                $jid = trim((string)($g['id'] ?? ($g['jid'] ?? ($g['remoteJid'] ?? ''))));
+                if ($jid === '') continue;
+                $subject = trim((string)($g['subject'] ?? ($g['name'] ?? $jid)));
+                $size = (int)($g['size'] ?? 0);
+                $groups[] = [
+                    'id' => $jid,
+                    'subject' => $subject !== '' ? $subject : $jid,
+                    'size' => $size
+                ];
+            }
+        }
+
+        usort($groups, static fn($a, $b) => strcasecmp($a['subject'], $b['subject']));
+
+        return [
+            'success' => true,
+            'groups' => $groups
+        ];
+    }
 }

@@ -257,11 +257,17 @@
                 </div>
 
                 <div class="row g-3 align-items-center">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label deals-label">FILTRO POR JID DO GRUPO (OPCIONAL)</label>
-                        <input type="text" name="group_jid" class="form-control form-control-sm deals-input" value="<?= htmlspecialchars($platforms[0]['group_jid'] ?? '') ?>" placeholder="Ex: 1203630283921@g.us (Deixe em branco para aceitar qualquer grupo)">
+                    <div class="col-12 col-md-7">
+                        <label class="form-label deals-label">FILTRO POR JID / GRUPOS DO WHATSAPP (OPCIONAL)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="groupJidInput" name="group_jid" class="form-control deals-input" value="<?= htmlspecialchars($platforms[0]['group_jid'] ?? '') ?>" placeholder="Clique para selecionar os grupos ou deixe em branco para todos" onclick="openGroupsPicker()" style="cursor: pointer;">
+                            <button type="button" class="btn btn-outline-info fw-bold" onclick="openGroupsPicker()">
+                                <i class="fab fa-whatsapp me-1"></i> Selecionar Grupos
+                            </button>
+                        </div>
+                        <small class="deals-subtext" style="font-size: 11px;">Separe múltiplos IDs por vírgula ou clique acima para marcar os grupos pelo nome.</small>
                     </div>
-                    <div class="col-12 col-md-6 text-md-end mt-md-4">
+                    <div class="col-12 col-md-5 text-md-end mt-md-4">
                         <button type="submit" class="btn btn-cyan px-4 fw-bold">
                             <i class="fa fa-save me-1"></i> Salvar Configurações de Afiliados
                         </button>
@@ -688,4 +694,113 @@ function confirmBulkDeleteDeals() {
     });
     return true;
 }
+
+function openGroupsPicker() {
+    const modalEl = document.getElementById('modalSelectGroups');
+    if (window.bootstrap && bootstrap.Modal) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+    loadWhatsAppGroups();
+}
+
+function loadWhatsAppGroups() {
+    const listEl = document.getElementById('waGroupsList');
+    const inst = (document.getElementById('dealsEvoInstance')?.value || '').trim() || 'player99_ofertas';
+    listEl.innerHTML = '<div class="text-center text-info py-4"><i class="fa fa-spinner fa-spin fa-lg me-2"></i> Carregando grupos do WhatsApp...</div>';
+
+    fetch('/admin/achadinhos/evolution-groups?instance=' + encodeURIComponent(inst))
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) {
+                listEl.innerHTML = '<div class="alert alert-warning mb-0">' + (res.error || 'Não foi possível carregar os grupos. Verifique se a instância está conectada.') + '</div>';
+                return;
+            }
+            const groups = res.groups || [];
+            if (groups.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-muted py-4">Nenhum grupo encontrado nesta instância do WhatsApp.</div>';
+                return;
+            }
+
+            const currentRaw = (document.getElementById('groupJidInput')?.value || '');
+            const selectedSet = new Set(currentRaw.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean));
+
+            listEl.innerHTML = groups.map(g => {
+                const isChecked = selectedSet.has(g.id) ? 'checked' : '';
+                const safeName = String(g.subject || g.id).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+                const safeId = String(g.id).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+                const membersTxt = g.size > 0 ? (' • ' + g.size + ' membros') : '';
+                return `
+                    <label class="list-group-item list-group-item-action bg-black text-white border-secondary d-flex align-items-center gap-3 wa-group-row" data-name="${safeName.toLowerCase()}" style="cursor:pointer;">
+                        <input type="checkbox" class="form-check-input wa-group-chk flex-shrink-0" value="${safeId}" ${isChecked}>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-truncate">${safeName}</div>
+                            <div class="small text-muted font-monospace text-truncate">${safeId}${membersTxt}</div>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+        })
+        .catch(() => {
+            listEl.innerHTML = '<div class="alert alert-danger mb-0">Erro de comunicação ao buscar grupos.</div>';
+        });
+}
+
+function filterWaGroups() {
+    const q = (document.getElementById('waGroupSearch')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#waGroupsList .wa-group-row').forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        row.style.display = name.includes(q) ? 'flex' : 'none';
+    });
+}
+
+function clearWaGroupsSelection() {
+    document.querySelectorAll('#waGroupsList .wa-group-chk').forEach(chk => { chk.checked = false; });
+}
+
+function applySelectedGroups() {
+    const checked = Array.from(document.querySelectorAll('#waGroupsList .wa-group-chk:checked')).map(c => c.value);
+    const input = document.getElementById('groupJidInput');
+    if (input) {
+        input.value = checked.join(', ');
+    }
+    const modalEl = document.getElementById('modalSelectGroups');
+    if (window.bootstrap && bootstrap.Modal) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+    }
+}
 </script>
+
+<!-- Modal Seleção de Grupos do WhatsApp -->
+<div class="modal fade" id="modalSelectGroups" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white border border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold">
+                    <i class="fab fa-whatsapp text-success me-2"></i> Selecionar Grupos para Captar Achadinhos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <input type="text" id="waGroupSearch" class="form-control form-control-sm deals-input flex-grow-1" placeholder="Buscar grupo pelo nome..." oninput="filterWaGroups()">
+                    <button type="button" class="btn btn-sm btn-outline-info" onclick="loadWhatsAppGroups()">
+                        <i class="fa fa-sync-alt me-1"></i> Atualizar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearWaGroupsSelection()">
+                        Limpar Seleção
+                    </button>
+                </div>
+                <div id="waGroupsList" class="list-group" style="max-height: 360px; overflow-y: auto;"></div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fa fa-info-circle text-info me-1"></i> Se nenhum grupo ficar marcado, o sistema aceitará ofertas de qualquer grupo. Após aplicar, clique em <b>Salvar Configurações de Afiliados</b>.
+                </small>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-cyan fw-bold" onclick="applySelectedGroups()">
+                    <i class="fa fa-check me-1"></i> Aplicar Grupos Selecionados
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

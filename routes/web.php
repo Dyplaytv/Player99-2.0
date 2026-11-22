@@ -203,6 +203,8 @@ $router->get('/admin/achadinhos/evolution-connect', [DealsController::class, 'ev
 $router->post('/admin/achadinhos/evolution-connect', [DealsController::class, 'evolutionConnect']);
 $router->get('/admin/achadinhos/evolution-logout', [DealsController::class, 'evolutionLogout']);
 $router->post('/admin/achadinhos/evolution-logout', [DealsController::class, 'evolutionLogout']);
+$router->get('/admin/achadinhos/evolution-groups', [DealsController::class, 'evolutionGroups']);
+$router->post('/admin/achadinhos/evolution-groups', [DealsController::class, 'evolutionGroups']);
 
 // Redirecionamento e Rastreio de QR Code do Passageiro
 $router->get('/o/{id}', [DealsController::class, 'redirectDeal']);
