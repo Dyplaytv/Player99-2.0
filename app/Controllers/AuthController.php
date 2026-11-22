@@ -311,6 +311,16 @@ class AuthController extends Controller
         $this->redirect('/login?logout=1');
     }
 
+    private function getGoogleRedirectUri(): string
+    {
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https')
+            || ((string)($_SERVER['SERVER_PORT'] ?? '') === '443');
+        $protocol = $isHttps ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'player99.com.br';
+        return $protocol . $host . '/auth/google/callback';
+    }
+
     public function googleRedirect(Request $request): void
     {
         $settings = EvolutionWebhookController::getSettings();
@@ -324,9 +334,7 @@ class AuthController extends Controller
         $state = bin2hex(random_bytes(16));
         $_SESSION['google_oauth_state'] = $state;
 
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-        $host = $_SERVER['HTTP_HOST'] ?? '75.119.156.103:8088';
-        $redirectUri = $protocol . $host . '/auth/google/callback';
+        $redirectUri = $this->getGoogleRedirectUri();
 
         $params = [
             'client_id' => $clientId,
@@ -361,9 +369,7 @@ class AuthController extends Controller
         $clientId = trim($settings['google_client_id'] ?? '');
         $clientSecret = trim($settings['google_client_secret'] ?? '');
 
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-        $host = $_SERVER['HTTP_HOST'] ?? '75.119.156.103:8088';
-        $redirectUri = $protocol . $host . '/auth/google/callback';
+        $redirectUri = $this->getGoogleRedirectUri();
 
         // 1. Troca o código temporário por access_token e id_token
         $tokenUrl = "https://oauth2.googleapis.com/token";

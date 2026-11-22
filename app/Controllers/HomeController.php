@@ -32,6 +32,24 @@ class HomeController extends Controller
         $this->renderLandingPage('afiliados', 'Player99 - Seja um Afiliado', 'Seja um afiliado Player99 e lucre com o melhor player de Mídia Indoor do mercado.');
     }
 
+    public function privacidade(Request $request): void
+    {
+        $this->render('landing/legal', [
+            'docType' => 'privacidade',
+            'pageTitle' => 'Política de Privacidade - Player99',
+            'pageDescription' => 'Política de Privacidade e Proteção de Dados (LGPD) da plataforma Player99.',
+        ], null);
+    }
+
+    public function termos(Request $request): void
+    {
+        $this->render('landing/legal', [
+            'docType' => 'termos',
+            'pageTitle' => 'Termos de Serviço - Player99',
+            'pageDescription' => 'Termos de Serviço e Condições de Uso da plataforma Player99.',
+        ], null);
+    }
+
     private function renderLandingPage(string $page, string $title, string $description): void
     {
         $this->render('landing/page', [

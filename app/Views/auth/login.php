@@ -298,6 +298,10 @@
 
         <div class="card-footer-links">
             Não tem uma conta? <a href="/cadastro">Cadastre-se</a>
+            <div style="margin-top: 8px; font-size: 0.76rem; color: #6c7591;">
+                <a href="/privacidade" style="color: #8b92b2;">Política de Privacidade</a> &bull;
+                <a href="/termos" style="color: #8b92b2;">Termos de Serviço</a>
+            </div>
         </div>
     </div>
 

@@ -111,7 +111,11 @@
     <?php endif; ?>
 
     <footer>
-        <p style="margin: 0; font-weight: 500;">player99 2.6</p>
+        <p style="margin: 0 0 8px; font-weight: 500;">player99 2.6</p>
+        <div style="font-size: 13px;">
+            <a href="/privacidade" style="color: #34e2e4; text-decoration: none; margin: 0 8px;">Política de Privacidade</a> &bull;
+            <a href="/termos" style="color: #34e2e4; text-decoration: none; margin: 0 8px;">Termos de Serviço</a>
+        </div>
     </footer>
 
 </body>
