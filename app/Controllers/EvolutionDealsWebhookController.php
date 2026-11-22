@@ -44,12 +44,22 @@ class EvolutionDealsWebhookController extends Controller
             return;
         }
 
-        // Verifica se há filtro de grupo configurado
+        // Verifica se há filtro de grupo configurado (aceita um ou vários JIDs separados por vírgula)
         $pdo = Database::deals();
         $configuredJid = (string)$pdo->query("SELECT group_jid FROM affiliate_settings WHERE active = 1 AND group_jid != '' LIMIT 1")->fetchColumn();
-        if (!empty($configuredJid) && strpos($remoteJid, $configuredJid) === false) {
-            echo json_encode(['status' => 'ignored', 'reason' => 'Group not matching configured JID']);
-            return;
+        if (!empty($configuredJid)) {
+            $allowedJids = array_filter(array_map('trim', preg_split('/[\s,;]+/', $configuredJid)));
+            $matched = false;
+            foreach ($allowedJids as $aj) {
+                if ($aj !== '' && strpos($remoteJid, $aj) !== false) {
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                echo json_encode(['status' => 'ignored', 'reason' => 'Group not matching configured JIDs']);
+                return;
+            }
         }
 
         // Extrai texto da mensagem

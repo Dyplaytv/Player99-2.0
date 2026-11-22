@@ -405,4 +405,23 @@ class DealsController extends Controller
         $evo = $this->getEvolutionService($instance);
         echo json_encode($evo->logout());
     }
+
+    /**
+     * Lista os grupos do WhatsApp conectados na instância de ofertas
+     */
+    public function evolutionGroups(Request $request): void
+    {
+        if (!Auth::check() || !Auth::isAdmin()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Acesso negado', 'groups' => []]);
+            return;
+        }
+        header('Content-Type: application/json');
+        $raw = json_decode(file_get_contents('php://input'), true) ?? [];
+        $instance = trim($request->input('instance') ?: ($raw['instance'] ?? 'player99_ofertas'));
+        if (empty($instance)) $instance = 'player99_ofertas';
+
+        $evo = $this->getEvolutionService($instance);
+        echo json_encode($evo->fetchAllGroups());
+    }
 }
