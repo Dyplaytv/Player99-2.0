@@ -36,6 +36,14 @@ $router->get('/parceiros.php', [HomeController::class, 'parceiros']);
 $router->get('/afiliados', [HomeController::class, 'afiliados']);
 $router->get('/afiliados.php', [HomeController::class, 'afiliados']);
 
+// Páginas Legais Públicas (Obrigatórias para Google OAuth / LGPD)
+$router->get('/privacidade', [HomeController::class, 'privacidade']);
+$router->get('/privacidade.php', [HomeController::class, 'privacidade']);
+$router->get('/politica-de-privacidade', [HomeController::class, 'privacidade']);
+$router->get('/termos', [HomeController::class, 'termos']);
+$router->get('/termos.php', [HomeController::class, 'termos']);
+$router->get('/termos-de-servico', [HomeController::class, 'termos']);
+
 // Loja Pública (Vitrine de Serviços & Vouchers)
 $router->get('/loja', [StoreController::class, 'publicStore']);
 $router->get('/loja.php', [StoreController::class, 'publicStore']);
