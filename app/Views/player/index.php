@@ -540,9 +540,39 @@ $radioName = $radioInfo['radio_name'] ?? '';
         const dealsList = <?= json_encode($deals ?? []) ?>;
         const screenId = <?= (int)($screen['id'] ?? 0) ?>;
         const driverPageUrl = window.location.origin + '/motorista/' + encodeURIComponent(codigo);
+        const localDriverQrUrl = <?= json_encode($driverQrUrl ?? '') ?> || ('https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data=' + encodeURIComponent(driverPageUrl));
         const storeQrImgEl = document.getElementById('storeQrCodeImg');
         if (storeQrImgEl) {
-            storeQrImgEl.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=' + encodeURIComponent(driverPageUrl);
+            const qrStorageKey = 'p99_qr_cache_' + codigo;
+            storeQrImgEl.addEventListener('load', function() {
+                try {
+                    if (storeQrImgEl.src.indexOf('data:image/') === 0) return;
+                    const c = document.createElement('canvas');
+                    c.width = storeQrImgEl.naturalWidth || 200;
+                    c.height = storeQrImgEl.naturalHeight || 200;
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(storeQrImgEl, 0, 0);
+                    const b64 = c.toDataURL('image/png');
+                    if (b64 && b64.length > 100) {
+                        localStorage.setItem(qrStorageKey, b64);
+                    }
+                } catch (e) {}
+            });
+            storeQrImgEl.addEventListener('error', function() {
+                try {
+                    const cachedB64 = localStorage.getItem(qrStorageKey);
+                    if (cachedB64 && storeQrImgEl.src !== cachedB64) {
+                        storeQrImgEl.src = cachedB64;
+                    }
+                } catch (e) {}
+            });
+
+            const cachedInit = (() => { try { return localStorage.getItem(qrStorageKey); } catch (e) { return null; } })();
+            if (!navigator.onLine && cachedInit) {
+                storeQrImgEl.src = cachedInit;
+            } else {
+                storeQrImgEl.src = localDriverQrUrl;
+            }
         }
         let currentDealIndex = 0;
         let dealCountdownInterval = null;

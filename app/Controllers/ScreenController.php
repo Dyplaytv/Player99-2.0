@@ -656,6 +656,47 @@ class ScreenController extends Controller
     }
 
     /**
+     * Gera e armazena em cache local (/uploads/qrcodes/*.png) a imagem do QR Code
+     * para que o Service Worker (sw.js) e o navegador mantenham o QR Code disponível offline.
+     */
+    private function ensureLocalQrCode(string $cacheKey, string $targetUrl): string
+    {
+        $safeKey = preg_replace('/[^A-Za-z0-9_-]/', '', $cacheKey) ?: 'default';
+        $dir = dirname(__DIR__, 2) . '/uploads/qrcodes';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        $filePath = $dir . '/' . $safeKey . '.png';
+        $publicPath = '/uploads/qrcodes/' . $safeKey . '.png';
+
+        if (is_file($filePath) && filesize($filePath) > 200) {
+            return $publicPath;
+        }
+
+        $apiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data=' . urlencode($targetUrl);
+        try {
+            $ch = curl_init($apiUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $bin = curl_exec($ch);
+            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($bin && $code === 200 && strlen($bin) > 200) {
+                @file_put_contents($filePath, $bin);
+                @chmod($filePath, 0666);
+                if (is_file($filePath) && filesize($filePath) > 200) {
+                    return $publicPath;
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        return $apiUrl;
+    }
+
+    /**
      * Gera automaticamente a "Playlist da Player99" com propagandas em tela cheia
      * dos produtos ativos da Loja e dos Achadinhos.
      */
@@ -850,13 +891,19 @@ class ScreenController extends Controller
             $radioInfo = ['audio_mode' => 'video', 'id_radio' => 0, 'radio_url' => '', 'radio_name' => ''];
         }
 
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'player99.com.br';
+        $driverPageUrl = $scheme . '://' . $host . '/motorista/' . rawurlencode($codigo);
+        $driverQrUrl = $this->ensureLocalQrCode('driver_' . $codigo, $driverPageUrl);
+
         $this->render('player/index', [
             'screen' => $screen,
             'videos' => $videos,
             'codigo' => $codigo,
             'radioInfo' => $radioInfo,
             'locked' => $locked,
-            'deals' => $deals
+            'deals' => $deals,
+            'driverQrUrl' => $driverQrUrl
         ], null);
     }
 
@@ -1036,7 +1083,12 @@ class ScreenController extends Controller
                 ];
             }
 
-            $this->render('player/widget_loja_promo', ['item' => $item], null);
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'] ?? 'player99.com.br';
+            $fullLojaUrl = $scheme . '://' . $host . ($item['target_path'] ?? $lojaTargetPath);
+            $qrUrl = $this->ensureLocalQrCode('loja_carro_' . $carroId, $fullLojaUrl);
+
+            $this->render('player/widget_loja_promo', ['item' => $item, 'qrUrl' => $qrUrl], null);
             return;
         }
 
