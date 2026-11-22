@@ -566,7 +566,7 @@ class ClientDashboardController extends Controller
         }
         @chmod($uploadDir, 0777);
 
-        $tab = trim((string)$request->input('tab', 'telas'));
+        $tab = trim((string)$request->input('tab', 'inicio'));
         $editListId = (int)$request->input('edit_list', 0);
         $msg = '';
         $err = '';
@@ -1176,7 +1176,24 @@ class ClientDashboardController extends Controller
             } catch (\Throwable $e) {}
         }
 
+        $tabletApp = ['url' => '', 'name' => '', 'size' => '', 'updated_at' => ''];
+        try {
+            $pdoUsers = Database::users();
+            $stmtApp = $pdoUsers->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('tablet_app_apk_url', 'tablet_app_apk_name', 'tablet_app_apk_size', 'tablet_app_apk_updated_at')");
+            if ($stmtApp) {
+                $mapApp = [];
+                while ($rApp = $stmtApp->fetch()) {
+                    $mapApp[$rApp['setting_key']] = $rApp['setting_value'];
+                }
+                $tabletApp['url'] = trim((string)($mapApp['tablet_app_apk_url'] ?? ''));
+                $tabletApp['name'] = trim((string)($mapApp['tablet_app_apk_name'] ?? 'player99-tablet.apk'));
+                $tabletApp['size'] = trim((string)($mapApp['tablet_app_apk_size'] ?? ''));
+                $tabletApp['updated_at'] = trim((string)($mapApp['tablet_app_apk_updated_at'] ?? ''));
+            }
+        } catch (\Throwable $e) {}
+
         $this->render('client/dashboard', [
+            'tabletApp' => $tabletApp,
             'isReseller' => $isReseller,
             'resellerDrivers' => $resellerDrivers,
             'resellerScreensTotal' => $resellerScreensTotal,
