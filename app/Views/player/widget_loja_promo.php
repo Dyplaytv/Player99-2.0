@@ -14,7 +14,9 @@ $targetPath = (string)($item['target_path'] ?? '/loja');
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $targetUrl = $scheme . '://' . $host . $targetPath;
-$qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data=' . urlencode($targetUrl);
+if (empty($qrUrl)) {
+    $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=4&data=' . urlencode($targetUrl);
+}
 ?><!DOCTYPE html>
 <html lang="pt-BR">
 <head>
