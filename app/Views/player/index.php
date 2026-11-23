@@ -493,6 +493,9 @@ $radioName = $radioInfo['radio_name'] ?? '';
             if (!item) return;
 
             if (item.tagName === 'VIDEO') {
+                if (item.dataset.blobUrl && item.src !== item.dataset.blobUrl) {
+                    item.src = item.dataset.blobUrl;
+                }
                 item.muted = (currentAudioMode !== 'video');
                 item.currentTime = 0;
                 item.play().catch(() => {
@@ -502,6 +505,14 @@ $radioName = $radioInfo['radio_name'] ?? '';
                     });
                 });
                 item.onended = playNext;
+                item.onerror = function() {
+                    if (item.dataset.blobUrl && item.src !== item.dataset.blobUrl) {
+                        item.src = item.dataset.blobUrl;
+                        item.play().catch(() => { slideTimer = setTimeout(playNext, 3000); });
+                    } else {
+                        slideTimer = setTimeout(playNext, 3000);
+                    }
+                };
             } else {
                 const durMs = parseInt(item.getAttribute('data-duration') || '15000', 10) || 15000;
                 if (item.getAttribute('data-type') === 'widget' && item.contentWindow) {
@@ -730,8 +741,81 @@ $radioName = $radioInfo['radio_name'] ?? '';
         setInterval(sendPing, 6000);
         sendPing();
 
+        const PWA_CACHE_NAME = 'player99-pwa-cache-v2';
+
+        async function preCachePlaylistMedia() {
+            if (!('caches' in window)) return;
+            try {
+                const cache = await caches.open(PWA_CACHE_NAME);
+                const urlsToKeep = [];
+
+                for (const el of mediaItems) {
+                    const rawSrc = el.getAttribute('src') || '';
+                    if (!rawSrc || rawSrc.startsWith('blob:') || rawSrc.startsWith('data:')) continue;
+
+                    const parsed = new URL(rawSrc, window.location.origin);
+                    const isWidget = el.getAttribute('data-type') === 'widget';
+                    const cacheKey = isWidget ? parsed.href : (parsed.origin + parsed.pathname);
+                    urlsToKeep.push(cacheKey);
+
+                    try {
+                        let cachedRes = await cache.match(cacheKey);
+                        if (!cachedRes && navigator.onLine) {
+                            const netRes = await fetch(cacheKey, { credentials: 'same-origin' });
+                            if (netRes && netRes.status === 200) {
+                                await cache.put(cacheKey, netRes.clone());
+                                cachedRes = netRes;
+                            }
+                        }
+
+                        if (cachedRes && el.tagName === 'VIDEO' && !el.dataset.blobUrl) {
+                            const blob = await cachedRes.blob();
+                            if (blob && blob.size > 0) {
+                                const blobUrl = URL.createObjectURL(blob);
+                                el.dataset.blobUrl = blobUrl;
+                                // Se não estiver tocando no momento ou se estiver offline, já aponta direto para o Blob local
+                                if (!el.classList.contains('active') || !navigator.onLine || el.error) {
+                                    el.src = blobUrl;
+                                    if (el.classList.contains('active')) {
+                                        startCurrentItem(el);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (err) {}
+                }
+
+                // Pré-cacheia também o QR Code local do motorista
+                if (localDriverQrUrl && localDriverQrUrl.startsWith('/')) {
+                    try {
+                        const qrAbs = new URL(localDriverQrUrl, window.location.origin).href;
+                        const hasQr = await cache.match(qrAbs);
+                        if (!hasQr && navigator.onLine) {
+                            const qRes = await fetch(qrAbs, { credentials: 'same-origin' });
+                            if (qRes && qRes.status === 200) await cache.put(qrAbs, qRes);
+                        }
+                    } catch (e) {}
+                }
+
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller && urlsToKeep.length > 0) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'CLEANUP_CACHE',
+                        urls: urlsToKeep
+                    });
+                }
+            } catch (e) {}
+        }
+
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(function() {
+                    preCachePlaylistMedia();
+                })
+                .catch(function() {
+                    preCachePlaylistMedia();
+                });
+        } else {
+            preCachePlaylistMedia();
         }
     </script>
 </body>
