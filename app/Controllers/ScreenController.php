@@ -927,6 +927,8 @@ class ScreenController extends Controller
             return;
         }
 
+        \App\Services\SiteAnalyticsService::record('motorista');
+
         $pdo = Database::clients();
         $locked = $this->isScreenLocked($pdo, $screen);
         $videos = $locked
