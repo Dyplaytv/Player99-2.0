@@ -194,6 +194,9 @@ class DashboardController extends Controller
             $recentScreens = $stmt->fetchAll();
         } catch (\Exception $e) {}
 
+        // Visualizações do site
+        $siteViews = \App\Services\SiteAnalyticsService::getSummary();
+
         $this->render('admin/dashboard', [
             'pageTitle' => 'Estatísticas - Player99',
             'pageHeading' => 'Painel de Estatísticas & DOOH',
@@ -204,7 +207,8 @@ class DashboardController extends Controller
             'totalClientes' => $totalClientes,
             'totalUsers' => $totalUsers,
             'recentScreens' => $recentScreens,
-            'fin' => $fin
+            'fin' => $fin,
+            'siteViews' => $siteViews
         ], 'layouts/master');
     }
 }

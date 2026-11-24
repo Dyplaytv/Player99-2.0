@@ -72,6 +72,7 @@ class StoreController extends Controller
     /** Vitrine pública da Loja (/loja e /loja.php) */
     public function publicStore(Request $request): void
     {
+        \App\Services\SiteAnalyticsService::record('loja');
         $pdo = $this->getDb();
         try {
             $stmt = $pdo->query("SELECT * FROM produtos WHERE ativo = 1 ORDER BY id DESC");

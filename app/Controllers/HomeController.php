@@ -5,11 +5,14 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Models\Client;
 use App\Services\LandingPages;
+use App\Services\SiteAnalyticsService;
 
 class HomeController extends Controller
 {
     public function index(Request $request): void
     {
+        SiteAnalyticsService::record('home');
+
         $ref = $request->input('ref') ?: ($_SESSION['affiliate_ref'] ?? ($_COOKIE['affiliate_ref'] ?? ''));
         if (!empty($request->input('ref'))) {
             $ref = strtoupper(trim((string)$request->input('ref')));
@@ -52,6 +55,8 @@ class HomeController extends Controller
 
     private function renderLandingPage(string $page, string $title, string $description): void
     {
+        SiteAnalyticsService::record($page);
+
         $this->render('landing/page', [
             'pageKey' => $page,
             'pageTitle' => $title,

@@ -286,6 +286,73 @@ $f = static fn(string $k, $def = 0) => $finData[$k] ?? $def;
     </div>
 </div>
 
+<!-- Contador de Visualizações do Site (5 Containers) -->
+<?php $sv = $siteViews ?? ['diario' => 0, 'semanal' => 0, 'mensal' => 0, 'total' => 0, 'unicos_mes' => 0]; ?>
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="glass-card mb-0">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0"><i class="fa fa-chart-line text-info me-2"></i> Visualizações do Site</h5>
+                    <small class="text-muted">Acessos nas páginas públicas (Home, Parceiros, Afiliados, Loja e Página do Motorista)</small>
+                </div>
+            </div>
+            <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3">
+                <div class="col">
+                    <div class="p-3 rounded-4 border border-info border-opacity-25 h-100" style="background: rgba(52, 226, 228, 0.06);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-semibold">Diário (Hoje)</span>
+                            <i class="fa fa-sun text-info"></i>
+                        </div>
+                        <div class="fs-4 fw-bold text-info"><?= number_format((int)($sv['diario'] ?? 0), 0, ',', '.') ?></div>
+                        <small class="text-muted" style="font-size: 11px;"><?= date('d/m/Y') ?></small>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="p-3 rounded-4 border border-primary border-opacity-25 h-100" style="background: rgba(59, 130, 246, 0.07);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-semibold">Semanal</span>
+                            <i class="fa fa-calendar-week text-primary"></i>
+                        </div>
+                        <div class="fs-4 fw-bold text-primary"><?= number_format((int)($sv['semanal'] ?? 0), 0, ',', '.') ?></div>
+                        <small class="text-muted" style="font-size: 11px;">Últimos 7 dias</small>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="p-3 rounded-4 border border-success border-opacity-25 h-100" style="background: rgba(16, 185, 129, 0.07);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-semibold">Mensal</span>
+                            <i class="fa fa-calendar-alt text-success"></i>
+                        </div>
+                        <div class="fs-4 fw-bold text-success"><?= number_format((int)($sv['mensal'] ?? 0), 0, ',', '.') ?></div>
+                        <small class="text-muted" style="font-size: 11px;">Mês <?= date('m/Y') ?></small>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="p-3 rounded-4 border border-warning border-opacity-25 h-100" style="background: rgba(245, 158, 11, 0.07);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-semibold">Total Geral</span>
+                            <i class="fa fa-globe text-warning"></i>
+                        </div>
+                        <div class="fs-4 fw-bold text-warning"><?= number_format((int)($sv['total'] ?? 0), 0, ',', '.') ?></div>
+                        <small class="text-muted" style="font-size: 11px;">Todo o período</small>
+                    </div>
+                </div>
+                <div class="col col-12 col-md-4 col-xl">
+                    <div class="p-3 rounded-4 border border-opacity-25 h-100" style="border-color: rgba(168, 85, 247, 0.35) !important; background: rgba(168, 85, 247, 0.07);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted fw-semibold">Únicos (Mês)</span>
+                            <i class="fa fa-users" style="color: #c084fc;"></i>
+                        </div>
+                        <div class="fs-4 fw-bold" style="color: #c084fc;"><?= number_format((int)($sv['unicos_mes'] ?? 0), 0, ',', '.') ?></div>
+                        <small class="text-muted" style="font-size: 11px;">Visitantes distintos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Container das Telas Baixado (Largura Completa) -->
 <div class="row g-4">
     <div class="col-12">
