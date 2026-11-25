@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10 Passos para Transformar Seu Carro em um Negócio de Mídia — Player 99</title>
+  <style>
+    :root {
+      /* Paleta extraída da identidade visual Player 99 */
+      --bg-dark-950: #040b17;
+      --bg-dark-900: #071428;
+      --bg-dark-800: #0c203e;
+      --bg-surface: #ffffff;
+      --bg-soft: #f3f7fc;
+      --bg-tint-blue: #eaf3ff;
+      --bg-tint-amber: #fff6ea;
+      --bg-tint-mint: #ebf9f3;
+
+      --accent-cyan: #00b7ff;
+      --accent-blue: #1668e3;
+      --accent-orange: #ff8c00;
+      --accent-orange-deep: #e06d00;
+
+      --text-main: #122033;
+      --text-muted: #4b5d75;
+      --text-light: #f4f8ff;
+      --text-light-muted: #a8bdd9;
+      --border-light: #d7e2f0;
+      --border-dark: rgba(255, 255, 255, 0.14);
+
+      /* Tipografia */
+      --font-sans: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+      /* Ritmo e dimensões de página */
+      --page-margin: 16mm;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #dce5f0;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 15.5px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Folhas de e-book na tela */
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 18px auto;
+      background: var(--bg-surface);
+      box-shadow: 0 18px 45px rgba(4, 11, 23, 0.22);
+      padding: 18mm 17mm;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sheet--dark {
+      background: radial-gradient(circle at 80% 20%, #102b54 0%, var(--bg-dark-900) 52%, var(--bg-dark-950) 100%);
+      color: var(--text-light);
+    }
+
+    /* Capa */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 260mm;
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-lg);
+      padding: 24px 26px;
+      background: linear-gradient(145deg, rgba(10, 29, 58, 0.92), rgba(4, 11, 23, 0.96));
+    }
+
+    .cover__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--border-dark);
+      padding-bottom: 16px;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-lockup img {
+      width: 68px;
+      height: 68px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: var(--bg-dark-950);
+      padding: 4px;
+      border: 1px solid rgba(0, 183, 255, 0.35);
+    }
+
+    .brand-tag {
+      font-size: 11.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .brand-domain {
+      font-size: 13px;
+      color: var(--text-light-muted);
+    }
+
+    .pill-badge {
+      background: rgba(255, 140, 0, 0.16);
+      border: 1px solid rgba(255, 140, 0, 0.55);
+      color: #ffb65c;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .cover__hero {
+      padding: 22px 0;
+    }
+
+    .cover__kicker {
+      color: var(--accent-cyan);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .cover__title {
+      font-size: 38px;
+      line-height: 1.12;
+      margin: 0 0 14px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .cover__title span {
+      color: var(--accent-orange);
+    }
+
+    .cover__subtitle {
+      font-size: 18px;
+      line-height: 1.45;
+      color: var(--text-light-muted);
+      margin: 0 0 22px;
+      max-width: 92%;
+    }
+
+    .cover__showcase {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .cover__frame {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid rgba(0, 183, 255, 0.35);
+      background: var(--bg-dark-800);
+      min-height: 195px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+    }
+
+    .cover__frame img {
+      width: 100%;
+      height: auto;
+      max-height: 230px;
+      object-fit: contain;
+      display: block;
+      border-radius: var(--radius-sm);
+    }
+
+    .cover__highlights {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+
+    .stat-card strong {
+      display: block;
+      font-size: 17px;
+      color: var(--accent-cyan);
+      margin-bottom: 3px;
+    }
+
+    .stat-card span {
+      font-size: 12px;
+      color: var(--text-light-muted);
+      line-height: 1.35;
+      display: block;
+    }
+
+    .cover__footer {
+      border-top: 1px solid var(--border-dark);
+      padding-top: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+      color: var(--text-light-muted);
+    }
+
+    /* Sumário */
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .toc-item {
+      background: var(--bg-soft);
+      border: 1px solid var(--border-light);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      break-inside: avoid;
+    }
+
+    .toc-item--highlight {
+      border-left-color: var(--accent-orange);
+    }
+
+    .toc-item__title {
+      font-weight: 700;
+      color: var(--bg-dark-900);
+      font-size: 14.5px;
+      margin-bottom: 4px;
+    }
+
+    .toc-item__subs {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .toc-item__subs li {
+      margin-bottom: 2px;
+    }
+
+    /* Cabeçalhos editoriais */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+
+    .chapter-banner {
+      background: linear-gradient(120deg, var(--bg-dark-900), var(--bg-dark-800));
+      color: var(--text-light);
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      margin-bottom: 20px;
+      border-left: 6px solid var(--accent-orange);
+    }
+
+    .chapter-banner__label {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .chapter-banner h2 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      line-height: 1.22;
+      color: #ffffff;
+    }
+
+    .chapter-banner p {
+      margin: 0;
+      color: var(--text-light-muted);
+      font-size: 14px;
+    }
+
+    h2.section-title {
+      font-size: 18.5px;
+      color: var(--bg-dark-900);
+      margin: 22px 0 10px;
+      padding-bottom: 5px;
+      border-bottom: 2px solid var(--bg-tint-blue);
+    }
+
+    h3.sub-title {
+      font-size: 15.5px;
+      color: var(--accent-blue);
+      margin: 16px 0 7px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul, ol {
+      margin: 0 0 14px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Blocos editoriais */
+    .callout {
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin: 15px 0;
+      border-left: 4px solid var(--accent-blue);
+      background: var(--bg-soft);
+      break-inside: avoid;
+    }
+
+    .callout--amber {
+      background: var(--bg-tint-amber);
+      border-left-color: var(--accent-orange);
+    }
+
+    .callout--mint {
+      background: var(--bg-tint-mint);
+      border-left-color: #0e9f6e;
+    }
+
+    .callout__title {
+      font-weight: 700;
+      font-size: 13.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+      color: var(--bg-dark-900);
+    }
+
+    /* Tabelas */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13.5px;
+      break-inside: avoid;
+    }
+
+    .data-table th {
+      background: var(--bg-dark-900);
+      color: #ffffff;
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 700;
+      border: 1px solid var(--bg-dark-800);
+    }
+
+    .data-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border-light);
+      vertical-align: top;
+    }
+
+    .data-table tr:nth-child(even) td {
+      background: var(--bg-soft);
+    }
+
+    /* Checklists */
+    .checklist {
+      list-style: none;
+      padding-left: 0;
+      background: var(--bg-soft);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      break-inside: avoid;
+    }
+
+    .checklist li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 8px;
+    }
+
+    .checklist li:last-child {
+      margin-bottom: 0;
+    }
+
+    .checklist li::before {
+      content: "☐";
+      position: absolute;
+      left: 0;
+      top: -1px;
+      color: var(--accent-orange-deep);
+      font-weight: 700;
+    }
+
+    /* Figuras e imagens do e-book */
+    .media-slot {
+      margin: 18px 0;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      background: #f8fbff;
+      padding: 10px;
+      break-inside: avoid;
+    }
+
+    .media-slot__preview {
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--bg-dark-900);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-slot__preview img {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      max-height: 360px;
+      object-fit: contain;
+      display: block;
+      border-radius: var(--radius-sm);
+    }
+
+    .media-slot__meta {
+      margin-top: 8px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .media-slot__meta strong {
+      color: var(--bg-dark-900);
+    }
+
+    /* Bloco de encerramento CTA */
+    .cta-box {
+      background: linear-gradient(135deg, var(--bg-dark-900), var(--bg-dark-800));
+      color: var(--text-light);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      margin-top: 20px;
+      border: 1px solid rgba(0, 183, 255, 0.35);
+      border-left: 6px solid var(--accent-orange);
+      break-inside: avoid;
+    }
+
+    .cta-box h3 {
+      margin: 0 0 10px;
+      color: #ffffff;
+      font-size: 20px;
+    }
+
+    .cta-box ol {
+      margin-bottom: 14px;
+    }
+
+    .cta-box li strong {
+      color: var(--accent-cyan);
+    }
+
+    .cta-pill {
+      display: inline-block;
+      background: var(--accent-orange);
+      color: #040b17;
+      font-weight: 800;
+      padding: 10px 18px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    /* Regras de impressão / PDF */
+    @page {
+      size: A4 portrait;
+      margin: var(--page-margin);
+    }
+
+    @media print {
+      html, body {
+        background: #ffffff;
+        font-size: 10.5pt;
+        line-height: 1.55;
+      }
+
+      .sheet {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        overflow: visible;
+      }
+
+      .sheet--dark {
+        padding: 10mm;
+      }
+
+      .cover {
+        min-height: 255mm;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* Barra de navegação rápida na tela (oculta na impressão/PDF) */
+    .ebook-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background: rgba(4, 11, 23, 0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(0, 183, 255, 0.28);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: #f4f8ff;
+      font-size: 13.5px;
+    }
+
+    .ebook-toolbar__title {
+      font-weight: 700;
+      color: #00b7ff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ebook-toolbar__actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .ebook-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f4f8ff;
+      transition: all 0.15s ease;
+    }
+
+    .ebook-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .ebook-btn--primary {
+      background: #ff8c00;
+      border-color: #ff8c00;
+      color: #040b17;
+    }
+
+    .ebook-btn--primary:hover {
+      background: #ffa028;
+    }
+
+    @media screen and (max-width: 820px) {
+      .sheet {
+        width: 100%;
+        min-height: auto;
+        margin: 0 0 12px;
+        padding: 20px 16px;
+        box-shadow: none;
+      }
+
+      .cover {
+        min-height: auto;
+        padding: 18px 16px;
+      }
+
+      .cover__top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .ebook-toolbar__title {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ebook-toolbar no-print">
+    <div class="ebook-toolbar__title">Guia Prático Player 99 — 10 Passos</div>
+    <div class="ebook-toolbar__actions">
+      <a href="/painel-cliente" class="ebook-btn" onclick="if (window.opener) { window.close(); return false; }">← Voltar ao Painel</a>
+      <button type="button" class="ebook-btn ebook-btn--primary" onclick="window.print()">Salvar / Imprimir PDF</button>
+    </div>
+  </div>
+
+  <!-- CAPA -->
+  <section class="sheet sheet--dark">
+    <div class="cover">
+      <div>
+        <div class="cover__top">
+          <div class="brand-lockup">
+            <img src="assets/logo-player99.png" alt="Logo Player 99" />
+            <div>
+              <div class="brand-tag">Mídia DOOH Embarcada</div>
+              <div class="brand-domain">player99.com.br</div>
+            </div>
+          </div>
+          <div class="pill-badge">MANUAL PRÁTICO • 10 PASSOS</div>
+        </div>
+
+        <div class="cover__hero">
+          <div class="cover__kicker">Guia Operacional para Motoristas Empreendedores</div>
+          <h1 class="cover__title">10 Passos para Transformar Seu Carro em um <span>Negócio de Mídia</span></h1>
+          <p class="cover__subtitle">O Guia Definitivo da Player 99 para Motoristas Empreendedores Monetizarem Suas Corridas no Piloto Automático</p>
+
+          <div class="cover__showcase">
+            <div class="cover__frame">
+              <img src="assets/campanha-revolucao.jpg" alt="Motorista com tela Player 99 no encosto de cabeça" />
+            </div>
+            <div class="cover__frame">
+              <img src="assets/story-tablet.jpg" alt="Tablet instalado no encosto com notícias, oferta e QR Code" />
+            </div>
+          </div>
+
+          <div class="cover__highlights">
+            <div class="stat-card">
+              <strong>24h Grátis</strong>
+              <span>Cadastro gratuito e teste prático antes de recarregar</span>
+            </div>
+            <div class="stat-card">
+              <strong>R$ 99 / 30 Dias</strong>
+              <span>Créditos mensais com recarga ágil via PIX</span>
+            </div>
+            <div class="stat-card">
+              <strong>3 Frentes</strong>
+              <span>Anúncios locais, Achadinhos via QR Code e Afiliados</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cover__footer">
+        <span>Compatível com Uber, 99, inDrive, Táxi e Transporte Particular</span>
+        <span>Tablet Android ou iOS • Web Player Inteligente</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUMÁRIO DETALHADO -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Sumário Detalhado</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Mapa do Guia</div>
+      <h2>Sumário Detalhado</h2>
+      <p>Roteiro completo em 10 passos para ativar, operar e consolidar sua estação de mídia embarcada.</p>
+    </div>
+
+    <div class="toc-grid">
+      <div class="toc-item toc-item--highlight">
+        <div class="toc-item__title">Introdução: Seu Carro Já Roda. Agora Ele Pode Trabalhar por Você em Dobro</div>
+        <ul class="toc-item__subs">
+          <li>O paradoxo do motorista moderno: o limite físico das horas ao volante e a dependência das tarifas dinâmicas</li>
+          <li>A revolução da Mídia DOOH (Digital Out-Of-Home) embarcada: por que o encosto de cabeça é o metro quadrado mais valioso do trânsito urbano</li>
+          <li>Quebrando mitos: você não precisa ser publicitário, programador ou exclusivo de um único aplicativo</li>
+          <li>Como extrair o máximo deste manual prático</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 1: A Virada de Chave — De Motorista a Dono de Mídia Embarcada</div>
+        <ul class="toc-item__subs">
+          <li>1.1. Introdução Contextual • 1.2. A Economia da Atenção Cativa • 1.3. Valor Percebido e Experiência do Cliente</li>
+          <li>1.4. A Matemática da Renda Sem Quilômetro Extra • 1.5. Estudo de Caso (450 passageiros/mês) • 1.6. Plano de Ação, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 2: Entrada Sem Atrito — Cadastro Gratuito e Teste Prático de 24 Horas</div>
+        <ul class="toc-item__subs">
+          <li>2.1. Introdução Contextual • 2.2. O Modelo Try Before You Buy na Player 99 • 2.3. Anatomia do Investimento Operacional (R$ 99 / 30 dias)</li>
+          <li>2.4. Exemplos Práticos nas primeiras 24h • 2.5. Passo a Passo Acionável • 2.6. Erros Comuns e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 3: Engenharia de Hardware e Instalação — Tablet, Suporte e Ergonomia</div>
+        <ul class="toc-item__subs">
+          <li>3.1. Introdução Contextual • 3.2. Compatibilidade Android e iOS • 3.3. Horizontal vs. Vertical</li>
+          <li>3.4. Segurança, Fixação e Alimentação Elétrica • 3.5. Estudo de Caso • 3.6. Passo a Passo, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 4: O Cérebro da Operação — Dominando o Player Web Inteligente</div>
+        <ul class="toc-item__subs">
+          <li>4.1. Introdução Contextual • 4.2. Arquitetura do Portal do Motorista (/painel-cliente) • 4.3. Widgets Dinâmicos ao Vivo (RSS G1, Esportes, Economia, Loterias, Clima e Hora Certa)</li>
+          <li>4.4. Ambientação Sonora e Web Rádios • 4.5. Montagem Estratégica de Playlists • 4.6. Passo a Passo, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 5: A Ponte Digital — QR Code e a Página Interativa do Passageiro</div>
+        <ul class="toc-item__subs">
+          <li>5.1. Introdução Contextual • 5.2. A Jornada Phygital • 5.3. Por Dentro da Página Exclusiva (/motorista/{codigo})</li>
+          <li>5.4. Psicologia da Conversão em Trânsito • 5.5. Passo a Passo de Ativação e Teste, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 6: Engenharia de Monetização — As 3 Fontes de Ganho na Prática</div>
+        <ul class="toc-item__subs">
+          <li>6.1. Introdução Contextual • 6.2. Pilar 1: Anúncios de Comércios Locais • 6.3. Pilar 2: Achadinhos e Ofertas via QR Code</li>
+          <li>6.4. Pilar 3: Programa de Afiliados Player 99 • 6.5. Comparativo Estratégico das 3 Fontes • 6.6. Simulação, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 7: Hospitalidade e Atenção — A Experiência do Passageiro Durante a Corrida</div>
+        <ul class="toc-item__subs">
+          <li>7.1. Introdução Contextual • 7.2. Psicologia do Ambiente na Cabine • 7.3. Curadoria de Conteúdo que Retém</li>
+          <li>7.4. Abordagem Sutil e Não Invasiva • 7.5. Estudo de Caso • 7.6. Passo a Passo, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 8: Prospecção na Rua — Como Fechar Anúncios com Comércios Locais</div>
+        <ul class="toc-item__subs">
+          <li>8.1. Introdução Contextual • 8.2. Mapeamento de Anunciantes Ideais • 8.3. O Pitch de 60 Segundos no Balcão</li>
+          <li>8.4. Demonstração ao Vivo • 8.5. Precificação, Formatos e Fechamento • 8.6. Passo a Passo, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 9: Gestão Profissional — Controle de Créditos, Contatos e Fluxo via PIX</div>
+        <ul class="toc-item__subs">
+          <li>9.1. Introdução Contextual • 9.2. Controle Financeiro e Operacional no Painel • 9.3. Automação de Pagamentos via PIX</li>
+          <li>9.4. CRM Simplificado do Motorista • 9.5. Passo a Passo de Rotina Semanal, Erros e Checklist</li>
+        </ul>
+      </div>
+
+      <div class="toc-item">
+        <div class="toc-item__title">Capítulo 10: Consistência e Escala — Consolidando Seu Negócio de Mídia Embarcada</div>
+        <ul class="toc-item__subs">
+          <li>10.1. Introdução Contextual • 10.2. Construindo Reputação Local • 10.3. Estratégias Avançadas de Escala</li>
+          <li>10.4. Plano de Ação em Ciclos • 10.5. Erros Comuns e Checklist • Encerramento Oficial</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTRODUÇÃO -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Introdução</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Introdução</div>
+      <h2>Seu Carro Já Roda. Agora Ele Pode Trabalhar por Você em Dobro</h2>
+      <p>Como sair da dependência exclusiva das horas ao volante e ativar a mídia embarcada no banco de trás.</p>
+    </div>
+
+    <p>Se você dirige diariamente — seja na Uber, na 99, na inDrive, no táxi ou no transporte particular —, você já conhece perfeitamente a matemática tradicional do transporte urbano de passageiros. Essa matemática é implacável: para ganhar mais dinheiro no fim do mês, você precisa rodar mais quilômetros, passar mais horas preso no trânsito, gastar mais combustível (ou energia elétrica), acelerar a depreciação do seu veículo e sacrificar o tempo com a sua família.</p>
+
+    <p>Durante anos, essa foi a única equação disponível para quem vive do volante. O seu faturamento sempre esteve limitado por dois fatores que você não controla: o relógio (afinal, o dia só tem 24 horas e o corpo humano exige descanso) e o algoritmo dos aplicativos, que dita o valor das tarifas dinâmicas e as taxas de repasse.</p>
+
+    <p>Mas existe um ativo valioso dentro do seu veículo que, até hoje, provavelmente ficou 100% ocioso em todas as milhares de corridas que você já realizou: o espaço exatamente à frente dos olhos do seu passageiro.</p>
+
+    <h2 class="section-title">A Revolução da Mídia DOOH Embarcada</h2>
+    <p>No mercado publicitário global, um dos segmentos que mais cresce é o DOOH (Digital Out-Of-Home) — a mídia digital exibida fora de casa, em elevadores, academias, clínicas, shoppings e transportes públicos. Grandes empresas investem milhões todos os anos para colocar telas digitais onde existem pessoas paradas, aguardando algum serviço.</p>
+
+    <p>Agora, pare e analise o ambiente interno do seu carro sob a ótica de um estrategista de negócios:</p>
+
+    <ul>
+      <li>Enquanto um outdoor na avenida disputa a atenção de quem passa a 60 km/h por menos de dois segundos, o seu carro mantém o passageiro sentado de frente para o encosto de cabeça por 10, 15, 30 ou até 45 minutos.</li>
+      <li>Enquanto um panfleto entregue no semáforo vai direto para o lixo, uma tela digital interativa no encosto do banco dianteiro oferece entretenimento útil (notícias em tempo real, previsão do tempo, resultados de loterias, web rádio) e captura a atenção natural de quem está no banco de trás.</li>
+      <li>Em média, um motorista ativo transporta mais de 450 passageiros únicos todos os meses — pessoas reais, com poder de compra, circulando exatamente pelos bairros onde restaurantes, clínicas, lojas, oficinas e prestadores de serviço locais desejam vender.</li>
+    </ul>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/story-tablet.jpg" alt="Exemplo de tela Player 99 no encosto de cabeça com notícias, oferta e QR Code" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>Mídia DOOH Embarcada:</strong> Tela no encosto de cabeça com notícias ao vivo, oferta local e QR Code interativo.
+      </figcaption>
+    </figure>
+
+    <p>Quando você instala um tablet no encosto de cabeça e conecta esse equipamento à plataforma Player 99, você deixa de vender apenas o deslocamento físico de um ponto A para um ponto B. Você passa a operar uma estação de mídia embarcada. O seu carro continua fazendo exatamente as mesmas rotas, nos mesmos horários, sem exigir que você rode um único quilômetro a mais — mas agora cada viagem trabalha por você em dobro.</p>
+
+    <h2 class="section-title">Quebrando os 3 Mitos que Impedem Motoristas de Empreender</h2>
+    <p>Sempre que surge uma nova oportunidade tecnológica no setor de mobilidade urbana, é natural surgirem dúvidas. Antes de avançarmos para os 10 passos práticos deste livro, precisamos eliminar três crenças limitantes que costumam travar quem está começando:</p>
+
+    <div class="callout">
+      <div class="callout__title">Mito 1: "A Player 99 é só para quem dirige no aplicativo 99."</div>
+      <p style="margin-bottom:0;">Totalmente falso. O nome Player 99 faz referência direta à filosofia de acessibilidade do sistema (como o valor simbólico de R$ 99 para manter uma tela ativa por 30 dias completos). A plataforma é 100% independente e foi projetada para motoristas de Uber, 99, inDrive, táxis de qualquer cidade e motoristas particulares.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Mito 2: "Preciso comprar equipamentos caros ou entender de tecnologia e publicidade."</div>
+      <p style="margin-bottom:0;">Você não precisa criar software do zero, não precisa contratar designers e não precisa investir milhares de reais em hardware proprietário. O sistema roda diretamente no navegador de qualquer tablet Android ou iOS que você já tenha em casa (ou que adquira por um valor acessível), funcionando tanto na posição horizontal quanto na vertical. Todo o gerenciamento é feito pelo seu celular com cliques simples.</p>
+    </div>
+
+    <div class="callout callout--amber">
+      <div class="callout__title">Mito 3: "Tenho medo de pagar por um sistema e não me adaptar."</div>
+      <p style="margin-bottom:0;">Na Player 99, o risco inicial é zero. Você realiza o cadastro gratuito, configura sua primeira playlist e ativa um teste grátis de 24 horas para ver a tela funcionando ao vivo dentro do seu carro e observar a reação dos seus passageiros. Você só recarrega os créditos de 30 dias (R$ 99) depois de validar o funcionamento na prática.</p>
+    </div>
+
+    <h2 class="section-title">Como Aproveitar Este Guia ao Máximo</h2>
+    <p>Este e-book não foi escrito para ser lido de forma passiva e esquecido na memória do seu celular. Ele foi estruturado como um manual operacional de negócios dividido em 10 capítulos completos, correspondentes aos 10 passos fundamentais para construir, ativar, monetizar e escalar a sua operação de mídia embarcada.</p>
+
+    <p>Em cada capítulo, você encontrará:</p>
+    <ul>
+      <li>A lógica estratégica por trás de cada etapa (o porquê de fazer daquele jeito);</li>
+      <li>Exemplos práticos e estudos de caso aplicados à realidade das ruas brasileiras;</li>
+      <li>Um passo a passo acionável para executar imediatamente no seu veículo e no seu celular;</li>
+      <li>Os erros mais comuns que fazem motoristas perderem dinheiro ou atenção dos passageiros — e como blindar sua operação contra eles;</li>
+      <li>Um checklist prático ao final de cada capítulo para você validar sua evolução antes de avançar para o próximo nível.</li>
+    </ul>
+
+    <p>Você já possui o veículo, já conhece as ruas da sua cidade e já transporta centenas de pessoas todos os meses. Agora, você terá nas mãos o método completo para transformar o banco de trás do seu carro em um negócio lucrativo, automatizado e escalável.</p>
+  </section>
+
+  <!-- CAPÍTULO 1 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 1</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 1</div>
+      <h2>A Virada de Chave — De Motorista a Dono de Mídia Embarcada</h2>
+      <p>Como sair do espaço passivo do banco traseiro e operar um canal de mídia conectado às suas rotas.</p>
+    </div>
+
+    <h2 class="section-title">1.1. Introdução Contextual: Por que o Seu Papel Mudou</h2>
+    <p>Se você dirige diariamente nas ruas da sua cidade, sabe que o trabalho exige resistência física, atenção constante no trânsito e domínio emocional diante das variações do dia. Durante anos, o mercado de mobilidade urbana colocou o motorista diante de uma lógica simples e rígida: você ganha de acordo com o tempo que passa ao volante e com as corridas que consegue aceitar. Quando o movimento cai ou o preço do combustível aperta, a saída mais comum costuma ser estender a jornada.</p>
+
+    <p>A Player 99 nasce justamente para alterar essa equação sem exigir que você transforme sua rotina de direção em algo mais pesado. A plataforma é uma solução de mídia DOOH (Digital Out-Of-Home) e entretenimento embarcado que transforma carros de aplicativo, táxis e veículos de transporte particular em vitrines digitais interativas por meio de tablets instalados no encosto de cabeça dos bancos dianteiros.</p>
+
+    <p>Entender a sua virada de chave significa enxergar além do volante. Você continua sendo o profissional que conduz o veículo com segurança e atenção, mas passa a operar também um canal de mídia embarcada. Em vez de deixar o banco traseiro apenas como um espaço passivo de deslocamento, você passa a oferecer entretenimento, informação e ofertas interativas enquanto o passageiro está a bordo.</p>
+
+    <h2 class="section-title">1.2. Desenvolvimento Profundo: A Nova Lógica do Seu Carro</h2>
+
+    <h3 class="sub-title">A Economia da Atenção Cativa Dentro da Cabine</h3>
+    <p>No marketing e na mídia urbana, existe uma diferença enorme entre exposição passageira e atenção cativa. Um cartaz em um poste ou um banner rápido na rua disputa o olhar de quem passa apressado, muitas vezes ao celular ou focado no próprio caminho. Já dentro de um carro em movimento, o cenário é outro.</p>
+
+    <p>O passageiro senta no banco de trás, acomoda-se e tem o encosto do banco dianteiro bem à frente do campo de visão. Durante um trajeto urbano — que pode durar 10, 20 ou 35 minutos —, ele está ali, em deslocamento, sujeito a engarrafamentos, semáforos e pausas naturais. Quando a tela exibe notícias ao vivo, rádio, informações úteis e ofertas com QR Code, ela dialoga com esse tempo de trajeto de forma natural e integrada.</p>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/campanha-revolucao.jpg" alt="Motorista e tela embarcada Player 99 em operação" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>Atenção Cativa na Cabine:</strong> Composição com motorista e tela embarcada Player 99 operando em todas as plataformas.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Valor Percebido e Experiência do Passageiro</h3>
+    <p>Quando um passageiro entra em um veículo e encontra uma tela organizada, com conteúdo dinâmico, notícias atualizadas e ambiente agradável, a percepção sobre aquela corrida muda. O carro deixa de parecer "apenas mais uma viagem" e passa a transmitir cuidado, modernidade e atenção aos detalhes.</p>
+
+    <p>Essa melhoria na experiência funciona a favor do motorista em duas frentes:</p>
+    <ul>
+      <li>No relacionamento com o passageiro: um trajeto mais interessante e fluido reduz a sensação de tédio no trânsito e cria um clima mais leve a bordo.</li>
+      <li>Na visão do negócio: o veículo passa a ter uma função dupla — transportar pessoas e veicular mídia local e ofertas interativas com QR Code.</li>
+    </ul>
+
+    <h3 class="sub-title">Desacoplando o Ganho do Quilômetro Rodado</h3>
+    <p>O grande gargalo financeiro de quem vive da direção é que quase todo ganho tradicional exige rodar mais, gastar mais energia ou combustível e desgastar mais o carro. Na mídia embarcada com a Player 99, a lógica de monetização acontece em cima das corridas que você já faz.</p>
+
+    <p>Você não precisa criar rotas artificiais nem sair procurando "passageiros de mídia" por fora. O fluxo de pessoas já existe dentro do seu carro todos os dias. O seu papel é estruturar a tela, manter o sistema ativo e conectar essa audiência às oportunidades disponíveis na plataforma — como anúncios de negócios locais, ofertas e achadinhos via QR Code e o programa de afiliados.</p>
+
+    <h3 class="sub-title">Independência de Plataforma e Foco na Operação</h3>
+    <p>Um ponto essencial dessa virada de chave é entender que a Player 99 não depende de um único aplicativo. Se você roda na Uber, 99, inDrive, táxi ou transporte particular, o seu papel como dono da mídia do seu carro é o mesmo. O veículo é seu, a rotina é sua e a tela opera como um ativo vinculado à sua operação.</p>
+
+    <h2 class="section-title">1.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: A Corrida de 18 Minutos no Horário de Pico</div>
+      <p style="margin-bottom:0;">Imagine um motorista que pega um passageiro às 18h15 em um trecho de trânsito lento. Durante esses 18 minutos, o tablet no encosto de cabeça exibe notícias ao vivo, uma trilha de web rádio em volume confortável e conteúdos com QR Code. Em vez de ficar olhando apenas para o vidro ou para o próprio celular no escuro, o passageiro acompanha as manchetes do dia e, ao ver uma oferta ou anúncio interessante na tela, aponta a câmera do celular para o QR Code fixo. O motorista não precisou parar o carro para explicar nada nem interromper a condução.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: O Impacto de 450 Passageiros Únicos por Mês</div>
+      <p>Considere um motorista urbano que realiza corridas todos os dias e alcança uma média de 450 passageiros únicos por mês. Pense no que representa ter 450 pessoas diferentes sentadas de frente para uma tela ativa durante vários minutos ao longo de 30 dias:</p>
+      <ul style="margin-bottom:0;">
+        <li>São 450 oportunidades mensais de exibir conteúdo útil e informação local.</li>
+        <li>São 450 potenciais leitores para ofertas, achadinhos e anúncios de estabelecimentos da região.</li>
+        <li>É uma vitrine contínua que acompanha o deslocamento real da cidade, sem exigir que o motorista rode um quilômetro extra para gerar essa exposição.</li>
+      </ul>
+    </div>
+
+    <h2 class="section-title">1.4. Passo a Passo Acionável: Assumindo a Postura de Dono de Mídia</h2>
+    <ol>
+      <li><strong>Defina seu objetivo com a tela:</strong> decida se o seu foco inicial é valorizar a experiência do passageiro, divulgar ofertas/achadinhos via QR Code, captar anunciantes locais ou combinar essas frentes.</li>
+      <li><strong>Separe a função de dirigir da função de operar a mídia:</strong> enquanto o carro está em movimento, sua prioridade absoluta é a direção segura; a configuração e os ajustes ficam para momentos de pausa ou pelo celular no painel.</li>
+      <li><strong>Observe o perfil das suas rotas:</strong> anote mentalmente os bairros, horários de pico e tipos de passageiros que mais entram no seu carro — isso ajuda a entender o contexto da sua audiência.</li>
+      <li><strong>Prepare a mentalidade de longo prazo:</strong> encare a tela como parte da estrutura do seu veículo, e não como um enfeite temporário de um único dia.</li>
+    </ol>
+
+    <h2 class="section-title">1.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Achar que basta colocar uma tela e esquecer que ela faz parte da experiência do carro</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> lembre-se de que a tela representa o padrão do seu veículo. Uma tela limpa, bem posicionada e com conteúdo organizado reforça sua imagem profissional.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Tentar "empurrar" vendas ou forçar o passageiro a olhar ou escanear</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> o ambiente da corrida funciona melhor quando há naturalidade. O conteúdo atrai pela utilidade, entretenimento ou curiosidade — a interação acontece por iniciativa do passageiro.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Acreditar que o sistema só serve para quem roda em um aplicativo específico</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> a Player 99 funciona para motoristas de diferentes aplicativos, táxis e transporte particular. O foco está no veículo e nos passageiros transportados, não na bandeira do app.</p>
+    </div>
+
+    <h2 class="section-title">1.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Compreendi a diferença entre apenas dirigir e atuar também como dono de mídia embarcada no meu veículo.</li>
+      <li>Reconheci o valor do tempo de atenção do passageiro durante o trajeto.</li>
+      <li>Entendi que a monetização busca somar às corridas que já faço, sem exigir quilômetros extras.</li>
+      <li>Assumi uma postura profissional e natural em relação à experiência a bordo.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 2 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 2</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 2</div>
+      <h2>Entrada Sem Atrito — Cadastro Gratuito e Teste Prático de 24 Horas</h2>
+      <p>Como validar o sistema ao vivo nas suas corridas antes de investir nos créditos de 30 dias.</p>
+    </div>
+
+    <h2 class="section-title">2.1. Introdução Contextual: Eliminando o Medo de Investir no Escuro</h2>
+    <p>Quando um motorista ouve falar em uma nova forma de gerar renda extra, a primeira reação natural é a cautela. E faz todo sentido: quem trabalha nas ruas sabe que cada real gasto com o carro, com equipamentos ou com ferramentas precisa fazer sentido na prática. Ninguém quer pagar caro por algo antes de ver como funciona dentro do próprio veículo, nem assumir contratos amarrados ou compromissos pesados sem ter segurança.</p>
+
+    <p>É exatamente esse bloqueio que o Capítulo 2 resolve. Na Player 99, a entrada foi desenhada para ser leve, transparente e sem pressão inicial. Em vez de exigir pagamento antecipado logo no primeiro minuto, a jornada começa com cadastro gratuito, segue com um teste grátis de 24 horas para você experimentar o sistema ao vivo e só avança para a recarga de créditos de 30 dias por R$ 99 depois que você comprova a utilidade na sua rotina.</p>
+
+    <p>Testar na prática muda completamente a perspectiva. Em 24 horas rodando com a tela ativa, você deixa de imaginar como seria ter uma mídia embarcada no carro e passa a observar o ambiente da cabine, a disposição do equipamento, a facilidade de mexer no painel e a interação natural com os passageiros.</p>
+
+    <h2 class="section-title">2.2. Desenvolvimento Profundo: Como Funciona a Jornada Sem Atrito</h2>
+
+    <h3 class="sub-title">O Modelo de Validação em Etapas: Cadastrar, Testar e Só Depois Recarregar</h3>
+    <p>A lógica de entrada da Player 99 separa claramente três momentos:</p>
+    <ol>
+      <li><strong>Cadastro Gratuito:</strong> você cria sua conta na plataforma sem custo inicial para conhecer o ambiente e preparar sua primeira configuração.</li>
+      <li><strong>Teste de 24 Horas:</strong> você ativa a tela para rodar na prática por um dia inteiro de operação, verificando o funcionamento do Player Web Inteligente (<code>/player/{codigo}</code>), a exibição dos conteúdos, o QR Code e a experiência geral no carro.</li>
+      <li><strong>Recarga de 30 Dias (R$ 99):</strong> após validar o funcionamento durante o teste, você pode adquirir créditos de 30 dias por R$ 99 para manter sua tela ativa no dia a dia, com recarga processada de forma ágil via PIX pelo painel.</li>
+    </ol>
+
+    <p>Essa sequência elimina o risco percebido do primeiro passo. Você valida primeiro no mundo real — no trânsito, no encosto de cabeça, no olhar do passageiro — e só depois decide manter o ciclo mensal de créditos.</p>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/cap2-jornada-teste.jpg" alt="Jornada sem atrito: Cadastro Gratuito, Teste Grátis 24 Horas e Recarga 30 Dias via PIX" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>Jornada Sem Atrito:</strong> Valide o sistema ao vivo por 24 horas antes de ativar seus créditos de 30 dias via PIX.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Anatomia do Custo Operacional: R$ 99 por 30 Dias</h3>
+    <p>Ao olhar para o valor de R$ 99 para 30 dias de créditos, o motorista empreendedor analisa esse número não como uma simples despesa solta, mas como o custo operacional mensal para manter um canal de mídia ativo no veículo.</p>
+
+    <p>Para enxergar isso com clareza, vale observar alguns pontos práticos:</p>
+    <ul>
+      <li><strong>Diluição no mês:</strong> R$ 99 divididos por um período de 30 dias equivalem a uma média de R$ 3,30 por dia de tela ativa.</li>
+      <li><strong>Custo x exposição:</strong> em vez de depender de uma única corrida isolada para "pagar a tela", a tela permanece disponível ao longo de todo o período de créditos ativos enquanto você trabalha.</li>
+      <li><strong>Conexão com as frentes de ganho:</strong> ter a tela operando abre espaço para trabalhar as oportunidades da plataforma — como anúncios de comércios locais, Achadinhos e ofertas via QR Code e indicação de novos motoristas (afiliados) — além de agregar valor à percepção do veículo.</li>
+    </ul>
+
+    <h2 class="section-title">2.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: O Motorista Cético que Queria Ver Antes de Pagar</div>
+      <p style="margin-bottom:0;">Imagine um motorista que roda em aplicativos há três anos e já viu várias promessas de renda extra que não funcionaram. Ele faz o cadastro gratuito na Player 99, abre o Portal do Motorista (<code>/painel-cliente</code>) pelo celular, monta uma playlist simples e ativa o teste de 24 horas. Durante esse dia de trabalho, ele confere como a tela fica no encosto de cabeça, testa o áudio da web rádio e vê como o QR Code leva para a página do passageiro. Só depois de ver tudo rodando com estabilidade é que ele faz a recarga de R$ 99 para 30 dias via PIX.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Observando 24 Horas de Rotina Real</div>
+      <p>Considere uma jornada de 24 horas em que o motorista trabalha em horários variados (manhã, tarde ou noite, conforme sua escala habitual). Durante esse período de teste:</p>
+      <ul>
+        <li>Ele testa se o brilho da tela incomoda ou ajuda à noite;</li>
+        <li>Ele verifica se o suporte segura bem o tablet nas freadas e lombadas;</li>
+        <li>Ele observa se os passageiros reparam na tela e se alguém escaneia o QR Code para ver ofertas ou rever algum anúncio exibido durante a viagem.</li>
+      </ul>
+      <p style="margin-bottom:0;">Ao final das 24 horas, a decisão deixa de ser baseada em achismo e passa a ser baseada na experiência real dentro do próprio carro.</p>
+    </div>
+
+    <h2 class="section-title">2.4. Passo a Passo Acionável: Do Cadastro ao Teste de 24 Horas</h2>
+    <ol>
+      <li><strong>Faça o cadastro gratuito:</strong> acesse a plataforma Player 99 e crie sua conta de motorista sem pagar nada para iniciar.</li>
+      <li><strong>Acesse o Portal do Motorista (<code>/painel-cliente</code>):</strong> entre pelo navegador do seu celular para conhecer as opções de configuração da tela, playlist, rádio e QR Code.</li>
+      <li><strong>Prepare o tablet e o suporte:</strong> deixe o equipamento carregado, conectado à internet e bem posicionado no carro antes de iniciar o teste.</li>
+      <li><strong>Ative o teste gratuito de 24 horas:</strong> inicie o período de teste e rode normalmente nas suas corridas do dia.</li>
+      <li><strong>Avalie e recarregue via PIX quando decidir seguir:</strong> após testar na prática, utilize a recarga de créditos de 30 dias por R$ 99 via PIX no painel para manter a operação contínua.</li>
+    </ol>
+
+    <h2 class="section-title">2.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Ativar o teste de 24 horas num dia em que você não vai rodar ou vai deixar o carro parado</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> ative o teste de 24 horas quando você realmente for trabalhar e transportar passageiros, pois é na rotina real que você valida a operação.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Deixar o celular descarregado ou sem internet durante o teste e achar que o sistema falhou</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> garanta conexão estável e energia suficiente no tablet para avaliar o player sem interrupções técnicas.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Encarar os R$ 99 dos 30 dias sem relacionar com o uso diário da tela</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> avalie o valor considerando os 30 dias de operação e o potencial das frentes de ganho da plataforma, em vez de olhar apenas como um gasto isolado.</p>
+    </div>
+
+    <h2 class="section-title">2.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Entendi que posso começar com cadastro gratuito e teste de 24 horas antes de recarregar.</li>
+      <li>Conheço o valor de R$ 99 para 30 dias de créditos e a forma prática de recarga via PIX.</li>
+      <li>Planejei ativar o teste de 24 horas em um dia útil de corridas reais para validar a experiência no carro.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 3 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 3</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 3</div>
+      <h2>Engenharia de Hardware e Instalação — Tablet, Suporte e Ergonomia</h2>
+      <p>Como aproveitar o tablet que você já tem com fixação firme, energia contínua e estética profissional.</p>
+    </div>
+
+    <h2 class="section-title">3.1. Introdução Contextual: Aproveitando o Equipamento que Você Já Tem com Segurança e Estética Profissional</h2>
+    <p>Depois de entender a sua virada de chave como dono de mídia embarcada e validar a jornada sem compromisso com o cadastro gratuito e o teste de 24 horas, chega a hora de preparar o ambiente físico onde tudo acontece: o interior do seu veículo.</p>
+
+    <p>Na mídia embarcada com a Player 99, a parte física não exige gastos exorbitantes nem adaptações agressivas no carro. Você pode utilizar qualquer tablet Android ou iOS que já possua, fixá-lo no encosto de cabeça dianteiro com um suporte universal seguro e configurar a tela na orientação horizontal ou vertical conforme a preferência do seu layout e da cabine.</p>
+
+    <p>Por que esse cuidado na montagem importa tanto? Porque o equipamento é o ponto de contato visual direto com o passageiro. Um tablet bem preso, com inclinação confortável, cabos organizados e conexão estável transmite profissionalismo, protege o aparelho contra quedas ou solavancos e garante que a tela seja vista com clareza durante toda a corrida.</p>
+
+    <h2 class="section-title">3.2. Desenvolvimento Profundo: Equipamento, Orientação e Estrutura Física</h2>
+
+    <h3 class="sub-title">Compatibilidade: Tablets Android ou iOS no Dia a Dia</h3>
+    <p>Um dos grandes acertos operacionais da Player 99 é a flexibilidade de hardware. Você não fica preso a um único fabricante ou modelo exclusivo: tablets Android ou iOS podem ser empregados na operação.</p>
+
+    <p>Para que o Player Web Inteligente (<code>/player/{codigo}</code>) funcione com fluidez na rotina de corridas, vale observar três pilares técnicos básicos no aparelho escolhido:</p>
+    <ul>
+      <li><strong>Navegador atualizado e estabilidade de tela:</strong> o tablet precisa abrir a URL do player no navegador de forma limpa, sem travamentos constantes ou fechamentos inesperados.</li>
+      <li><strong>Qualidade visual e legibilidade:</strong> brilho suficiente para o passageiro enxergar com nitidez tanto em dias claros quanto no período noturno, sem causar ofuscamento.</li>
+      <li><strong>Acesso contínuo à internet:</strong> como a plataforma exibe vídeos, imagens, widgets dinâmicos ao vivo (como notícias RSS, clima, loterias, hora certa e frases) e web rádios integradas, o aparelho precisa manter conexão de rede ativa durante a operação.</li>
+    </ul>
+
+    <h3 class="sub-title">Orientação Horizontal vs. Vertical: Como Escolher o Formato Ideal</h3>
+    <p>O sistema da Player 99 adapta-se automaticamente no formato horizontal ou vertical conforme a sua preferência. Escolher entre uma orientação e outra passa por observar o espaço físico do veículo e o tipo de visualização que mais favorece a leitura no banco traseiro:</p>
+    <ul>
+      <li><strong>Formato Horizontal (Paisagem):</strong> costuma se aproximar do visual de uma pequena TV ou monitor embarcado, acomodando bem cenas amplas e a distribuição visual entre o encosto do banco dianteiro e o campo de visão de quem está atrás.</li>
+      <li><strong>Formato Vertical (Retrato):</strong> assemelha-se ao enquadramento familiar de um smartphone, podendo ser vantajoso quando o espaço lateral entre os bancos ou o formato do suporte favorece a posição em pé.</li>
+    </ul>
+    <p>O mais importante é testar ambas as posições com o passageiro sentado no banco traseiro — e com o motorista no assento frontal — para garantir que a leitura seja confortável e não obstrua a visão da via ou dos retrovisores.</p>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/cap3-instalacao-suporte.jpg" alt="Tablet fixado com firmeza no suporte universal do encosto de cabeça com cabo discreto" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>Estação de Mídia Limpa:</strong> Suporte universal firme nas hastes do encosto de cabeça e cabo USB discreto.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Fixação, Segurança e Ergonomia na Cabine</h3>
+    <p>Trabalhar com transporte de passageiros exige atenção redobrada à segurança física dentro do carro. O suporte universal no encosto de cabeça precisa cumprir funções claras:</p>
+    <ul>
+      <li><strong>Firmeza contra trepidações:</strong> lombadas, buracos, frenagens e curvas fazem parte do trânsito urbano. Um suporte frouxo pode balançar excessivamente ou soltar o tablet.</li>
+      <li><strong>Ângulo de visão confortável:</strong> a tela deve ficar voltada para o passageiro no banco de trás em uma altura e inclinação que permitam olhar o conteúdo e escanear o QR Code fixo com facilidade, sem forçar o pescoço.</li>
+      <li><strong>Cuidado com a integridade do veículo e do aparelho:</strong> evite apertos excessivos que danifiquem o estofado ou as hastes do encosto de cabeça, e não deixe o tablet solto sobre o banco quando o carro estiver em movimento.</li>
+    </ul>
+
+    <h3 class="sub-title">Energia e Conectividade Durante a Jornada</h3>
+    <p>Um tablet rodando player de mídia, notícias ao vivo, web rádio e tela ativa consome bateria. Se você depende de carga para rodar o dia inteiro, planejar a alimentação elétrica do aparelho (por meio da tomada/porta USB veicular adequada, com cabo bem acomodado) evita que a tela apague bem no meio de uma boa sequência de corridas. Da mesma forma, manter a conexão de internet estável (seja pelo roteamento do celular ou conexão própria do tablet) assegura a atualização dos conteúdos e o funcionamento contínuo do player.</p>
+
+    <h2 class="section-title">3.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: Reaproveitando um Tablet Antigo que Estava Parado em Casa</div>
+      <p style="margin-bottom:0;">Um motorista tinha um tablet Android parado na gaveta há meses porque não o usava mais para lazer. Em vez de comprar um equipamento caro logo de início, ele limpou a tela, atualizou o navegador, conectou à internet e prendeu o aparelho no encosto de cabeça usando um suporte universal compatível. Em poucos minutos, um aparelho ocioso virou a estação de mídia do veículo.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Ajustando o Ângulo da Tela para Evitar Reflexo e Facilitar o QR Code</div>
+      <p style="margin-bottom:0;">Durante o dia, um motorista percebeu que o reflexo do vidro lateral deixava parte da tela difícil de ler para o passageiro de trás. Ao ajustar levemente a inclinação do suporte no encosto de cabeça e escolher a orientação mais adequada para a cabine, a visibilidade melhorou de imediato — tornando mais natural tanto acompanhar as notícias e a web rádio quanto apontar a câmera do celular para o QR Code na tela.</p>
+    </div>
+
+    <h2 class="section-title">3.4. Passo a Passo Acionável: Montando a Estação no Encosto de Cabeça</h2>
+    <ol>
+      <li><strong>Separe o tablet e o suporte:</strong> escolha um tablet Android ou iOS funcional e um suporte universal firme para fixação no encosto de cabeça dianteiro.</li>
+      <li><strong>Configure a conexão e o brilho:</strong> conecte o tablet à internet, ajuste o brilho para boa leitura e deixe o carregador veicular organizado caso precise manter carga contínua.</li>
+      <li><strong>Instale o suporte com firmeza:</strong> encaixe o suporte nas hastes do encosto de cabeça do banco dianteiro e verifique se não há folga excessiva.</li>
+      <li><strong>Fixe o tablet na orientação escolhida:</strong> posicione o aparelho na horizontal ou vertical, testando o ângulo de visão a partir do banco traseiro.</li>
+      <li><strong>Abra o Player Web Inteligente e teste a visibilidade:</strong> acesse o endereço do player no navegador do tablet, confira a exibição em tela cheia e valide se o QR Code no rodapé está legível à distância normal do assento.</li>
+    </ol>
+
+    <h2 class="section-title">3.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Usar suporte frágil ou mal encaixado que balança ou cai nas frenagens</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> teste a firmeza do suporte e do encaixe do tablet antes de iniciar as corridas do dia; segurança vem sempre em primeiro lugar.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Deixar cabos pendurados soltos onde o passageiro pode puxar ou tropeçar ao entrar e sair</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> guie os cabos de forma discreta e organizada, sem cruzar áreas de passagem ou travar comandos do veículo.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Ignorar o brilho da tela ou a posição do sol/luz interna</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> ajuste o brilho conforme o horário do dia e a posição da tela para que o conteúdo não fique apagado nem excessivamente forte à noite.</p>
+    </div>
+
+    <h2 class="section-title">3.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Selecionei um tablet Android ou iOS com internet estável e boa legibilidade para rodar o player.</li>
+      <li>Fixei o suporte universal com firmeza no encosto de cabeça dianteiro.</li>
+      <li>Escolhi entre a orientação horizontal ou vertical com base no conforto visual do passageiro.</li>
+      <li>Verifiquei cabos, energia e leitura nítida da tela e do QR Code antes de pegar passageiros.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 4 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 4</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 4</div>
+      <h2>O Cérebro da Operação — Dominando o Player Web Inteligente</h2>
+      <p>Como controlar playlists, widgets ao vivo, web rádios e ofertas direto pelo celular no Portal do Motorista.</p>
+    </div>
+
+    <h2 class="section-title">4.1. Introdução Contextual: O Fim do Trabalho Manual e a Era da Nuvem Embarcada</h2>
+    <p>Depois de organizar o equipamento físico no encosto de cabeça, escolher a orientação da tela e garantir energia e conectividade estáveis, você chega ao centro de comando da operação: a configuração do Player Web Inteligente por meio do Portal do Motorista (<code>/painel-cliente</code>).</p>
+
+    <p>Na mídia indoor tradicional, atualizar telas costuma dar trabalho: exige baixar arquivos manualmente, copiar em pendrive, ir até o aparelho ou depender de ajustes complicados. Na Player 99, a lógica é justamente o oposto. Você acessa o Portal do Motorista (<code>/painel-cliente</code>) pelo celular e organiza sua programação com poucos cliques, combinando vídeos, mídias estáticas, widgets ao vivo, web rádios integradas e a Playlist da Player 99.</p>
+
+    <p>Dominar esse painel é o que transforma a tela em um verdadeiro canal de entretenimento e informação dentro do carro. Em vez de deixar o tablet apenas com uma imagem fixa ou um vídeo repetitivo, você cria uma grade dinâmica que acompanha o ritmo da corrida e mantém o passageiro engajado durante o trajeto.</p>
+
+    <h2 class="section-title">4.2. Desenvolvimento Profundo: Como Funciona o Player e o Painel</h2>
+
+    <h3 class="sub-title">O Portal do Motorista (<code>/painel-cliente</code>) Como Seu Centro de Controle</h3>
+    <p>O Portal do Motorista (<code>/painel-cliente</code>) foi pensado para caber na rotina de quem trabalha na rua. Você consegue acessar o painel pelo próprio celular e cuidar dos pontos essenciais da sua operação:</p>
+    <ul>
+      <li><strong>Montagem e edição de playlists:</strong> adicionar ou organizar itens de forma simples — seja por arrastar e soltar ou por clique rápido com o botão <code>+</code> — combinando vídeos próprios, imagens, notícias e a Playlist da Player 99.</li>
+      <li><strong>Controle de telas e tempo de exibição:</strong> gerenciar suas telas e definir o tempo de exibição por mídia para que a programação tenha ritmo e variedade.</li>
+      <li><strong>Seleção de rádio e áudio:</strong> escolher a web rádio integrada e controlar o áudio diretamente pelo painel.</li>
+      <li><strong>Gestão financeira e afiliados:</strong> comprar créditos de recarga via PIX (com suporte a quantidade de créditos e cupons de desconto), aplicar créditos nas telas e acompanhar seu link, QR Code, comissões e saques via PIX na aba de afiliados.</li>
+    </ul>
+
+    <h3 class="sub-title">Widgets Dinâmicos ao Vivo: Informação que Atualiza Sozinha</h3>
+    <p>Um dos grandes atrativos do Player Web Inteligente (<code>/player/{codigo}</code>) é a exibição de widgets dinâmicos ao vivo em tela cheia. Na plataforma Player 99, o sistema conta com fontes e widgets como:</p>
+    <ul>
+      <li><strong>Notícias RSS:</strong> G1, AutoEsporte, Esportes/GE, Economia, Tecnologia, Pop/Arte, Mundo, Saúde e Turismo.</li>
+      <li><strong>Utilidades e engajamento:</strong> Loterias, Hora Certa e Frases.</li>
+    </ul>
+    <p>Por que isso faz diferença para o motorista? Porque o conteúdo se renova com naturalidade e entrega ao passageiro informações do dia a dia — do placar esportivo ou notícia do momento à hora certa — tornando a tela útil mesmo em trajetos curtos.</p>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/cap4-painel-e-player.jpg" alt="Motorista gerenciando o painel no celular sincronizado com o tablet no encosto de cabeça" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>Comando Pelo Celular:</strong> Atualize playlists, rádios e widgets em <code>/painel-cliente</code> com reflexo imediato no tablet.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Web Rádios Integradas e Conforto Sonoro</h3>
+    <p>Além do visual, o som ajuda a construir a atmosfera da cabine. A Player 99 oferece web rádios integradas com controle de áudio direto pelo painel. Isso permite escolher uma programação musical ou informativa mais alinhada ao clima do carro e ajustar o som sem precisar fazer malabarismos no aparelho traseiro.</p>
+
+    <h3 class="sub-title">Playlist da Player 99 e Barra de Achadinhos com QR Code</h3>
+    <p>No Player Web Inteligente, a experiência visual também se conecta às ofertas e à loja da plataforma:</p>
+    <ul>
+      <li><strong>Playlist da Player 99 (Propaganda Automática em Tela Cheia):</strong> transforma automaticamente produtos da Loja e Achadinhos em propagandas em tela cheia com o QR Code do motorista, podendo rodar intercalada na playlist ou automaticamente quando uma tela estiver em modo de bloqueio/standby.</li>
+      <li><strong>Barra de Achadinhos &amp; Loja no rodapé do tablet:</strong> exibe produtos e ofertas em rotação ao lado de um QR Code fixo exclusivo do motorista.</li>
+    </ul>
+
+    <h2 class="section-title">4.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: Alternando Notícias, Mídia e Ofertas em uma Corrida Urbana</div>
+      <p style="margin-bottom:0;">Durante uma corrida de 15 minutos, o tablet no encosto de cabeça exibe notícias ao vivo (como esportes ou economia), alterna com imagens/vídeos ou a Playlist da Player 99, mantém uma web rádio em volume agradável e deixa a Barra de Achadinhos &amp; Loja com o QR Code fixo visível no rodapé. O passageiro lê uma notícia, nota uma oferta na barra inferior e pode escanear o código se quiser ver mais no próprio celular.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Ajustando a Playlist Pelo Celular Entre Corridas</div>
+      <p style="margin-bottom:0;">Um motorista percebe que sua playlist está muito longa em um único tipo de mídia. Em uma pausa rápida no carro, ele abre o Portal do Motorista (<code>/painel-cliente</code>) no celular, ajusta o tempo de exibição de cada item, inclui widgets de notícias e hora certa, confere a web rádio e salva a alteração. A tela passa a ter um ritmo mais equilibrado sem que ele precise desmontar o tablet do encosto de cabeça.</p>
+    </div>
+
+    <h2 class="section-title">4.4. Passo a Passo Acionável: Configurando Sua Primeira Playlist no Painel</h2>
+    <ol>
+      <li><strong>Acesse o Portal do Motorista (<code>/painel-cliente</code>):</strong> abra o painel no navegador do seu celular com seus dados de acesso.</li>
+      <li><strong>Monte a sua playlist:</strong> adicione vídeos, mídias estáticas, widgets ao vivo (como notícias RSS, loterias, hora certa e frases) e, se desejar, a Playlist da Player 99.</li>
+      <li><strong>Defina o tempo de exibição por mídia:</strong> ajuste o tempo de cada item para evitar que a tela fique parada por tempo demais ou passe rápido demais.</li>
+      <li><strong>Escolha a web rádio e ajuste o áudio:</strong> selecione a rádio integrada desejada e regule o volume direto pelo painel.</li>
+      <li><strong>Abra o Player Web Inteligente (<code>/player/{codigo}</code>) no tablet e valide:</strong> confira se a playlist, os widgets, a rádio e a barra inferior com o QR Code fixo estão aparecendo corretamente na tela do veículo.</li>
+    </ol>
+
+    <h2 class="section-title">4.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Deixar apenas um único item ou imagens estáticas por longos minutos</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> combine diferentes formatos — vídeos, mídias, widgets ao vivo e ofertas — com controle de tempo de exibição para manter a tela dinâmica.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Colocar o áudio da web rádio alto demais a ponto de incomodar a conversa ou o descanso do passageiro</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> use o controle de áudio do painel para manter o som em nível suave e agradável na cabine.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Esquecer de conferir como a configuração ficou no tablet após alterar o painel</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> após editar no <code>/painel-cliente</code>, dê uma olhada na tela do player para ter certeza de que tudo carregou como você planejou.</p>
+    </div>
+
+    <h2 class="section-title">4.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Acessei o Portal do Motorista (<code>/painel-cliente</code>) pelo celular para gerenciar minha operação.</li>
+      <li>Combinei mídias, widgets ao vivo (notícias RSS, loterias, hora certa, frases) e a Playlist da Player 99 na minha grade.</li>
+      <li>Configurei o tempo de exibição por mídia e escolhi a web rádio integrada com volume equilibrado.</li>
+      <li>Verifiquei o funcionamento do Player Web Inteligente (<code>/player/{codigo}</code>) diretamente no tablet do carro.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 5 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 5</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 5</div>
+      <h2>A Ponte Digital — QR Code e a Página Interativa do Passageiro</h2>
+      <p>Como transformar o olhar na tela do carro em navegação ativa no smartphone do passageiro via <code>/motorista/{codigo}</code>.</p>
+    </div>
+
+    <h2 class="section-title">5.1. Introdução Contextual: O Problema da "Propaganda que Passa Rápido Demais" e Como a Player 99 Resolveu Isso</h2>
+    <p>Se você já trabalhou com divulgação ou observou qualquer anúncio passando na rua, conhece um problema clássico: a informação aparece, chama atenção por um instante, mas o tempo passa e a pessoa não consegue anotar o contato, decorar o endereço ou lembrar do link depois. Em um carro em movimento, esse desafio seria ainda maior se a tela dependesse apenas de o passageiro gravar mentalmente o que viu no encosto de cabeça.</p>
+
+    <p>É exatamente aí que entra o Passo 5 da Player 99: ativar o QR Code e conectar o tablet do veículo à Página Interativa do Passageiro (<code>/motorista/{codigo}</code>).</p>
+
+    <p>Com esse recurso, a tela no encosto de cabeça deixa de ser apenas um ponto de exibição visual e passa a funcionar como uma ponte imediata entre o carro e o smartphone do passageiro. Em vez de deixar uma oportunidade escapar quando o anúncio troca de tela ou quando a corrida termina, o passageiro pode escanear o código com a própria câmera e continuar a experiência no celular.</p>
+
+    <h2 class="section-title">5.2. Desenvolvimento Profundo: Como Funciona a Conexão Entre Tela e Celular</h2>
+
+    <h3 class="sub-title">O QR Code Fixo no Player Web Inteligente (<code>/player/{codigo}</code>)</h3>
+    <p>No Player Web Inteligente, o rodapé do tablet conta com a Barra de Achadinhos &amp; Loja, que exibe produtos e ofertas em rotação ao lado de um QR Code fixo exclusivo do motorista.</p>
+
+    <p>Esse QR Code funciona como um ponto de acesso constante durante o trajeto:</p>
+    <ul>
+      <li>Ele fica posicionado de forma clara e contínua na tela do veículo, facilitando o escaneamento pelo passageiro sentado no banco traseiro.</li>
+      <li>Ele pertence à operação do motorista (<code>/motorista/{codigo}</code>), ligando o que acontece na cabine ao ambiente digital interativo do celular.</li>
+    </ul>
+
+    <h3 class="sub-title">O que o Passageiro Encontra na Página Exclusiva (<code>/motorista/{codigo}</code>)</h3>
+    <p>Ao escanear o QR Code fixo na tela do carro com o smartphone, o passageiro abre a Página Interativa do Motorista (<code>/motorista/{codigo}</code>). Nessa página, ele encontra elementos pensados para prolongar a utilidade e a interatividade da corrida:</p>
+    <ul>
+      <li><strong>Boas-vindas personalizadas:</strong> a página apresenta uma saudação com o nome do motorista ou do veículo, tornando a experiência mais próxima e organizada.</li>
+      <li><strong>Player automático sincronizado com a playlist:</strong> a página traz um player automático reproduzindo a mesma playlist do tablet, permitindo ao passageiro pausar, avançar, voltar e rever qualquer anúncio que tenha chamado a atenção dele durante a viagem.</li>
+      <li><strong>Acesso direto aos Achadinhos da Player 99:</strong> há uma chamada em destaque para acessar os Achadinhos da Player 99 com descontos e ofertas.</li>
+    </ul>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/cap5-ponte-qrcode.jpg" alt="Passageiro escaneando o QR Code fixo da tela e abrindo a página interativa no smartphone" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>A Ponte Phygital:</strong> Ao escanear o QR Code fixo, o passageiro abre <code>/motorista/{codigo}</code> para rever anúncios e ofertas no celular.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Interatividade Sob Demanda: Rever o Que Chamou Atenção</h3>
+    <p>Imagine a cena comum dentro de um carro: o passageiro está olhando para o tablet, vê uma oferta ou um anúncio interessante, mas naquele segundo o carro passa por um quebra-molas ou o conteúdo avança para a próxima mídia. Sem um recurso de retorno, aquele interesse poderia se perder.</p>
+
+    <p>Com a página <code>/motorista/{codigo}</code>, o passageiro não fica refém do relógio da tela principal: ele pode abrir no próprio celular, navegar pela playlist, rever o anúncio que chamou atenção e explorar as ofertas com calma no ritmo dele.</p>
+
+    <h2 class="section-title">5.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: O Passageiro que Viu uma Oferta no Fim da Corrida</div>
+      <p style="margin-bottom:0;">Durante um trajeto de 20 minutos, o passageiro nota um produto exibido na tela e na barra de ofertas, mas o carro já está chegando ao destino. Em vez de perder a referência, ele aponta a câmera do celular para o QR Code fixo no rodapé do tablet, abre a página <code>/motorista/{codigo}</code> e encontra o player para rever os anúncios que passaram na viagem, além do acesso aos Achadinhos da Player 99.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Facilitando a Descoberta Sem Interromper a Viagem</div>
+      <p style="margin-bottom:0;">Em uma corrida de aplicativo, muitos passageiros preferem uma viagem tranquila, sem conversas forçadas. Quando a tela exibe a Barra de Achadinhos &amp; Loja com o QR Code fixo, a própria interface convida o passageiro à interação de forma silenciosa e voluntária. Quem tem interesse escaneia o código no próprio aparelho e acessa os conteúdos e ofertas no celular, sem que o motorista precise tirar a atenção do trânsito.</p>
+    </div>
+
+    <h2 class="section-title">5.4. Passo a Passo Acionável: Testando o QR Code e a Página do Passageiro</h2>
+    <ol>
+      <li><strong>Abra o Player Web Inteligente (<code>/player/{codigo}</code>) no tablet:</strong> certifique-se de que a tela esteja carregada e que a Barra de Achadinhos &amp; Loja com o QR Code fixo esteja visível no rodapé.</li>
+      <li><strong>Faça um teste com o seu próprio celular:</strong> aponte a câmera do smartphone para o QR Code exibido no tablet para verificar a leitura rápida e a abertura da página.</li>
+      <li><strong>Confira a página <code>/motorista/{codigo}</code>:</strong> verifique a mensagem de boas-vindas com o nome do motorista/veículo, teste os controles do player (pausar, avançar, voltar e rever anúncios) e observe a chamada para os Achadinhos da Player 99.</li>
+      <li><strong>Avalie a distância e o ângulo de leitura:</strong> sente-se no banco traseiro por um instante (com o carro parado e em segurança) para conferir se o código está nítido e fácil de escanear da posição real do passageiro.</li>
+    </ol>
+
+    <h2 class="section-title">5.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Colocar o tablet em um ângulo que dificulta o foco da câmera do celular no QR Code</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> ajuste a posição e a inclinação do suporte para que a tela fique de frente para o banco traseiro, sem reflexos fortes que atrapalhem a leitura do código.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Nunca testar o QR Code antes de começar a rodar com passageiros</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> faça o escaneamento de teste com o seu celular assim que configurar a tela para garantir que a página <code>/motorista/{codigo}</code> abre sem problemas.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Deixar a tela suja ou com marcas de dedo exatamente sobre a área do QR Code</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> limpe a tela periodicamente com pano adequado antes ou durante as pausas da jornada para manter a nitidez do código.</p>
+    </div>
+
+    <h2 class="section-title">5.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Confirmei que o QR Code fixo exclusivo está visível na Barra de Achadinhos &amp; Loja do Player Web Inteligente (<code>/player/{codigo}</code>).</li>
+      <li>Testei o escaneamento com o celular e validei a abertura da página interativa do passageiro (<code>/motorista/{codigo}</code>).</li>
+      <li>Verifiquei as boas-vindas, o player para rever anúncios (pausar, avançar, voltar) e o acesso aos Achadinhos da Player 99.</li>
+      <li>Garanti que o posicionamento da tela facilita a leitura do código a partir do banco traseiro.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 6 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 6</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 6</div>
+      <h2>Engenharia de Monetização — As 3 Fontes de Ganho na Prática</h2>
+      <p>Como combinar anúncios locais, Achadinhos via QR Code e Programa de Afiliados sobre a mesma estrutura.</p>
+    </div>
+
+    <h2 class="section-title">6.1. Introdução Contextual: Por Que Depender de Uma Única Fonte de Renda Limita o Seu Potencial</h2>
+    <p>Até este ponto do manual, você já assumiu a mentalidade de dono de mídia embarcada, validou a operação no teste de 24 horas, instalou o tablet no encosto de cabeça, configurou o Player Web Inteligente no <code>/painel-cliente</code> e conectou a tela ao celular do passageiro por meio do QR Code e da página <code>/motorista/{codigo}</code>.</p>
+
+    <p>Agora chegamos ao coração econômico do seu negócio: como o dinheiro chega na prática.</p>
+
+    <p>Na rotina do volante, depender de apenas uma fonte de ganho deixa você vulnerável às oscilações do dia — como horários mais fracos, feriados ou mudanças no ritmo das corridas. A grande vantagem operacional da Player 99 é permitir que o motorista trabalhe com múltiplas fontes de ganho conectadas à mesma estrutura de mídia embarcada:</p>
+    <ol>
+      <li>Anúncios de comércios locais;</li>
+      <li>Achadinhos e ofertas via QR Code (marketplaces integrados e Loja);</li>
+      <li>Programa de afiliados (indicação de novos motoristas).</li>
+    </ol>
+    <p>Compreender como cada uma dessas três frentes funciona — e como elas se complementam no dia a dia — permite que você monte uma operação mais equilibrada e profissional, sem precisar rodar um quilômetro a mais por isso.</p>
+
+    <h2 class="section-title">6.2. Desenvolvimento Profundo: As 3 Fontes de Ganho na Prática</h2>
+
+    <h3 class="sub-title">Fonte 1: Anúncios de Comércios Locais</h3>
+    <p>Negócios locais — como restaurantes, clínicas, lojas, oficinas, imobiliárias e outros estabelecimentos da cidade — buscam visibilidade exatamente nas regiões onde os clientes circulam. Quando um passageiro entra no seu carro, ele está em deslocamento real pela cidade e fica de frente para a tela no encosto do banco dianteiro durante o trajeto.</p>
+    <p>Na Player 99, esse espaço de tela se torna uma vitrine local:</p>
+    <ul>
+      <li>O anúncio aparece na programação exibida no veículo.</li>
+      <li>O QR Code na tela permite que o passageiro abra a página interativa e acesse ofertas ou caminhos digitais sem depender apenas de guardar o nome do estabelecimento de memória.</li>
+      <li>Para o motorista, essa frente aproxima a operação do relacionamento direto com negócios da região, transformando o carro em um canal de divulgação próximo ao público local.</li>
+    </ul>
+
+    <h3 class="sub-title">Fonte 2: Achadinhos e Ofertas via QR Code</h3>
+    <p>A segunda frente conecta a tela do carro às ofertas e produtos da plataforma e de grandes marketplaces integrados — como Mercado Livre, Amazon, Shopee, Magalu, Temu e AliExpress.</p>
+    <p>Na prática, a Player 99 estrutura essa engrenagem de duas formas complementares:</p>
+    <ul>
+      <li><strong>Na tela do tablet:</strong> a Barra de Achadinhos &amp; Loja no rodapé exibe produtos e ofertas em rotação ao lado do QR Code fixo exclusivo do motorista, enquanto a Playlist da Player 99 pode transformar automaticamente produtos da Loja e Achadinhos em propagandas em tela cheia com o QR Code do motorista (intercaladas na playlist ou em modo de bloqueio/standby).</li>
+      <li><strong>Na página do passageiro (<code>/motorista/{codigo}</code>):</strong> ao escanear o QR Code, o passageiro encontra uma chamada em destaque para acessar os Achadinhos da Player 99 com descontos e ofertas, além de poder rever os anúncios da viagem.</li>
+    </ul>
+    <p>As ofertas de afiliados podem ser cadastradas manualmente ou capturadas automaticamente de grupos de WhatsApp, puxando foto, título, descrição e preço da página do produto e convertendo o link para o código de afiliado com rastreio por veículo. Quando o passageiro compra por meio desse fluxo de ofertas/QR Code, gera-se comissão conforme as regras da plataforma e dos programas de afiliados.</p>
+
+    <h3 class="sub-title">Fonte 3: Programa de Afiliados (Indicação de Novos Motoristas)</h3>
+    <p>A terceira fonte de ganho está na expansão da rede por meio do Programa de Afiliados. No Portal do Motorista (<code>/painel-cliente</code>), existe uma área dedicada a afiliados com:</p>
+    <ul>
+      <li>Link de indicação e QR Code;</li>
+      <li>Histórico de comissões;</li>
+      <li>Solicitação de saque via PIX.</li>
+    </ul>
+    <p>Na sua rotina diária, você conversa com outros motoristas em pontos de parada, filas, postos ou grupos. Quando você compartilha seu link ou QR Code e outros motoristas entram na Player 99, você constrói uma frente adicional vinculada à indicação de novos usuários na rede, gerenciando tudo pelo próprio painel com saques via PIX.</p>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/cap6-tres-pilares-ganho.jpg" alt="As 3 frentes de monetização: Anúncios Locais, Achadinhos via QR Code e Programa de Afiliados" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>As 3 Fontes de Ganho:</strong> Anúncios locais, Achadinhos via QR Code e Programa de Afiliados operando em conjunto.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Comparativo Estratégico das 3 Fontes de Ganho</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Fonte de Ganho</th>
+          <th>Como Funciona na Plataforma</th>
+          <th>Papel do Motorista</th>
+          <th>Gestão e Pagamento</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Anúncios Locais</strong></td>
+          <td>Divulgação de negócios da região na tela e na experiência com QR Code.</td>
+          <td>Apresentar o espaço aos comércios locais e manter a tela ativa nas rotas.</td>
+          <td>Negociação direta e gestão da veiculação na programação do veículo.</td>
+        </tr>
+        <tr>
+          <td><strong>Achadinhos &amp; Ofertas (QR Code)</strong></td>
+          <td>Barra inferior com QR Code fixo, Playlist da Player 99 em tela cheia e página <code>/motorista/{codigo}</code> com marketplaces integrados.</td>
+          <td>Manter a tela visível e deixar o QR Code acessível para o passageiro escanear.</td>
+          <td>Rastreio por veículo e acompanhamento via painel / PIX conforme comissões geradas.</td>
+        </tr>
+        <tr>
+          <td><strong>Programa de Afiliados</strong></td>
+          <td>Link de indicação, QR Code e histórico no painel de afiliados.</td>
+          <td>Indicar novos motoristas para a Player 99 no dia a dia.</td>
+          <td>Acompanhamento no painel e solicitação de saque via PIX.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title">6.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: Combinando Conteúdo Gratuito da Tela com Ofertas via QR Code</div>
+      <p style="margin-bottom:0;">Um motorista mantém sua playlist com notícias ao vivo, hora certa e web rádio, deixando a Barra de Achadinhos &amp; Loja com o QR Code fixo no rodapé e a Playlist da Player 99 ativa. Mesmo sem precisar fazer uma abordagem comercial a cada corrida, os passageiros que se interessam por notícias ou ofertas têm acesso à página <code>/motorista/{codigo}</code> e aos Achadinhos da Player 99.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Somando Indicação de Motoristas à Rotina do Dia a Dia</div>
+      <p style="margin-bottom:0;">Durante uma semana de trabalho, um motorista conversa com colegas em pontos de espera e mostra como o tablet funciona no encosto de cabeça. Ele compartilha seu link/QR Code do painel de afiliados com quem demonstra interesse em conhecer o sistema. Assim, além das próprias corridas e da tela rodando no carro, ele passa a acompanhar sua rede de indicações diretamente no painel de afiliados.</p>
+    </div>
+
+    <h2 class="section-title">6.4. Passo a Passo Acionável: Estruturando Suas 3 Frentes</h2>
+    <ol>
+      <li><strong>Verifique sua barra e sua playlist de ofertas:</strong> confirme se a Barra de Achadinhos &amp; Loja com o QR Code fixo está visível no player e avalie o uso da Playlist da Player 99 na sua programação.</li>
+      <li><strong>Localize sua área de Afiliados no <code>/painel-cliente</code>:</strong> acesse o painel no celular, pegue seu link de indicação e seu QR Code e confira onde fica o histórico de comissões e a opção de saque via PIX.</li>
+      <li><strong>Liste negócios locais do seu trajeto:</strong> anote estabelecimentos que ficam no caminho das suas corridas habituais e que fazem sentido para o público que você transporta.</li>
+      <li><strong>Acompanhe os resultados no painel:</strong> revise periodicamente o andamento da sua operação, suas telas, seus créditos e suas movimentações no painel.</li>
+    </ol>
+
+    <h2 class="section-title">6.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Esperar retorno imediato sem manter a tela rodando com constância nas corridas</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> a exposição depende de frequência e rotina; mantenha o sistema ativo quando estiver trabalhando e deixe o QR Code visível e legível.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Esconder ou desconfigurar a área de ofertas/QR Code a ponto de o passageiro não notar a interatividade</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> teste o player no tablet e confira se o rodapé com o QR Code fixo e a navegação para a página <code>/motorista/{codigo}</code> estão funcionando bem.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Ignorar o painel de afiliados mesmo conversando diariamente com outros motoristas</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> tenha sempre à mão seu link ou QR Code de afiliado no <code>/painel-cliente</code> para compartilhar quando surgir abertura natural com outros colegas.</p>
+    </div>
+
+    <h2 class="section-title">6.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Entendi como funcionam as 3 fontes de ganho: anúncios de comércios locais, Achadinhos e ofertas via QR Code e Programa de Afiliados.</li>
+      <li>Reconheci o papel da Barra de Achadinhos &amp; Loja, da Playlist da Player 99 e da página <code>/motorista/{codigo}</code> na experiência do passageiro.</li>
+      <li>Localizei meu link, QR Code, histórico e saque via PIX na aba de afiliados do Portal do Motorista (<code>/painel-cliente</code>).</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 7 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 7</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 7</div>
+      <h2>Hospitalidade e Atenção — A Experiência do Passageiro Durante a Corrida</h2>
+      <p>Como equilibrar entretenimento, som suave, brilho noturno e naturalidade sem invadir o espaço do cliente.</p>
+    </div>
+
+    <h2 class="section-title">7.1. Introdução Contextual: O Equilíbrio Delicado Entre Entreter e Invadir o Espaço do Cliente</h2>
+    <p>Nos capítulos anteriores, você estruturou a base técnica e comercial da operação: instalou o tablet no encosto de cabeça, montou a playlist com notícias ao vivo e web rádio, ativou o QR Code com a página interativa (<code>/motorista/{codigo}</code>) e estruturou as três frentes de monetização da Player 99.</p>
+
+    <p>Agora entramos em um aspecto que define se a sua tela será vista como um diferencial agradável ou como um incômodo: a experiência do passageiro durante a corrida.</p>
+
+    <p>Em mobilidade urbana, cada passageiro entra no carro com um estado de espírito diferente. Alguns querem conversar, outros estão cansados após o trabalho, outros fazem uma ligação ou olham o próprio celular, e muitos acompanham o trajeto e observam o que acontece dentro da cabine. Uma boa experiência embarcada respeita esse espaço e agrega valor sem forçar atenção. Quando o ambiente é agradável, o conteúdo é variado e o áudio está bem regulado, o passageiro tende a se sentir mais confortável e a olhar para a tela — e escanear o QR Code — de forma espontânea.</p>
+
+    <h2 class="section-title">7.2. Desenvolvimento Profundo: Como Construir Uma Boa Experiência a Bordo</h2>
+
+    <h3 class="sub-title">Ritmo e Variedade na Programação</h3>
+    <p>Uma tela que repete sempre o mesmo conteúdo ou fica parada em um único item cansa rápido. No Player Web Inteligente (<code>/player/{codigo}</code>), a montagem da playlist permite alternar diferentes tipos de conteúdo e controlar o tempo de exibição por mídia:</p>
+    <ul>
+      <li><strong>Informação atualizada:</strong> widgets dinâmicos ao vivo, como notícias (G1, AutoEsporte, Esportes/GE, Economia, Tecnologia, Pop/Arte, Mundo, Saúde, Turismo), Loterias, Hora Certa e Frases;</li>
+      <li><strong>Mídias próprias e da plataforma:</strong> vídeos, imagens e a Playlist da Player 99 (que transforma automaticamente produtos da Loja e Achadinhos em propagandas em tela cheia com o QR Code do motorista);</li>
+      <li><strong>Ofertas visíveis sem poluir o topo:</strong> a Barra de Achadinhos &amp; Loja no rodapé com o QR Code fixo exclusivo do motorista.</li>
+    </ul>
+    <p>Alternar notícias, utilidades, entretenimento e ofertas ajuda a manter o interesse tanto em corridas curtas quanto em trajetos mais longos.</p>
+
+    <h3 class="sub-title">Conforto Sonoro e Ambiente da Cabine</h3>
+    <p>O áudio da web rádio integrada é um recurso excelente para compor o clima do veículo, mas exige sensibilidade. O painel permite escolher a rádio e controlar o áudio diretamente. Na prática, o som deve estar em um volume que acompanhe o trajeto sem abafar uma eventual conversa, sem estourar nos alto-falantes e sem incomodar quem prefere silêncio ou está usando fones de ouvido.</p>
+
+    <p>Além do som, o cuidado básico com a cabine — tela limpa, sem reflexos excessivos, brilho adequado ao horário e suporte firme — reforça a sensação de organização e zelo com o passageiro.</p>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/cap7-hospitalidade-cabine.jpg" alt="Cabine noturna confortável com tablet exibindo hora certa, notícias e QR Code sem ofuscamento" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>Conforto a Bordo:</strong> Brilho noturno equilibrado, tela limpa e programação variada criam uma cabine agradável.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Naturalidade na Interação Com o QR Code</h3>
+    <p>A Player 99 facilita a interação justamente porque o QR Code fixo fica visível na tela e leva o passageiro à página <code>/motorista/{codigo}</code>, onde ele encontra boas-vindas com o nome do motorista/veículo, um player para pausar, avançar, voltar e rever anúncios que passaram na viagem e acesso aos Achadinhos da Player 99.</p>
+
+    <p>Em vez de ficar interrompendo o silêncio do passageiro para "vender" algo a cada corrida, deixe que a própria tela apresente as informações e ofertas com clareza. Quando o passageiro tiver interesse, ele mesmo apontará a câmera do celular.</p>
+
+    <h2 class="section-title">7.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: A Corrida Noturna com Clima Tranquilo e Brilho Adequado</div>
+      <p style="margin-bottom:0;">Durante a noite, um motorista percebe que o brilho máximo da tela no encosto de cabeça chama atenção demais no escuro da cabine. Ele ajusta o brilho para um nível confortável, mantém uma web rádio em volume suave e deixa os widgets de notícias, hora certa e a barra inferior com o QR Code rodando na playlist. O passageiro acompanha as notícias e a hora certa sem desconforto visual.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Corrida Longa com Alternância de Conteúdo</div>
+      <p style="margin-bottom:0;">Em um trajeto de 30 minutos até um terminal ou bairro distante, o passageiro observa primeiro uma notícia de esportes ou tecnologia, depois vê a hora certa ou uma frase, nota mídias e ofertas na tela e, quando passa um anúncio ou produto que lhe interessa, escaneia o QR Code para abrir a página <code>/motorista/{codigo}</code> no próprio celular e rever os anúncios da viagem com calma.</p>
+    </div>
+
+    <h2 class="section-title">7.4. Passo a Passo Acionável: Cuidando da Experiência a Bordo</h2>
+    <ol>
+      <li><strong>Varie os itens da playlist no <code>/painel-cliente</code>:</strong> misture widgets ao vivo, mídias e ofertas com tempos de exibição equilibrados para evitar repetição excessiva.</li>
+      <li><strong>Ajuste o volume da web rádio:</strong> use o controle de áudio do painel para deixar o som agradável e compatível com o perfil das corridas.</li>
+      <li><strong>Verifique brilho e limpeza da tela:</strong> antes ou durante as pausas, confira se a tela está limpa e com brilho confortável para o dia ou para a noite.</li>
+      <li><strong>Mantenha a naturalidade:</strong> deixe a tela e o QR Code cumprirem o papel de informar, entreter e conectar ao celular sem pressionar o passageiro.</li>
+    </ol>
+
+    <h2 class="section-title">7.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Deixar o volume da rádio alto demais ou trocar de estação bruscamente sem critério</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> regule o áudio com suavidade no painel e escolha emissoras que combinem com uma viagem tranquila.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Sobrecarregar a tela com um único tipo de mídia ou deixar a tela suja/desatualizada</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> mantenha a playlist dinâmica, confira o funcionamento do player e limpe o visor periodicamente.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Forçar conversa sobre ofertas quando o passageiro claramente quer apenas descansar ou trabalhar no celular</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> respeite o espaço do passageiro; a tela e o QR Code já ficam disponíveis para quem quiser interagir.</p>
+    </div>
+
+    <h2 class="section-title">7.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Mantive a playlist variada e dinâmica para atender corridas curtas e longas.</li>
+      <li>Regulei o volume da web rádio integrada para um nível confortável na cabine.</li>
+      <li>Cuidei da visibilidade, limpeza e conforto visual da tela durante o dia e à noite.</li>
+      <li>Preservo a naturalidade da experiência para estimular a atenção e o escaneamento espontâneo do QR Code.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 8 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 8</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 8</div>
+      <h2>Prospecção na Rua — Como Fechar Anúncios com Comércios Locais</h2>
+      <p>Como transformar seu trajeto diário em prospecção B2B mostrando o tablet e o QR Code ao vivo no balcão.</p>
+    </div>
+
+    <h2 class="section-title">8.1. Introdução Contextual: Transformando Seu Trajeto Diário em uma Máquina de Prospecção B2B</h2>
+    <p>Depois de cuidar da experiência do passageiro dentro do carro no capítulo anterior, chegamos a um dos movimentos mais estratégicos para quem quer fazer a mídia embarcada ganhar força na cidade: prospectar comércios locais no seu dia a dia.</p>
+
+    <p>Como motorista de aplicativo, táxi ou transporte particular, você já passa todos os dias em frente a dezenas de estabelecimentos comerciais — restaurantes, clínicas, lojas, oficinas, imobiliárias e outros negócios de bairro. Na rotina comum, você apenas passa por esses lugares ou para por alguns instantes. Quando você passa a enxergar o seu veículo como uma vitrine móvel com Player 99, cada parada, cada entrega ou cada passagem por uma rua comercial vira uma oportunidade de conversar com quem toma decisões no negócio local.</p>
+
+    <p>A grande vantagem de falar com o comércio local é que a proposta resolve um problema real desse empresário: aparecer exatamente na região onde os clientes estão circulando, com um recurso interativo (QR Code) que conecta a tela ao celular do passageiro.</p>
+
+    <h2 class="section-title">8.2. Desenvolvimento Profundo: Como Prospectar e Apresentar a Proposta</h2>
+
+    <h3 class="sub-title">Mapeando Negócios Locais Que Fazem Sentido na Sua Rota</h3>
+    <p>Nem todo estabelecimento tem o mesmo perfil de compra por impulso ou o mesmo raio de atuação. Ao olhar para os comércios do seu trajeto diário, vale priorizar negócios que atendem clientes da região e que ganham visibilidade quando pessoas estão circulando pela cidade:</p>
+    <ul>
+      <li><strong>Alimentação:</strong> restaurantes, lanchonetes, cafés e delivery da região;</li>
+      <li><strong>Saúde e serviços:</strong> clínicas, consultórios, estética, oficinas e serviços especializados;</li>
+      <li><strong>Comércio e imóveis:</strong> lojas de bairro, imobiliárias e estabelecimentos com ofertas ou atendimento local.</li>
+    </ul>
+    <p>A ideia não é sair abordando qualquer porta sem critério, mas observar os comércios que você já conhece da sua rotina e que dialogam com os bairros onde você costuma rodar.</p>
+
+    <h3 class="sub-title">O Valor do Seu Carro Para o Anunciante Local</h3>
+    <p>Na hora de conversar com um comerciante ou gestor, o foco deve estar no que a Player 99 entrega para o negócio dele dentro do veículo:</p>
+    <ul>
+      <li><strong>Atenção durante o deslocamento:</strong> o passageiro está sentado no banco de trás durante o trajeto, olhando para o encosto de cabeça onde o tablet exibe conteúdos e anúncios;</li>
+      <li><strong>Ponte direta via QR Code:</strong> quando o passageiro escaneia o QR Code na tela, ele abre a experiência no próprio smartphone, facilitando o caminho para conhecer a oferta, ir ao site, falar no WhatsApp ou aproveitar promoções;</li>
+      <li><strong>Presença na cidade:</strong> a tela circula nas ruas junto com o seu veículo, em vez de ficar presa a um único ponto estático.</li>
+    </ul>
+
+    <figure class="media-slot">
+      <div class="media-slot__preview">
+        <img src="assets/cap8-prospeccao-local.jpg" alt="Demonstração ao vivo no comércio local com motorista mostrando o celular e carro estacionado" />
+      </div>
+      <figcaption class="media-slot__meta">
+        <strong>Demonstração ao Vivo:</strong> Mostrar a tela do carro e o QR Code abrindo no celular convence o comerciante na hora.
+      </figcaption>
+    </figure>
+
+    <h3 class="sub-title">Apresentando ao Vivo: Tela do Tablet + Celular do Passageiro</h3>
+    <p>Nada convence mais rápido do que mostrar o sistema funcionando de verdade. Quando você tiver abertura para conversar com o responsável pelo estabelecimento, você pode mostrar na prática:</p>
+    <ul>
+      <li>Como o Player Web Inteligente (<code>/player/{codigo}</code>) exibe mídias, notícias e a barra inferior com o QR Code fixo;</li>
+      <li>O que acontece quando alguém escaneia o QR Code com a câmera do celular — abrindo a página interativa (<code>/motorista/{codigo}</code>) com o player para rever anúncios e a navegação interativa.</li>
+    </ul>
+
+    <h2 class="section-title">8.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: A Conversa Rápida em um Estabelecimento do Trajeto</div>
+      <p style="margin-bottom:0;">Imagine que você costuma parar em um restaurante ou cafeteria do bairro entre as corridas. Em um momento de movimento tranquilo, você conversa brevemente com o responsável, mostra o tablet com a Player 99 rodando no encosto de cabeça e explica que o veículo circula pela região com passageiros olhando para a tela e podendo escanear o QR Code no celular. Em poucos minutos, o comerciante entende o formato sem precisar de uma apresentação técnica longa.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Transformando Rotas Recorrentes em Base de Contatos Locais</div>
+      <p style="margin-bottom:0;">Um motorista percebe que passa toda semana pelos mesmos corredores comerciais da cidade. Em vez de tratar o trajeto apenas como deslocamento, ele começa a anotar os estabelecimentos daquela região, apresenta a tela do carro para os interessados e acompanha esses contatos com organização — construindo um relacionamento próximo com negócios locais ao longo do tempo.</p>
+    </div>
+
+    <h2 class="section-title">8.4. Passo a Passo Acionável: Prospectando Comércios no Dia a Dia</h2>
+    <ol>
+      <li><strong>Escolha 5 a 10 comércios da sua rota habitual:</strong> comece por estabelecimentos que você já conhece e que atendem o público da sua região.</li>
+      <li><strong>Prepare sua demonstração rápida:</strong> deixe o Player Web Inteligente (<code>/player/{codigo}</code>) pronto no tablet e teste o escaneamento do QR Code no seu celular antes de abordar alguém.</li>
+      <li><strong>Aborde nos horários de menor pico do comércio:</strong> converse com donos ou gerentes quando eles tiverem alguns minutos de atenção, com postura respeitosa e direta.</li>
+      <li><strong>Mostre a tela e o QR Code na prática:</strong> explique como o anúncio aparece na cabine e como o passageiro pode escanear o código para acessar no celular.</li>
+      <li><strong>Registre o contato e faça o acompanhamento:</strong> anote quem demonstrou interesse, combine o próximo passo e mantenha a organização dos seus contatos.</li>
+    </ol>
+
+    <h2 class="section-title">8.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Abordar o comerciante no meio de um horário de pico lotado, quando ele está atendendo clientes na fila</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> respeite o ritmo do estabelecimento; se estiver corrido, seja breve, deixe seu contato e combine um horário mais calmo.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Tentar explicar tudo apenas com palavras, sem mostrar o tablet ou o QR Code funcionando</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> use a tela do seu carro e o escaneamento pelo celular para tornar a explicação visual e imediata.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Falar com o comércio sem ter a própria tela configurada e limpa</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> garanta que seu player, sua playlist e seu QR Code estejam funcionando perfeitamente antes de apresentar a oportunidade a terceiros.</p>
+    </div>
+
+    <h2 class="section-title">8.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Identifiquei comércios locais nas minhas rotas diárias que fazem sentido para a operação.</li>
+      <li>Deixei o tablet com o player ativo e o QR Code testado para demonstrações rápidas.</li>
+      <li>Estruturei uma abordagem direta e respeitosa focada na visibilidade na região e na interação via QR Code.</li>
+      <li>Passei a acompanhar meus contatos de comércios locais com organização.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 9 -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 9</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 9</div>
+      <h2>Gestão Profissional — Controle de Créditos, Contatos e Fluxo via PIX</h2>
+      <p>Como centralizar telas, recargas via PIX, histórico de afiliados e acompanhamento comercial com previsibilidade.</p>
+    </div>
+
+    <h2 class="section-title">9.1. Introdução Contextual: A Diferença Entre "Fazer um Bico" e Gerir uma Microempresa de Mídia</h2>
+    <p>Nos capítulos anteriores, você construiu a base da sua operação: cuidou da hospitalidade e da experiência do passageiro dentro da cabine e aprendeu a prospectar comércios locais nas suas rotas diárias.</p>
+
+    <p>Agora chegamos a uma etapa que separa quem trata a mídia embarcada como uma tentativa solta de quem conduz o carro como um negócio organizado: a gestão de créditos, contatos e movimentações via PIX.</p>
+
+    <p>Na rotina puxada de quem dirige, é muito fácil deixar informações soltas — esquecer quando os créditos precisam de recarga, perder o contato de um comerciante interessado em anunciar ou não acompanhar o andamento das suas telas, indicações e comissões. Quando você centraliza esses pontos no Portal do Motorista (<code>/painel-cliente</code>) e cria uma rotina simples de acompanhamento, a operação ganha previsibilidade e evita interrupções desnecessárias.</p>
+
+    <h2 class="section-title">9.2. Desenvolvimento Profundo: Como Organizar Créditos, Contatos e Fluxo via PIX</h2>
+
+    <h3 class="sub-title">Controle de Créditos, Telas e Recarga Instantânea via PIX</h3>
+    <p>Na Player 99, o funcionamento contínuo da tela passa pela gestão dos créditos de recarga no Portal do Motorista (<code>/painel-cliente</code>). O sistema foi desenhado para facilitar esse controle no dia a dia:</p>
+    <ul>
+      <li><strong>Compra de créditos via PIX:</strong> você pode comprar créditos de recarga diretamente pelo painel via PIX, com suporte a quantidade de créditos e cupons de desconto;</li>
+      <li><strong>Aplicação imediata nas telas:</strong> após a confirmação, os créditos são aplicados nas telas gerenciadas no painel para manter a exibição ativa;</li>
+      <li><strong>Acompanhamento de telas e programação:</strong> no mesmo ambiente, você gerencia suas telas, ajusta playlists, define tempos de exibição e controla a rádio e o áudio.</li>
+    </ul>
+    <p>Ter o hábito de conferir a situação das suas telas e dos seus créditos evita surpresas no meio da semana ou em dias de maior movimento.</p>
+
+    <h3 class="sub-title">Acompanhamento de Comissões, Afiliados e Saques via PIX</h3>
+    <p>Além da recarga de créditos, o Portal do Motorista (<code>/painel-cliente</code>) concentra o acompanhamento da frente de Afiliados. Nessa área, você encontra:</p>
+    <ul>
+      <li>Seu link de indicação e QR Code para compartilhar com outros motoristas;</li>
+      <li>Histórico de comissões para visualizar os registros gerados;</li>
+      <li>Solicitação de saque via PIX para movimentar seus valores de forma prática.</li>
+    </ul>
+    <p>E nas frentes de anúncios locais e Achadinhos/ofertas via QR Code (com rastreio por veículo nos marketplaces integrados), o acompanhamento constante permite entender o que está rodando melhor na sua tela e na experiência do passageiro.</p>
+
+    <h3 class="sub-title">Organização de Contatos Comerciais e de Parceria</h3>
+    <p>Quando você conversa com comércios locais nas suas rotas ou apresenta a Player 99 para outros motoristas, a memória sozinha não dá conta de tudo ao longo do mês. Manter um registro simples — seja em uma nota no celular, planilha ou lista organizada — com:</p>
+    <ul>
+      <li>Nome do estabelecimento ou do motorista indicado;</li>
+      <li>Telefone/WhatsApp e ponto de referência ou região;</li>
+      <li>Assunto conversado e data do próximo retorno;</li>
+    </ul>
+    <p>transforma conversas avulsas em uma carteira acompanhada com profissionalismo.</p>
+
+    <h2 class="section-title">9.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: Evitando Que a Tela Pare em Dia de Movimento</div>
+      <p style="margin-bottom:0;">Um motorista que roda em horários de pico cria o hábito de conferir seus créditos e o status da tela no Portal do Motorista (<code>/painel-cliente</code>) antes de iniciar a semana. Quando precisa recarregar, faz a compra via PIX no próprio painel e aplica os créditos na tela sem perder tempo de rua.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Organizando Contatos da Rota e Acompanhando o Painel</div>
+      <p style="margin-bottom:0;">Durante a semana, um motorista conversa com três comerciantes do bairro e compartilha seu link de afiliado com dois colegas de ponto. Ao fim do dia, anota rapidamente os nomes, os combinados e o que precisa acompanhar no painel — incluindo o histórico de comissões e eventuais saques via PIX. Em vez de deixar tudo solto, ele sabe exatamente quem retomar na semana seguinte.</p>
+    </div>
+
+    <h2 class="section-title">9.4. Passo a Passo Acionável: Rotina Simples de Gestão</h2>
+    <ol>
+      <li><strong>Acesse o <code>/painel-cliente</code> em horário de pausa:</strong> reserve alguns minutos em um momento calmo do dia para revisar suas telas, playlists e créditos.</li>
+      <li><strong>Programe suas recargas via PIX com antecedência:</strong> evite esperar o limite apertar para recarregar créditos e aplicar nas telas.</li>
+      <li><strong>Confira a aba de Afiliados:</strong> acompanhe seu link/QR Code, revise o histórico de comissões e solicite saque via PIX quando desejado, conforme as regras do painel.</li>
+      <li><strong>Anote seus contatos do dia:</strong> registre comerciantes abordados e motoristas indicados logo após as conversas para não perder o fio do acompanhamento.</li>
+    </ol>
+
+    <h2 class="section-title">9.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Deixar para ver créditos ou status da tela apenas quando já está no meio da jornada de corridas</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> faça uma checagem rápida no Portal do Motorista (<code>/painel-cliente</code>) fora do horário de pico e recarregue via PIX com antecedência.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Não registrar quem demonstrou interesse entre os comércios locais ou motoristas</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> anote nome, WhatsApp e contexto da conversa no mesmo dia para fazer o retorno no momento combinado.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Misturar controle de créditos, comissões e anotações pessoais sem nenhum critério</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> separe a conferência do painel (créditos, telas, afiliados e PIX) do seu registro simples de contatos comerciais.</p>
+    </div>
+
+    <h2 class="section-title">9.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Passei a acompanhar minhas telas, playlists e recargas de créditos via PIX no Portal do Motorista (<code>/painel-cliente</code>).</li>
+      <li>Localizei e passei a monitorar meu link, QR Code, histórico de comissões e saque via PIX na área de afiliados.</li>
+      <li>Criei um registro simples para acompanhar contatos de comércios locais e indicações.</li>
+      <li>Evito resolver ajustes administrativos urgentes durante a condução no trânsito.</li>
+    </ul>
+  </section>
+
+  <!-- CAPÍTULO 10 + ENCERRAMENTO -->
+  <section class="sheet page-break">
+    <div class="doc-header">
+      <span>10 Passos para Transformar Seu Carro em um Negócio de Mídia</span>
+      <span>Capítulo 10 &amp; Encerramento</span>
+    </div>
+
+    <div class="chapter-banner">
+      <div class="chapter-banner__label">Capítulo 10</div>
+      <h2>Consistência e Escala — Consolidando Seu Negócio de Mídia Embarcada</h2>
+      <p>O efeito composto da constância diária nas ruas da sua cidade em ciclos de 30 dias.</p>
+    </div>
+
+    <h2 class="section-title">10.1. Introdução Contextual: O Efeito Composto da Presença Diária nas Ruas da Sua Cidade</h2>
+    <p>Ao chegar ao Capítulo 10, você já percorreu todas as etapas fundamentais da jornada na Player 99: entendeu seu novo papel como dono de mídia embarcada, validou a operação com o cadastro gratuito e o teste de 24 horas, estruturou o tablet no encosto de cabeça, configurou o Player Web Inteligente (<code>/player/{codigo}</code>), ativou o QR Code e a página interativa do passageiro (<code>/motorista/{codigo}</code>), explorou as três fontes de ganho, cuidou da experiência a bordo, aprendeu a prospectar comércios locais e organizou a gestão de créditos e PIX.</p>
+
+    <p>Agora entra o fator que transforma uma boa iniciativa em um resultado consistente ao longo do tempo: a constância operacional no dia a dia.</p>
+
+    <p>Em mídia embarcada, o impacto não acontece apenas em um dia isolado de sorte. Ele se constrói na soma das corridas semanais, na continuidade da tela ativa durante os períodos de créditos recarregados, na atualização periódica da programação e na regularidade das conversas com estabelecimentos locais e colegas motoristas. Quando você mantém o ritmo, o sistema automatizado trabalha junto com a sua rotina de direção.</p>
+
+    <h2 class="section-title">10.2. Desenvolvimento Profundo: Como Consolidar e Escalar Com Consistência</h2>
+
+    <h3 class="sub-title">Consistência Diária Como Base do Negócio</h3>
+    <p>Manter a tela ativa durante suas jornadas de trabalho cria previsibilidade operacional:</p>
+    <ul>
+      <li><strong>Mais exposição natural nas rotas:</strong> a cada dia em que você dirige com o tablet configurado e o QR Code visível, novos passageiros têm contato com as notícias, a web rádio, a Barra de Achadinhos &amp; Loja, a Playlist da Player 99 e os conteúdos exibidos na tela.</li>
+      <li><strong>Programação viva:</strong> ajustar playlists, revisar tempos de exibição e acompanhar os widgets dinâmicos ao vivo (notícias RSS, loterias, hora certa, frases) mantém a experiência atualizada para quem anda com frequência no seu carro.</li>
+      <li><strong>Sem depender de quilômetros extras:</strong> a escala da exposição vem da frequência e da continuidade das corridas que você já faz, não de rodar além do necessário.</li>
+    </ul>
+
+    <h3 class="sub-title">Consolidando Relacionamentos Locais e Rede de Indicação</h3>
+    <p>Com o passar das semanas, a consistência também fortalece os dois movimentos externos do motorista empreendedor:</p>
+    <ul>
+      <li><strong>Comércios locais:</strong> quando você mantém presença frequente na mesma região e apresenta uma tela organizada, interativa e funcional com QR Code, o diálogo com negócios locais tende a ficar mais natural e estruturado.</li>
+      <li><strong>Programa de afiliados:</strong> ao compartilhar seu link ou QR Code da área de afiliados no Portal do Motorista (<code>/painel-cliente</code>) com outros motoristas quando surge abertura, você acompanha sua rede e seu histórico de comissões diretamente pelo painel, com possibilidade de solicitação de saque via PIX.</li>
+    </ul>
+
+    <h3 class="sub-title">Automação a Favor do Motorista</h3>
+    <p>Um dos grandes diferenciais da Player 99 para sustentar a escala sem sobrecarregar quem dirige é a automação dos processos centrais:</p>
+    <ul>
+      <li>Recargas de créditos via PIX pelo painel com aplicação nas telas;</li>
+      <li>Atualização de widgets ao vivo e reprodução contínua no Player Web Inteligente (<code>/player/{codigo}</code>);</li>
+      <li>Conexão direta do passageiro à página <code>/motorista/{codigo}</code> ao escanear o QR Code, permitindo rever anúncios e acessar ofertas/Achadinhos.</li>
+    </ul>
+    <p>Assim, você foca na condução segura e na rotina das corridas enquanto a plataforma cuida da entrega digital na tela e no celular do passageiro.</p>
+
+    <h2 class="section-title">10.3. Exemplos Práticos e Estudos de Caso</h2>
+
+    <div class="callout callout--mint">
+      <div class="callout__title">Exemplo Prático 1: A Diferença Entre Ativar de Vez em Quando e Rodar Com Continuidade</div>
+      <p style="margin-bottom:0;">Um motorista instala o tablet no encosto de cabeça, ativa o sistema apenas por dois dias e depois deixa o equipamento desligado por semanas. Naturalmente, a exposição e o ritmo de acompanhamento ficam fragmentados. Já o motorista que mantém o equipamento organizado, confere seus créditos via PIX no <code>/painel-cliente</code> e roda com a tela ativa na sua rotina diária cria um hábito contínuo de operação e acompanhamento.</p>
+    </div>
+
+    <div class="callout">
+      <div class="callout__title">Estudo de Caso: Evolução em Ciclos de 30 Dias</div>
+      <p style="margin-bottom:0;">Ao longo de ciclos mensais de créditos, o motorista observa o que funciona melhor na sua rotina: ajusta a ordem e o tempo das mídias na playlist, confere o som da web rádio, revisa a visibilidade do QR Code, conversa com estabelecimentos do trajeto e acompanha suas movimentações e registros no painel. Cada ciclo de 30 dias serve de base para aperfeiçoar o próximo sem começar do zero.</p>
+    </div>
+
+    <h2 class="section-title">10.4. Passo a Passo Acionável: Plano de Consolidação em Ciclos</h2>
+    <ol>
+      <li><strong>Semana 1 — Base técnica e validação:</strong> garanta hardware firme, orientação adequada (horizontal ou vertical), player ativo no tablet, playlist configurada e QR Code testado na página <code>/motorista/{codigo}</code>.</li>
+      <li><strong>Semana 2 — Ritmo de cabine e experiência:</strong> ajuste o volume da web rádio, varie conteúdos e widgets ao vivo e observe o conforto visual do passageiro em corridas curtas e longas.</li>
+      <li><strong>Semana 3 — Rotina de rua e contatos:</strong> mapeie comércios locais nas suas rotas habituais, faça demonstrações práticas quando houver abertura e registre seus contatos e indicações.</li>
+      <li><strong>Semana 4 em diante — Revisão e continuidade:</strong> confira créditos e recargas via PIX no <code>/painel-cliente</code>, acompanhe a área de afiliados e ajuste sua programação para o próximo ciclo de 30 dias.</li>
+    </ol>
+
+    <h2 class="section-title">10.5. Erros Comuns e Como Evitá-los</h2>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 1: Tratar a operação como um evento isolado em vez de um hábito contínuo</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> inclua a checagem da tela, dos créditos e dos contatos na sua rotina semanal para manter a constância.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 2: Deixar a playlist esquecida por semanas sem revisar o que está passando na tela</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> abra o Portal do Motorista (<code>/painel-cliente</code>) periodicamente para atualizar mídias, ajustar tempos e verificar o funcionamento geral.</p>
+    </div>
+    <div class="callout callout--amber">
+      <div class="callout__title">Erro 3: Desanimar nos primeiros dias por não ver tudo acontecer da noite para o dia</div>
+      <p style="margin-bottom:0;"><strong>Como evitar:</strong> mantenha o foco na execução diária — dirigir com segurança, oferecer boa experiência a bordo, manter o QR Code acessível e acompanhar sua operação com organização.</p>
+    </div>
+
+    <h2 class="section-title">10.6. Resumo Prático (Checklist do Capítulo)</h2>
+    <ul class="checklist">
+      <li>Compreendi que a consistência diária com a tela ativa é o que consolida a operação ao longo do tempo.</li>
+      <li>Estruturei uma rotina simples de revisão da playlist, recargas via PIX, acompanhamento no painel e registro de contatos.</li>
+      <li>Alinhei minha atuação à proposta de operar a mídia embarcada junto às minhas corridas habituais, sem rodar quilômetros extras por isso.</li>
+    </ul>
+
+    <div class="cta-box">
+      <h3>Encerramento: O Volante Continua nas Suas Mãos — Mas Agora o Negócio Também é Seu</h3>
+      <p>Você já leu os 10 Passos e enxergou como o seu veículo pode fazer muito mais do que transportar passageiros de um ponto ao outro. A diferença entre continuar apenas desejando uma renda extra e colocar a operação para rodar está em dar o primeiro passo prático.</p>
+      <p>Com a Player 99, você não precisa criar sistema do zero, comprar equipamento caro nem depender de um único aplicativo. Você pode usar um tablet (na horizontal ou vertical), configurar sua programação no Portal do Motorista (<code>/painel-cliente</code>), conectar o passageiro pelo QR Code à página interativa (<code>/motorista/{codigo}</code>) e trabalhar frentes como anúncios de comércios locais, Achadinhos e ofertas via QR Code e indicação de novos motoristas (afiliados), com gestão e pagamentos via PIX.</p>
+      <p>E o melhor: você não precisa decidir tudo de uma vez sem testar. O caminho mais simples é começar agora mesmo no site oficial:</p>
+      <ol>
+        <li><strong>Acesse https://player99.com.br</strong> e faça o seu cadastro gratuito.</li>
+        <li><strong>Ative o teste grátis de 24 horas</strong> para ver o Player Web Inteligente (<code>/player/{codigo}</code>) funcionando na prática no seu carro e observar a reação dos passageiros.</li>
+        <li><strong>Recarregue os créditos de 30 dias por R$ 99 via PIX</strong> no painel depois de validar a operação no seu dia a dia.</li>
+      </ol>
+      <p style="margin-bottom:14px;">Seu carro já está nas ruas todos os dias. Acesse <strong>https://player99.com.br</strong>, faça seu cadastro gratuito, ative seu teste de 24 horas e dê o primeiro passo para transformar suas corridas em um negócio de mídia embarcada.</p>
+      <a class="cta-pill" href="https://player99.com.br" target="_blank" rel="noopener">Começar Teste Grátis de 24h • player99.com.br</a>
+    </div>
+  </section>
+
+</body>
+</html>

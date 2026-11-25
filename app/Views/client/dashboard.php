@@ -351,10 +351,10 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                     }
                 </style>
 
-                <!-- Boas-vindas + Download do App do Tablet -->
+                <!-- Boas-vindas + Download do App do Tablet + Guia Prático (E-book) -->
                 <div class="welcome-hero">
                     <div class="row align-items-center">
-                        <div class="col-lg-7 mb-3 mb-lg-0">
+                        <div class="col-xl-5 mb-3 mb-xl-0">
                             <span class="badge badge-info px-3 py-1 mb-2" style="background: rgba(0,243,255,0.18); color: #00f3ff; border: 1px solid rgba(0,243,255,0.4);">
                                 <i class="fas fa-check-circle mr-1"></i> Central do Motorista Player99
                             </span>
@@ -377,27 +377,58 @@ $logoSrc = !empty($customization['logo_path']) ? $customization['logo_path'] : \
                                 </span>
                             </div>
                         </div>
-                        <div class="col-lg-5">
-                            <div class="p-3 rounded text-center" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(0,243,255,0.35); border-radius: 14px !important;">
-                                <div class="mb-2" style="font-size: 13px; font-weight: 700; color: #00f3ff;">
-                                    <i class="fab fa-android fa-lg mr-1"></i> APLICATIVO PARA O TABLET
+                        <div class="col-xl-7">
+                            <div class="row">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <div class="p-3 rounded text-center h-100 d-flex flex-column justify-content-between" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(0,243,255,0.35); border-radius: 14px !important;">
+                                        <div>
+                                            <div class="mb-2" style="font-size: 13px; font-weight: 700; color: #00f3ff;">
+                                                <i class="fab fa-android fa-lg mr-1"></i> APLICATIVO PARA O TABLET
+                                            </div>
+                                            <?php if ($apkUrl !== ''): ?>
+                                                <p class="small mb-3" style="color: #e2e8f0;">
+                                                    Baixe aqui o aplicativo oficial para instalar no tablet do seu veículo:
+                                                </p>
+                                            <?php else: ?>
+                                                <p class="small mb-2" style="color: #cbd5e1;">
+                                                    O aplicativo instalador (.APK) será disponibilizado aqui em breve pelo administrador.
+                                                </p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div>
+                                            <?php if ($apkUrl !== ''): ?>
+                                                <a href="<?= htmlspecialchars($apkUrl) ?>" download="<?= htmlspecialchars($apkName) ?>" class="btn btn-success btn-lg btn-block font-weight-bold shadow-sm">
+                                                    <i class="fas fa-download mr-2"></i> Baixe aqui seu App (.APK)
+                                                </a>
+                                                <small class="d-block mt-2" style="color: #94a3b8; font-size: 11px;">
+                                                    <?= htmlspecialchars($apkName) ?><?= $apkSize !== '' ? ' • ' . htmlspecialchars($apkSize) : '' ?>
+                                                </small>
+                                            <?php else: ?>
+                                                <span class="badge badge-secondary px-3 py-2">Aguardando envio do APK</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </div>
-                                <?php if ($apkUrl !== ''): ?>
-                                    <p class="small mb-3" style="color: #e2e8f0;">
-                                        Baixe aqui o aplicativo oficial para instalar no tablet do seu veículo:
-                                    </p>
-                                    <a href="<?= htmlspecialchars($apkUrl) ?>" download="<?= htmlspecialchars($apkName) ?>" class="btn btn-success btn-lg btn-block font-weight-bold shadow-sm">
-                                        <i class="fas fa-download mr-2"></i> Baixe aqui seu App (.APK)
-                                    </a>
-                                    <small class="d-block mt-2" style="color: #94a3b8; font-size: 11px;">
-                                        <?= htmlspecialchars($apkName) ?><?= $apkSize !== '' ? ' • ' . htmlspecialchars($apkSize) : '' ?>
-                                    </small>
-                                <?php else: ?>
-                                    <p class="small mb-2" style="color: #cbd5e1;">
-                                        O aplicativo instalador (.APK) será disponibilizado aqui em breve pelo administrador.
-                                    </p>
-                                    <span class="badge badge-secondary px-3 py-2">Aguardando envio do APK</span>
-                                <?php endif; ?>
+                                <div class="col-md-6">
+                                    <div class="p-3 rounded text-center h-100 d-flex flex-column justify-content-between" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,140,0,0.45); border-radius: 14px !important;">
+                                        <div>
+                                            <div class="mb-2" style="font-size: 13px; font-weight: 700; color: #ffb74d;">
+                                                <i class="fas fa-book-open fa-lg mr-1"></i> GUIA PRÁTICO (E-BOOK)
+                                            </div>
+                                            <p class="small mb-3" style="color: #e2e8f0;">
+                                                10 Passos para transformar seu carro em um negócio de mídia e lucrar na prática:
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <a href="/assets/ebook/ebook-player99-completo.html" target="_blank" rel="noopener" class="btn btn-warning btn-lg btn-block font-weight-bold shadow-sm" style="background: #ff8c00; border-color: #ff8c00; color: #040b17;">
+                                                <i class="fas fa-book-reader mr-2"></i> Abrir Guia Completo
+                                            </a>
+                                            <small class="d-block mt-2" style="color: #94a3b8; font-size: 11px;">
+                                                Guia ilustrado • Leitura online ou PDF
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
