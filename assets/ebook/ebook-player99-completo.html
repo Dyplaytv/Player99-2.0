@@ -531,11 +531,45 @@
       }
 
       .sheet--dark {
-        padding: 10mm;
+        padding: 6mm;
+        page-break-after: always;
+        break-after: page;
       }
 
       .cover {
-        min-height: 255mm;
+        min-height: 248mm;
+        max-height: 248mm;
+        padding: 16px 20px;
+      }
+
+      .cover__hero {
+        padding: 12px 0;
+      }
+
+      .cover__title {
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+
+      .cover__subtitle {
+        font-size: 15.5px;
+        margin-bottom: 14px;
+      }
+
+      .cover__frame {
+        min-height: 155px;
+      }
+
+      .cover__frame img {
+        max-height: 185px;
+      }
+
+      .cover__highlights {
+        margin-top: 12px;
+      }
+
+      .stat-card {
+        padding: 10px;
       }
 
       .no-print {
@@ -1896,7 +1930,16 @@
         <li><strong>Recarregue os créditos de 30 dias por R$ 99 via PIX</strong> no painel depois de validar a operação no seu dia a dia.</li>
       </ol>
       <p style="margin-bottom:14px;">Seu carro já está nas ruas todos os dias. Acesse <strong>https://player99.com.br</strong>, faça seu cadastro gratuito, ative seu teste de 24 horas e dê o primeiro passo para transformar suas corridas em um negócio de mídia embarcada.</p>
-      <a class="cta-pill" href="https://player99.com.br" target="_blank" rel="noopener">Começar Teste Grátis de 24h • player99.com.br</a>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.14);">
+        <div>
+          <a class="cta-pill" href="https://player99.com.br" target="_blank" rel="noopener">Começar Teste Grátis de 24h • player99.com.br</a>
+          <p style="margin:10px 0 0; font-size:13px; color:#a8bdd9;">Aponte a câmera do celular para o QR Code ao lado para abrir o site oficial.</p>
+        </div>
+        <div style="background:#ffffff; padding:10px; border-radius:12px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.28); flex-shrink:0;">
+          <img src="assets/qrcode-player99.png" alt="QR Code Player 99 - https://player99.com.br" style="width:118px; height:118px; display:block;" />
+          <div style="margin-top:5px; font-size:11px; font-weight:800; color:#040b17; letter-spacing:0.02em;">player99.com.br</div>
+        </div>
+      </div>
     </div>
   </section>
 

@@ -706,7 +706,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
             startCurrentItem(mediaItems[0]);
         }
 
-        // Telemetria e Ping Automático a cada 6 segundos para resposta imediata de rotação e rádio
+        // Telemetria e Ping Automático a cada 15 segundos para reduzir carga mantendo resposta rápida de rotação e rádio
         function sendPing() {
             fetch('/api/ping?codigo=' + encodeURIComponent(codigo))
                 .then(res => res.json())
@@ -738,7 +738,7 @@ $radioName = $radioInfo['radio_name'] ?? '';
                 });
         }
 
-        setInterval(sendPing, 6000);
+        setInterval(sendPing, 15000);
         sendPing();
 
         const PWA_CACHE_NAME = 'player99-pwa-cache-v2';
